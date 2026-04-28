@@ -107,11 +107,6 @@ export default function Create() {
 
   const onGenerate = () => {
     if (!canGenerate || !imageDataUrl) return;
-    // If a fresh result already exists and inputs are unchanged, just navigate.
-    if (hasGeneratedResult && !isOutdated) {
-      navigate("/result");
-      return;
-    }
     // Outdated → confirm before discarding the existing result.
     if (isOutdated) {
       const ok = window.confirm(
