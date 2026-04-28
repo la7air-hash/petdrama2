@@ -119,16 +119,28 @@ export default function Result() {
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
   const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
+  // Reconcile React state with localStorage. Storage is the source of truth
+  // for assets — React state is the source of truth for the active variant
+  // and any in-flight render URLs not yet persisted.
   const getLiveDraft = (baseDraft: DramaDraft): DramaDraft => {
-    const latest = loadDraft();
-    const sameLatest = latest?.creationId === baseDraft.creationId ? latest : null;
-    return {
+    const stored = loadDraft();
+    const sameStored = stored?.creationId === baseDraft.creationId ? stored : null;
+    // Start from stored (most complete) when available, then layer baseDraft
+    // (current React state for drama text, etc), then in-flight render URLs.
+    const merged: DramaDraft = {
+      ...(sameStored ?? {} as DramaDraft),
       ...baseDraft,
-      renderedDataUrl: renderUrl ?? baseDraft.renderedDataUrl ?? sameLatest?.renderedDataUrl,
-      remixImageDataUrl: baseDraft.remixImageDataUrl ?? sameLatest?.remixImageDataUrl,
-      remixRenderedDataUrl: remixRenderUrl ?? baseDraft.remixRenderedDataUrl ?? sameLatest?.remixRenderedDataUrl,
+      // Asset URLs: prefer the freshest non-null value.
+      renderedDataUrl:
+        renderUrl ?? baseDraft.renderedDataUrl ?? sameStored?.renderedDataUrl,
+      remixImageDataUrl:
+        baseDraft.remixImageDataUrl ?? sameStored?.remixImageDataUrl,
+      remixRenderedDataUrl:
+        remixRenderUrl ?? baseDraft.remixRenderedDataUrl ?? sameStored?.remixRenderedDataUrl,
       variant,
+      savedToGallery: baseDraft.savedToGallery ?? sameStored?.savedToGallery,
     };
+    return merged;
   };
 
   if (!draft || !style) return null;
