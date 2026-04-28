@@ -52,8 +52,10 @@ export default function Result() {
   }, [navigate]);
 
   // Render the ORIGINAL card whenever quote/caption/photo changes.
+  // Skip if renderUrl is already populated (restored from draft or pre-cached).
   useEffect(() => {
     if (!draft) return;
+    if (renderUrl) return;
     let cancelled = false;
     renderDramaPng({
       imageDataUrl: draft.imageDataUrl,
@@ -65,17 +67,23 @@ export default function Result() {
       size: 1080,
     })
       .then((url) => {
-        if (!cancelled) setRenderUrl(url);
+        if (cancelled) return;
+        setRenderUrl(url);
+        // Persist into draft so navigating away/back keeps the same asset.
+        const latest = loadDraft();
+        if (latest && latest.creationId === draft.creationId) {
+          saveDraft({ ...latest, renderedDataUrl: url });
+        }
       })
       .catch(() => toast.error("Could not render preview."));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, isPro]);
 
   // Render the REMIX card whenever the remix image or quote/caption changes.
-  // Skip if remixRenderUrl is already populated (e.g. pre-rendered inside onDramaRemix)
-  // — this prevents producing a second, slightly different data URL for the same asset.
+  // Skip if remixRenderUrl is already populated (restored from draft or pre-rendered).
   useEffect(() => {
     if (!draft?.remixImageDataUrl) {
       setRemixRenderUrl(null);
@@ -93,7 +101,12 @@ export default function Result() {
       size: 1080,
     })
       .then((url) => {
-        if (!cancelled) setRemixRenderUrl(url);
+        if (cancelled) return;
+        setRemixRenderUrl(url);
+        const latest = loadDraft();
+        if (latest && latest.creationId === draft.creationId) {
+          saveDraft({ ...latest, remixRenderedDataUrl: url });
+        }
       })
       .catch(() => toast.error("Could not render remix preview."));
     return () => {
