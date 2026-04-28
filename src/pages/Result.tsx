@@ -217,17 +217,41 @@ export default function Result() {
     }
   };
 
-  const onSaveToGallery = () => {
-    if (!renderUrl) {
-      toast.error("Still rendering — try again in a moment.");
-      return;
+  const onSaveToGallery = async () => {
+    try {
+      const common = {
+        petName: normalizePetName(draft.petName),
+        styleId: draft.styleId,
+        quote: draft.drama.quote,
+        caption: draft.drama.caption,
+        watermark: !isPro,
+        size: 1080 as const,
+      };
+      // Ensure the original render exists & matches current quote/caption.
+      const finalOriginal =
+        renderUrl ??
+        (await renderDramaPng({ ...common, imageDataUrl: draft.imageDataUrl }));
+      // Ensure remix render exists if a remix image is present.
+      let finalRemix: string | undefined = remixRenderUrl ?? undefined;
+      if (draft.remixImageDataUrl && !finalRemix) {
+        finalRemix = await renderDramaPng({
+          ...common,
+          imageDataUrl: draft.remixImageDataUrl,
+        });
+      }
+      // Cache them locally so toggle/download use the exact same asset.
+      if (!renderUrl) setRenderUrl(finalOriginal);
+      if (finalRemix && !remixRenderUrl) setRemixRenderUrl(finalRemix);
+
+      saveToGallery({
+        ...draft,
+        renderedDataUrl: finalOriginal,
+        remixRenderedDataUrl: finalRemix,
+      });
+      toast.success("Saved to your gallery.");
+    } catch {
+      toast.error("Couldn't save — please try again.");
     }
-    saveToGallery({
-      ...draft,
-      renderedDataUrl: renderUrl,
-      remixRenderedDataUrl: remixRenderUrl ?? undefined,
-    });
-    toast.success("Saved to your gallery.");
   };
 
   return (
