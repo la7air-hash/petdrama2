@@ -190,10 +190,38 @@ export default function Result() {
               </div>
             </StickerCard>
 
-            <StickerCard className="p-6 bg-background">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Social caption</p>
-              <p className="mt-2 text-base md:text-lg leading-relaxed">{draft.drama.caption}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <StickerCard className="p-5 md:p-6 bg-background">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pick your caption</p>
+              <div className="mt-3 space-y-2.5">
+                {draft.drama.captionOptions.map((c, i) => {
+                  const active = c === draft.drama.caption;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => onSelectCaption(c)}
+                      className={cn(
+                        "w-full text-left rounded-2xl border-2 border-foreground p-3.5 transition-all",
+                        active
+                          ? "bg-primary text-primary-foreground sticker-shadow-sm translate-x-[-1px] translate-y-[-1px]"
+                          : "bg-card hover:-translate-y-0.5",
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-foreground text-[10px] font-extrabold",
+                            active ? "bg-foreground text-background" : "bg-background",
+                          )}
+                        >
+                          {active ? "✓" : i + 1}
+                        </span>
+                        <p className="text-sm md:text-base leading-snug font-medium">{c}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
                 {draft.drama.hashtags.map((h) => (
                   <span key={h} className="rounded-full border-2 border-foreground bg-card px-3 py-1 text-xs font-bold">
                     {h}
