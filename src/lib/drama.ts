@@ -146,12 +146,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "The vet? We don't speak that name in this household.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} runs this household. The rest of us are just lucky to live here.`,
-      (n, _v, dn) => `Nothing moves in this house without ${dn}'s approval. Including me.`,
-      (n, _v, dn) => `${dn} doesn't break the rules. ${dn} writes them on the back of the treat bag.`,
-      (n, _v, dn) => `Don't make ${dn} ask twice. I learned that the hard way.`,
+      (n, _v, dn) => `${dn} runs this house. I just pay rent 🕴️`,
+      (n, _v, dn) => `nobody moves until ${dn} says so 🤌`,
+      (n, _v, dn) => `${dn} doesn't ask twice. ask my couch 🛋️💀`,
+      (n, _v, dn) => `pov: ${dn} is the boss and you forgot the treat tax`,
+      (n, _v, dn) => `${dn} writes the rules on the back of the treat bag 📜`,
+      (n, _v, dn) => `respect ${dn} or face the stare 👁️`,
     ],
-    hashtags: ["#MafiaPet", "#PetDrama", "#TheBoss", "#TreatTribute", "#GoodFluff"],
+    hashtags: ["#MafiaPet", "#PetDrama", "#TheBoss", "#PetTok", "#GoodFluff"],
   },
 
   "royal-pet": {
