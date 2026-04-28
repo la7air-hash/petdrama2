@@ -45,6 +45,7 @@ export default function Result() {
     setDraft(d);
   }, [navigate]);
 
+  // Render the ORIGINAL card whenever quote/caption/photo changes.
   useEffect(() => {
     if (!draft) return;
     let cancelled = false;
@@ -66,10 +67,38 @@ export default function Result() {
     };
   }, [draft, isPro]);
 
+  // Render the REMIX card whenever the remix image or quote/caption changes.
+  useEffect(() => {
+    if (!draft?.remixImageDataUrl) {
+      setRemixRenderUrl(null);
+      return;
+    }
+    let cancelled = false;
+    renderDramaPng({
+      imageDataUrl: draft.remixImageDataUrl,
+      petName: normalizePetName(draft.petName),
+      styleId: draft.styleId,
+      quote: draft.drama.quote,
+      caption: draft.drama.caption,
+      watermark: !isPro,
+      size: 1080,
+    })
+      .then((url) => {
+        if (!cancelled) setRemixRenderUrl(url);
+      })
+      .catch(() => toast.error("Could not render remix preview."));
+    return () => {
+      cancelled = true;
+    };
+  }, [draft, isPro]);
+
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
   const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
   if (!draft || !style) return null;
+
+  const activeRenderUrl = variant === "remix" ? remixRenderUrl : renderUrl;
+  const hasRemix = !!draft.remixImageDataUrl;
 
   const onSelectQuote = (q: string) => {
     if (q === draft.drama.quote) return;
@@ -80,6 +109,7 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
   };
 
   const onSelectCaption = (c: string) => {
@@ -91,11 +121,16 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
   };
 
   const onDownload = () => {
-    if (!renderUrl) return;
-    downloadDataUrl(renderUrl, `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}.png`);
+    if (!activeRenderUrl) return;
+    const tag = variant === "remix" ? "-remix" : "";
+    downloadDataUrl(
+      activeRenderUrl,
+      `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}${tag}.png`,
+    );
     toast.success("Downloaded! Now post it 😎");
   };
 
@@ -111,6 +146,39 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
+  };
+
+  const onDramaRemix = async () => {
+    if (isRemixing) return;
+    setIsRemixing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("drama-remix", {
+        body: {
+          imageDataUrl: draft.imageDataUrl,
+          styleId: draft.styleId,
+          petType: draft.petType,
+        },
+      });
+      if (error) throw error;
+      const remixUrl = (data as { imageDataUrl?: string; error?: string })?.imageDataUrl;
+      if (!remixUrl) throw new Error((data as any)?.error || "No remix returned");
+      const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
+      saveDraft(updated);
+      setDraft(updated);
+      setVariant("remix");
+      toast.success("Drama Remix ready ✨");
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.message?.includes("429")
+        ? "Too many requests. Try again shortly."
+        : e?.message?.includes("402")
+        ? "AI credits exhausted. Add credits to continue."
+        : "Remix failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setIsRemixing(false);
+    }
   };
 
   const onSaveToGallery = () => {
@@ -118,7 +186,11 @@ export default function Result() {
       toast.error("Still rendering — try again in a moment.");
       return;
     }
-    saveToGallery({ ...draft, renderedDataUrl: renderUrl });
+    saveToGallery({
+      ...draft,
+      renderedDataUrl: renderUrl,
+      remixRenderedDataUrl: remixRenderUrl ?? undefined,
+    });
     toast.success("Saved to your gallery.");
   };
 
