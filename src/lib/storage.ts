@@ -73,20 +73,51 @@ export function clearDraft() {
   }
 }
 
-export function saveToGallery(draft: DramaDraft) {
+export function auditCreationAssets(label: string, draft: DramaDraft | null, galleryPayload: DramaDraft[] = []) {
+  try {
+    console.info("[PetDrama asset audit]", label, {
+      activeCreationId: draft?.creationId ?? null,
+      renderedDataUrlPresent: !!draft?.renderedDataUrl,
+      remixRenderedDataUrlPresent: !!draft?.remixRenderedDataUrl,
+      currentVisibleVariant: draft?.variant ?? "original",
+      savedGalleryPayload: galleryPayload.map((item) => ({
+        creationId: item.creationId,
+        renderedDataUrlPresent: !!item.renderedDataUrl,
+        remixRenderedDataUrlPresent: !!item.remixRenderedDataUrl,
+        variant: item.variant ?? "original",
+        savedToGallery: !!item.savedToGallery,
+      })),
+    });
+  } catch {
+    /* noop */
+  }
+}
+
+export function saveToGallery(draft: DramaDraft): DramaDraft | null {
   try {
     const list = loadGallery();
     const incoming = ensureId(draft);
     // Upsert by creationId so re-saving the same creation never duplicates.
     const idx = list.findIndex((d) => d.creationId === incoming.creationId);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...incoming };
+      const existing = list[idx];
+      list[idx] = {
+        ...existing,
+        ...incoming,
+        renderedDataUrl: incoming.renderedDataUrl ?? existing.renderedDataUrl,
+        remixImageDataUrl: incoming.remixImageDataUrl ?? existing.remixImageDataUrl,
+        remixRenderedDataUrl: incoming.remixRenderedDataUrl ?? existing.remixRenderedDataUrl,
+        variant: incoming.variant ?? existing.variant,
+      };
     } else {
       list.unshift(incoming);
     }
     localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
+    auditCreationAssets("save-to-gallery-storage", incoming, list.slice(0, 24));
+    return incoming;
   } catch {
     /* noop */
+    return null;
   }
 }
 
