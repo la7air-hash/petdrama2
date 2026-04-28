@@ -73,7 +73,27 @@ export function clearDraft() {
   }
 }
 
-export function saveToGallery(draft: DramaDraft) {
+export function auditCreationAssets(label: string, draft: DramaDraft | null, galleryPayload: DramaDraft[] = []) {
+  try {
+    console.info("[PetDrama asset audit]", label, {
+      activeCreationId: draft?.creationId ?? null,
+      renderedDataUrlPresent: !!draft?.renderedDataUrl,
+      remixRenderedDataUrlPresent: !!draft?.remixRenderedDataUrl,
+      currentVisibleVariant: draft?.variant ?? "original",
+      savedGalleryPayload: galleryPayload.map((item) => ({
+        creationId: item.creationId,
+        renderedDataUrlPresent: !!item.renderedDataUrl,
+        remixRenderedDataUrlPresent: !!item.remixRenderedDataUrl,
+        variant: item.variant ?? "original",
+        savedToGallery: !!item.savedToGallery,
+      })),
+    });
+  } catch {
+    /* noop */
+  }
+}
+
+export function saveToGallery(draft: DramaDraft): DramaDraft | null {
   try {
     const list = loadGallery();
     const incoming = ensureId(draft);
@@ -85,8 +105,11 @@ export function saveToGallery(draft: DramaDraft) {
       list.unshift(incoming);
     }
     localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
+    auditCreationAssets("save-to-gallery-storage", incoming, list.slice(0, 24));
+    return incoming;
   } catch {
     /* noop */
+    return null;
   }
 }
 
