@@ -6,13 +6,19 @@ import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { loadDraft, saveDraft, saveToGallery, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type Variant = "original" | "remix";
 
 export default function Result() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<DramaDraft | null>(null);
   const [renderUrl, setRenderUrl] = useState<string | null>(null);
+  const [remixRenderUrl, setRemixRenderUrl] = useState<string | null>(null);
+  const [variant, setVariant] = useState<Variant>("original");
+  const [isRemixing, setIsRemixing] = useState(false);
   const [isPro] = useState(false); // mocked
 
   useEffect(() => {
