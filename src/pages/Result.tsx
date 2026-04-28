@@ -123,11 +123,24 @@ export default function Result() {
   const activeRenderUrl = variant === "remix" ? remixRenderUrl : renderUrl;
   const hasRemix = !!draft.remixImageDataUrl;
 
+  // Persist a variant change so returning to Create -> Continue restores it.
+  const switchVariant = (v: Variant) => {
+    setVariant(v);
+    if (draft && draft.variant !== v) {
+      const updated = { ...draft, variant: v };
+      saveDraft(updated);
+      setDraft(updated);
+    }
+  };
+
   const onSelectQuote = (q: string) => {
     if (q === draft.drama.quote) return;
     const updated: DramaDraft = {
       ...draft,
       drama: { ...draft.drama, quote: q },
+      // Cached renders are now stale — drop them from the persisted draft too.
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
     };
     saveDraft(updated);
     setDraft(updated);
@@ -140,6 +153,8 @@ export default function Result() {
     const updated: DramaDraft = {
       ...draft,
       drama: { ...draft.drama, caption: c },
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
     };
     saveDraft(updated);
     setDraft(updated);
@@ -165,7 +180,13 @@ export default function Result() {
 
   const onRegenerate = () => {
     const next = generateDrama(draft.styleId, draft.petName, draft.petType);
-    const updated: DramaDraft = { ...draft, drama: next, createdAt: Date.now() };
+    const updated: DramaDraft = {
+      ...draft,
+      drama: next,
+      createdAt: Date.now(),
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
+    };
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
