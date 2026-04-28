@@ -187,9 +187,26 @@ export default function Result() {
         return; // keep original card; do NOT throw
       }
 
+      // Pre-render the remix card so the preview swap is instant.
+      let renderedRemix: string | null = null;
+      try {
+        renderedRemix = await renderDramaPng({
+          imageDataUrl: remixUrl,
+          petName: normalizePetName(draft.petName),
+          styleId: draft.styleId,
+          quote: draft.drama.quote,
+          caption: draft.drama.caption,
+          watermark: !isPro,
+          size: 1080,
+        });
+      } catch {
+        /* fall back to effect-based render */
+      }
+
       const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
       saveDraft(updated);
       setDraft(updated);
+      if (renderedRemix) setRemixRenderUrl(renderedRemix);
       setVariant("remix");
       toast.success("Drama Remix ready ✨");
     } catch (e: any) {
