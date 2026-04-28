@@ -36,7 +36,15 @@ export default function Gallery() {
   const [pendingDelete, setPendingDelete] = useState<DramaDraft | null>(null);
 
   useEffect(() => {
-    setItems(loadGallery());
+    const list = loadGallery();
+    console.info("[PetDrama gallery load]", list.map((it) => ({
+      creationId: it.creationId,
+      hasOriginal: !!it.renderedDataUrl,
+      hasRemixImage: !!it.remixImageDataUrl,
+      hasRemixRender: !!it.remixRenderedDataUrl,
+      variant: it.variant ?? "original",
+    })));
+    setItems(list);
   }, []);
 
   const openItem = (item: DramaDraft) => {
