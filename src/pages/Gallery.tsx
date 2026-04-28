@@ -19,29 +19,42 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Download, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-function fileNameFor(item: DramaDraft) {
+type Variant = "original" | "remix";
+
+function fileNameFor(item: DramaDraft, variant: Variant) {
   const name = normalizePetName(item.petName).replace(/\s+/g, "-").toLowerCase() || "petdrama";
-  return `petdrama-${name}.png`;
+  const tag = variant === "remix" ? "-remix" : "";
+  return `petdrama-${name}${tag}.png`;
 }
 
 export default function Gallery() {
   const [items, setItems] = useState<DramaDraft[]>([]);
   const [active, setActive] = useState<DramaDraft | null>(null);
+  const [activeVariant, setActiveVariant] = useState<Variant>("original");
   const [pendingDelete, setPendingDelete] = useState<DramaDraft | null>(null);
 
   useEffect(() => {
     setItems(loadGallery());
   }, []);
 
-  const handleDownload = (item: DramaDraft, e?: React.MouseEvent) => {
+  const openItem = (item: DramaDraft) => {
+    setActive(item);
+    setActiveVariant("original");
+  };
+
+  const handleDownload = (item: DramaDraft, variant: Variant, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const url = item.renderedDataUrl || item.imageDataUrl;
+    const url =
+      variant === "remix"
+        ? item.remixRenderedDataUrl
+        : item.renderedDataUrl || item.imageDataUrl;
     if (!url) {
-      toast.error("This creation has no saved file.");
+      toast.error("This version isn't saved.");
       return;
     }
-    downloadDataUrl(url, fileNameFor(item));
+    downloadDataUrl(url, fileNameFor(item, variant));
     toast.success("Downloaded!");
   };
 
@@ -102,6 +115,7 @@ export default function Gallery() {
               const tilt = [-3, 2, -1.5, 3, -2.5, 1.5][i % 6];
               const preview = item.renderedDataUrl || item.imageDataUrl;
               const hasFinal = !!item.renderedDataUrl;
+              const hasRemix = !!item.remixRenderedDataUrl;
               return (
                 <StickerCard
                   key={item.createdAt ?? i}
@@ -118,9 +132,14 @@ export default function Gallery() {
                   >
                     <Trash2 className="size-4" />
                   </button>
+                  {hasRemix && (
+                    <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full border-2 border-foreground bg-primary text-primary-foreground px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                      ✨ Remix
+                    </span>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setActive(item)}
+                    onClick={() => openItem(item)}
                     className="block w-full text-left"
                     aria-label={`Open ${normalizePetName(item.petName)} creation`}
                   >
@@ -139,7 +158,7 @@ export default function Gallery() {
                     </p>
                     <button
                       type="button"
-                      onClick={(e) => handleDownload(item, e)}
+                      onClick={(e) => handleDownload(item, "original", e)}
                       className="inline-flex items-center gap-1 rounded-full border-2 border-foreground bg-primary text-primary-foreground px-2.5 py-1 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform shrink-0"
                       aria-label="Download PNG"
                     >
@@ -155,39 +174,75 @@ export default function Gallery() {
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-lg p-4 md:p-6">
-          {active && (
-            <>
-              <DialogTitle className="font-display text-xl font-extrabold">
-                {getStyle(active.styleId).emoji} {normalizePetName(active.petName)} —{" "}
-                {getStyle(active.styleId).name}
-              </DialogTitle>
-              <DialogDescription className="sr-only">Saved creation preview and download.</DialogDescription>
-              <div className="mt-2 rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
-                <img
-                  src={active.renderedDataUrl || active.imageDataUrl}
-                  alt={`${normalizePetName(active.petName)} as ${getStyle(active.styleId).name}`}
-                  className="w-full h-auto block"
-                />
-              </div>
-              {active.drama?.quote && (
-                <p className="mt-3 font-display font-extrabold text-base leading-snug">
-                  "{active.drama.quote}"
-                </p>
-              )}
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
-                <StickerButton variant="primary" onClick={() => handleDownload(active)}>
-                  ⬇ Download PNG
-                </StickerButton>
-                <StickerButton
-                  variant="ghost"
-                  onClick={() => requestDelete(active)}
-                  className="!bg-destructive !text-destructive-foreground"
-                >
-                  <Trash2 className="size-4" /> Delete
-                </StickerButton>
-              </div>
-            </>
-          )}
+          {active && (() => {
+            const itemHasRemix = !!active.remixRenderedDataUrl;
+            const showRemix = activeVariant === "remix" && itemHasRemix;
+            const previewUrl = showRemix
+              ? active.remixRenderedDataUrl!
+              : active.renderedDataUrl || active.imageDataUrl;
+            return (
+              <>
+                <DialogTitle className="font-display text-xl font-extrabold">
+                  {getStyle(active.styleId).emoji} {normalizePetName(active.petName)} —{" "}
+                  {getStyle(active.styleId).name}
+                </DialogTitle>
+                <DialogDescription className="sr-only">Saved creation preview and download.</DialogDescription>
+
+                {itemHasRemix && (
+                  <div className="mt-3 inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setActiveVariant("original")}
+                      className={cn(
+                        "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                        activeVariant === "original" ? "bg-foreground text-background" : "text-foreground/70",
+                      )}
+                    >
+                      Original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveVariant("remix")}
+                      className={cn(
+                        "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                        activeVariant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
+                      )}
+                    >
+                      ✨ Remix
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-2 rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
+                  <img
+                    src={previewUrl}
+                    alt={`${normalizePetName(active.petName)} as ${getStyle(active.styleId).name}${showRemix ? " (remix)" : ""}`}
+                    className="w-full h-auto block"
+                  />
+                </div>
+                {active.drama?.quote && (
+                  <p className="mt-3 font-display font-extrabold text-base leading-snug">
+                    "{active.drama.quote}"
+                  </p>
+                )}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                  <StickerButton
+                    variant="primary"
+                    onClick={() => handleDownload(active, showRemix ? "remix" : "original")}
+                  >
+                    ⬇ Download {showRemix ? "Remix" : "PNG"}
+                  </StickerButton>
+                  <StickerButton
+                    variant="ghost"
+                    onClick={() => requestDelete(active)}
+                    className="!bg-destructive !text-destructive-foreground"
+                  >
+                    <Trash2 className="size-4" /> Delete
+                  </StickerButton>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

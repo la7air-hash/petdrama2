@@ -1,0 +1,4 @@
+project_id = "lnhkjjdxoilypcttemau"
+
+[functions.drama-remix]
+verify_jwt = false

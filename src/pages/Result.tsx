@@ -6,13 +6,19 @@ import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { loadDraft, saveDraft, saveToGallery, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type Variant = "original" | "remix";
 
 export default function Result() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<DramaDraft | null>(null);
   const [renderUrl, setRenderUrl] = useState<string | null>(null);
+  const [remixRenderUrl, setRemixRenderUrl] = useState<string | null>(null);
+  const [variant, setVariant] = useState<Variant>("original");
+  const [isRemixing, setIsRemixing] = useState(false);
   const [isPro] = useState(false); // mocked
 
   useEffect(() => {
@@ -39,6 +45,7 @@ export default function Result() {
     setDraft(d);
   }, [navigate]);
 
+  // Render the ORIGINAL card whenever quote/caption/photo changes.
   useEffect(() => {
     if (!draft) return;
     let cancelled = false;
@@ -60,10 +67,38 @@ export default function Result() {
     };
   }, [draft, isPro]);
 
+  // Render the REMIX card whenever the remix image or quote/caption changes.
+  useEffect(() => {
+    if (!draft?.remixImageDataUrl) {
+      setRemixRenderUrl(null);
+      return;
+    }
+    let cancelled = false;
+    renderDramaPng({
+      imageDataUrl: draft.remixImageDataUrl,
+      petName: normalizePetName(draft.petName),
+      styleId: draft.styleId,
+      quote: draft.drama.quote,
+      caption: draft.drama.caption,
+      watermark: !isPro,
+      size: 1080,
+    })
+      .then((url) => {
+        if (!cancelled) setRemixRenderUrl(url);
+      })
+      .catch(() => toast.error("Could not render remix preview."));
+    return () => {
+      cancelled = true;
+    };
+  }, [draft, isPro]);
+
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
   const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
   if (!draft || !style) return null;
+
+  const activeRenderUrl = variant === "remix" ? remixRenderUrl : renderUrl;
+  const hasRemix = !!draft.remixImageDataUrl;
 
   const onSelectQuote = (q: string) => {
     if (q === draft.drama.quote) return;
@@ -74,6 +109,7 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
   };
 
   const onSelectCaption = (c: string) => {
@@ -85,11 +121,16 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
   };
 
   const onDownload = () => {
-    if (!renderUrl) return;
-    downloadDataUrl(renderUrl, `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}.png`);
+    if (!activeRenderUrl) return;
+    const tag = variant === "remix" ? "-remix" : "";
+    downloadDataUrl(
+      activeRenderUrl,
+      `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}${tag}.png`,
+    );
     toast.success("Downloaded! Now post it 😎");
   };
 
@@ -105,6 +146,39 @@ export default function Result() {
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+    setRemixRenderUrl(null);
+  };
+
+  const onDramaRemix = async () => {
+    if (isRemixing) return;
+    setIsRemixing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("drama-remix", {
+        body: {
+          imageDataUrl: draft.imageDataUrl,
+          styleId: draft.styleId,
+          petType: draft.petType,
+        },
+      });
+      if (error) throw error;
+      const remixUrl = (data as { imageDataUrl?: string; error?: string })?.imageDataUrl;
+      if (!remixUrl) throw new Error((data as any)?.error || "No remix returned");
+      const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
+      saveDraft(updated);
+      setDraft(updated);
+      setVariant("remix");
+      toast.success("Drama Remix ready ✨");
+    } catch (e: any) {
+      console.error(e);
+      const msg = e?.message?.includes("429")
+        ? "Too many requests. Try again shortly."
+        : e?.message?.includes("402")
+        ? "AI credits exhausted. Add credits to continue."
+        : "Remix failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setIsRemixing(false);
+    }
   };
 
   const onSaveToGallery = () => {
@@ -112,7 +186,11 @@ export default function Result() {
       toast.error("Still rendering — try again in a moment.");
       return;
     }
-    saveToGallery({ ...draft, renderedDataUrl: renderUrl });
+    saveToGallery({
+      ...draft,
+      renderedDataUrl: renderUrl,
+      remixRenderedDataUrl: remixRenderUrl ?? undefined,
+    });
     toast.success("Saved to your gallery.");
   };
 
@@ -133,21 +211,77 @@ export default function Result() {
 
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Preview */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 space-y-3">
+            {/* Variant toggle */}
+            {hasRemix && (
+              <div className="inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setVariant("original")}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                    variant === "original" ? "bg-foreground text-background" : "text-foreground/70",
+                  )}
+                >
+                  Original
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVariant("remix")}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                    variant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
+                  )}
+                >
+                  ✨ Remix
+                </button>
+              </div>
+            )}
+
             <StickerCard className="p-3 md:p-4 bg-background" shadow="lg">
               <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
-                {renderUrl ? (
-                  <img src={renderUrl} alt={`${displayName} as ${style.name}`} className="size-full object-cover" />
+                {activeRenderUrl ? (
+                  <img
+                    src={activeRenderUrl}
+                    alt={`${displayName} as ${style.name}${variant === "remix" ? " (remix)" : ""}`}
+                    className="size-full object-cover"
+                  />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center text-muted-foreground">
                     <div className="text-center">
                       <div className="text-4xl inline-block">🎭</div>
-                      <p className="mt-3 font-bold">Rendering your masterpiece…</p>
+                      <p className="mt-3 font-bold">
+                        {variant === "remix" ? "Rendering remix…" : "Rendering your masterpiece…"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isRemixing && (
+                  <div className="absolute inset-0 grid place-items-center bg-background/70 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="text-4xl animate-pulse">✨</div>
+                      <p className="mt-3 font-extrabold">Cooking up the Drama Remix…</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Usually 5–15 seconds</p>
                     </div>
                   </div>
                 )}
               </div>
             </StickerCard>
+
+            {/* Drama Remix CTA — only when no remix yet */}
+            {!hasRemix && (
+              <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="font-display font-extrabold text-base">✨ Drama Remix</p>
+                  <p className="text-xs text-muted-foreground">
+                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                  </p>
+                </div>
+                <StickerButton variant="primary" onClick={onDramaRemix} disabled={isRemixing}>
+                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
+                </StickerButton>
+              </div>
+            )}
           </div>
 
           {/* Side panel */}
@@ -237,15 +371,21 @@ export default function Result() {
             </StickerCard>
 
             <div className="grid grid-cols-2 gap-3">
-              <StickerButton variant="primary" onClick={onDownload} disabled={!renderUrl}>
-                ⬇ Download PNG
+              <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
+                ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
                 📋 Copy caption
               </StickerButton>
-              <StickerButton variant="ghost" onClick={onRegenerate}>
-                🔄 Generate again
-              </StickerButton>
+              {hasRemix ? (
+                <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
+                  {isRemixing ? "Remixing…" : "✨ Re-remix"}
+                </StickerButton>
+              ) : (
+                <StickerButton variant="ghost" onClick={onRegenerate}>
+                  🔄 Generate again
+                </StickerButton>
+              )}
               <StickerButton variant="dark" onClick={onSaveToGallery}>
                 ✦ Save to gallery
               </StickerButton>

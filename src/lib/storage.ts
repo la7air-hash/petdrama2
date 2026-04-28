@@ -10,6 +10,10 @@ export interface DramaDraft {
   createdAt: number;
   /** Final rendered PNG data URL — source of truth for Gallery preview & re-download. */
   renderedDataUrl?: string;
+  /** Optional AI-stylized version of the pet photo (raw image, not the card). */
+  remixImageDataUrl?: string;
+  /** Optional final rendered card built from the remix image. */
+  remixRenderedDataUrl?: string;
 }
 
 const KEY = "petdrama:current";
