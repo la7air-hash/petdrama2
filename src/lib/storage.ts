@@ -39,7 +39,13 @@ export function loadDraft(): DramaDraft | null {
 export function saveToGallery(draft: DramaDraft) {
   try {
     const list = loadGallery();
-    list.unshift(draft);
+    // Upsert by createdAt so re-saving the same creation never duplicates.
+    const idx = list.findIndex((d) => d.createdAt === draft.createdAt);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...draft };
+    } else {
+      list.unshift(draft);
+    }
     localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
   } catch {
     /* noop */
