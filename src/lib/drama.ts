@@ -128,6 +128,9 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
 
   "mafia-boss": {
     quotes: [
+      () => "Pay the treat tax. We don't ask twice.",
+      () => "Respect the schedule or face the stare.",
+      () => "You eat. I watch. That's the arrangement.",
       () => "The treats. They were a tribute. Don't make this awkward.",
       () => "You feed me late again, we got a problem. Capisce?",
       () => "Nice couch. Be a shame if somebody… shed all over it.",
@@ -136,7 +139,7 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Kibble at 6. Sharp. Don't disrespect the schedule.",
       () => "You dropped that. On purpose. For me. Smart move.",
       (v) => `Every ${v.sound} in this house — that's me. Remember that.`,
-      () => "I'm not mad. I'm just very, very disappointed in your treat selection.",
+      () => "I'm not mad. Just very disappointed in your treat selection.",
       () => "The vet? We don't speak that name in this household.",
     ],
     captions: [
