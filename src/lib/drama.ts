@@ -338,12 +338,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "I attend only the most exclusive nap salons. Invitations are by whisker only.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has returned from the carnevale with stories you'll absolutely never hear.`,
-      (n, _v, dn) => `${dn} attends only the most exclusive nap salons. The waiting list is mythical.`,
-      (n, _v, dn) => `Behind every great household, a small dramatic noble. Ours is named ${dn}.`,
-      (n, _v, dn) => `${dn} doesn't enter a room. ${dn} arrives. There's a difference.`,
+      (n, _v, dn) => `${dn} returned from the carnevale w/ stories you'll never hear 🎭`,
+      (n, _v, dn) => `pov: ${dn} attends only the most exclusive nap salons`,
+      (n, _v, dn) => `${dn} doesn't enter a room. ${dn} arrives. ✨`,
+      (n, _v, dn) => `behind every great household, a small dramatic noble. say hi to ${dn}.`,
+      (n, _v, dn) => `${dn} said "bellissimo" and walked off into the canal mist 🌫️`,
+      (n, _v, dn) => `${dn} has secrets older than this rug 🤫`,
     ],
-    hashtags: ["#VenetianPet", "#PetDrama", "#Carnevale", "#Bellissimo", "#OldMoneyPet"],
+    hashtags: ["#VenetianPet", "#PetDrama", "#Carnevale", "#PetTok", "#OldMoneyPet"],
   },
 };
 
