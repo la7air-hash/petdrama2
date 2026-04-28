@@ -108,7 +108,11 @@ export default function Result() {
   };
 
   const onSaveToGallery = () => {
-    saveToGallery(draft);
+    if (!renderUrl) {
+      toast.error("Still rendering — try again in a moment.");
+      return;
+    }
+    saveToGallery({ ...draft, renderedDataUrl: renderUrl });
     toast.success("Saved to your gallery.");
   };
 
