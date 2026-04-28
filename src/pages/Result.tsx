@@ -35,7 +35,7 @@ export default function Result() {
     let cancelled = false;
     renderDramaPng({
       imageDataUrl: draft.imageDataUrl,
-      petName: draft.petName,
+      petName: normalizePetName(draft.petName),
       styleId: draft.styleId,
       quote: draft.drama.quote,
       watermark: !isPro,
