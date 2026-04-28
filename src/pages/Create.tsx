@@ -1,10 +1,10 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
-import { saveDraft, newCreationId } from "@/lib/storage";
+import { saveDraft, loadDraft, clearDraft, newCreationId } from "@/lib/storage";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,24 @@ export default function Create() {
   const [styleId, setStyleId] = useState<DramaStyleId>("drama-queen");
   const [dragOver, setDragOver] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // Track the active draft so re-saving with the same inputs reuses creationId
+  // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
+  const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Restore the previous draft (if any) on mount so navigating away and back
+  // doesn't lose the user's work.
+  useEffect(() => {
+    const d = loadDraft();
+    if (d) {
+      setImageDataUrl(d.imageDataUrl);
+      setPetName(d.petName);
+      setPetType(d.petType);
+      setStyleId(d.styleId);
+      setActiveCreationId(d.creationId);
+      setRestored(true);
+    }
+  }, []);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -46,13 +64,27 @@ export default function Create() {
 
   const canGenerate = !!imageDataUrl && petName.trim().length > 0;
 
+  const onStartOver = () => {
+    clearDraft();
+    setImageDataUrl(null);
+    setPetName("");
+    setPetType("dog");
+    setStyleId("drama-queen");
+    setActiveCreationId(null);
+    setRestored(false);
+    toast.success("Started a fresh drama.");
+  };
+
   const onGenerate = () => {
     if (!canGenerate || !imageDataUrl) return;
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
+      // Reuse the active creationId so the same draft updates in place;
+      // a brand-new draft (after Start over) gets a fresh id.
+      const creationId = activeCreationId ?? newCreationId();
       saveDraft({
-        creationId: newCreationId(),
+        creationId,
         imageDataUrl,
         petName: petName.trim(),
         petType,
@@ -60,6 +92,7 @@ export default function Create() {
         drama,
         createdAt: Date.now(),
       });
+      setActiveCreationId(creationId);
       navigate("/result");
     }, 600);
   };
