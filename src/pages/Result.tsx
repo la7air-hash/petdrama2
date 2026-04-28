@@ -4,7 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
-import { loadDraft, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
+import { auditCreationAssets, loadDraft, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,11 +43,12 @@ export default function Result() {
       };
       saveDraft(d);
     }
-    // Restore previously cached renders so we don't re-render unnecessarily.
+    // Restore previously cached renders so Continue to result uses the exact persisted assets.
     if (d.renderedDataUrl) setRenderUrl(d.renderedDataUrl);
     if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
-    // Restore last-viewed variant (default original; only honor remix if a remix exists).
-    if (d.variant === "remix" && d.remixImageDataUrl) setVariant("remix");
+    // Restore last-viewed variant (default original; only honor remix if a remix asset exists).
+    if (d.variant === "remix" && (d.remixRenderedDataUrl || d.remixImageDataUrl)) setVariant("remix");
+    auditCreationAssets("result-restore", d);
     setDraft(d);
   }, [navigate]);
 
@@ -86,7 +87,7 @@ export default function Result() {
   // Skip if remixRenderUrl is already populated (restored from draft or pre-rendered).
   useEffect(() => {
     if (!draft?.remixImageDataUrl) {
-      setRemixRenderUrl(null);
+      if (!draft?.remixRenderedDataUrl) setRemixRenderUrl(null);
       return;
     }
     if (remixRenderUrl) return;
@@ -105,7 +106,7 @@ export default function Result() {
         setRemixRenderUrl(url);
         const latest = loadDraft();
         if (latest && latest.creationId === draft.creationId) {
-          saveDraft({ ...latest, remixRenderedDataUrl: url });
+          saveDraft({ ...latest, remixRenderedDataUrl: url, variant: latest.variant ?? draft.variant ?? "remix" });
         }
       })
       .catch(() => toast.error("Could not render remix preview."));
