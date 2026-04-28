@@ -17,6 +17,10 @@ export interface DramaDraft {
   remixImageDataUrl?: string;
   /** Optional final rendered card built from the remix image. */
   remixRenderedDataUrl?: string;
+  /** Last preview variant the user was viewing on Result. */
+  variant?: "original" | "remix";
+  /** True once this creation has been saved to the gallery. */
+  savedToGallery?: boolean;
 }
 
 const KEY = "petdrama:current";
