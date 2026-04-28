@@ -194,12 +194,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "If I fits, I sits. If I sits, I plots. It's a whole pipeline.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} is plotting something. We just don't know what yet. We never do.`,
-      (n, _v, dn) => `Behind those innocent eyes? Pure chaos. Documented. Hourly.`,
-      (n, _v, dn) => `${dn} sees a clean shelf the way most people see a personal challenge.`,
-      (n, _v, dn) => `Day 247 of pretending I don't know exactly who knocked that over. (It was ${dn}.)`,
+      (n, _v, dn) => `${dn} is plotting. we just don't know what 😈`,
+      (n, _v, dn) => `cute? sure. innocent? absolutely not 🚨`,
+      (n, _v, dn) => `pov: ${dn} sees a clean shelf as a personal challenge`,
+      (n, _v, dn) => `day 247 of pretending i don't know it was ${dn} 😬`,
+      (n, _v, dn) => `${dn} woke up and chose chaos. again. 🌀`,
+      (n, _v, dn) => `there is no other suspect. it is always ${dn}.`,
     ],
-    hashtags: ["#TinyVillain", "#PetDrama", "#ChaosAgent", "#PlottingSince", "#SmolButFeral"],
+    hashtags: ["#TinyVillain", "#PetDrama", "#ChaosAgent", "#PetTok", "#SmolButFeral"],
   },
 
   "jealous-pet": {
