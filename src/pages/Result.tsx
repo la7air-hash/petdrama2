@@ -43,6 +43,11 @@ export default function Result() {
       };
       saveDraft(d);
     }
+    // Restore previously cached renders so we don't re-render unnecessarily.
+    if (d.renderedDataUrl) setRenderUrl(d.renderedDataUrl);
+    if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
+    // Restore last-viewed variant (default original; only honor remix if a remix exists).
+    if (d.variant === "remix" && d.remixImageDataUrl) setVariant("remix");
     setDraft(d);
   }, [navigate]);
 
