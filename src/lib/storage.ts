@@ -2,11 +2,14 @@
 import type { DramaStyleId, PetType, GeneratedDrama } from "./drama";
 
 export interface DramaDraft {
+  /** Stable unique identifier for this creation. Source of truth for upsert/delete. */
+  creationId: string;
   imageDataUrl: string;
   petName: string;
   petType: PetType;
   styleId: DramaStyleId;
   drama: GeneratedDrama;
+  /** Used for sorting/display only — not for identity. */
   createdAt: number;
   /** Final rendered PNG data URL — source of truth for Gallery preview & re-download. */
   renderedDataUrl?: string;
@@ -19,9 +22,28 @@ export interface DramaDraft {
 const KEY = "petdrama:current";
 const GALLERY = "petdrama:gallery";
 
+/** Generate a stable, collision-resistant id for a new creation. */
+export function newCreationId(): string {
+  try {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+  } catch {
+    /* fall through */
+  }
+  return `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Backfill creationId on legacy entries (older records only had createdAt). */
+function ensureId<T extends { creationId?: string; createdAt?: number }>(d: T): T & { creationId: string } {
+  if (d.creationId && typeof d.creationId === "string") return d as T & { creationId: string };
+  const fallback = `legacy_${d.createdAt ?? Date.now()}`;
+  return { ...d, creationId: fallback };
+}
+
 export function saveDraft(draft: DramaDraft) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(draft));
+    sessionStorage.setItem(KEY, JSON.stringify(ensureId(draft)));
   } catch {
     /* noop */
   }
@@ -30,7 +52,8 @@ export function saveDraft(draft: DramaDraft) {
 export function loadDraft(): DramaDraft | null {
   try {
     const raw = sessionStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as DramaDraft) : null;
+    if (!raw) return null;
+    return ensureId(JSON.parse(raw) as DramaDraft);
   } catch {
     return null;
   }
@@ -39,12 +62,13 @@ export function loadDraft(): DramaDraft | null {
 export function saveToGallery(draft: DramaDraft) {
   try {
     const list = loadGallery();
-    // Upsert by createdAt so re-saving the same creation never duplicates.
-    const idx = list.findIndex((d) => d.createdAt === draft.createdAt);
+    const incoming = ensureId(draft);
+    // Upsert by creationId so re-saving the same creation never duplicates.
+    const idx = list.findIndex((d) => d.creationId === incoming.creationId);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...draft };
+      list[idx] = { ...list[idx], ...incoming };
     } else {
-      list.unshift(draft);
+      list.unshift(incoming);
     }
     localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
   } catch {
@@ -55,7 +79,9 @@ export function saveToGallery(draft: DramaDraft) {
 export function loadGallery(): DramaDraft[] {
   try {
     const raw = localStorage.getItem(GALLERY);
-    return raw ? (JSON.parse(raw) as DramaDraft[]) : [];
+    if (!raw) return [];
+    const list = (JSON.parse(raw) as DramaDraft[]).map(ensureId);
+    return list;
   } catch {
     return [];
   }
@@ -63,14 +89,14 @@ export function loadGallery(): DramaDraft[] {
 
 export function saveGallery(list: DramaDraft[]) {
   try {
-    localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
+    localStorage.setItem(GALLERY, JSON.stringify(list.map(ensureId).slice(0, 24)));
   } catch {
     /* noop */
   }
 }
 
-export function deleteFromGallery(createdAt: number): DramaDraft[] {
-  const list = loadGallery().filter((d) => d.createdAt !== createdAt);
+export function deleteFromGallery(creationId: string): DramaDraft[] {
+  const list = loadGallery().filter((d) => d.creationId !== creationId);
   saveGallery(list);
   return list;
 }

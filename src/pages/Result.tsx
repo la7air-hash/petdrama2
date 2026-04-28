@@ -19,6 +19,7 @@ export default function Result() {
   const [remixRenderUrl, setRemixRenderUrl] = useState<string | null>(null);
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPro] = useState(false); // mocked
 
   useEffect(() => {
@@ -222,6 +223,8 @@ export default function Result() {
   };
 
   const onSaveToGallery = async () => {
+    if (isSaving) return; // prevent double-click duplicate saves
+    setIsSaving(true);
     try {
       const common = {
         petName: normalizePetName(draft.petName),
@@ -255,6 +258,8 @@ export default function Result() {
       toast.success("Saved to your gallery.");
     } catch {
       toast.error("Couldn't save — please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -450,8 +455,8 @@ export default function Result() {
                   🔄 Generate again
                 </StickerButton>
               )}
-              <StickerButton variant="dark" onClick={onSaveToGallery}>
-                ✦ Save to gallery
+              <StickerButton variant="dark" onClick={onSaveToGallery} disabled={isSaving}>
+                {isSaving ? "Saving…" : "✦ Save to gallery"}
               </StickerButton>
             </div>
 

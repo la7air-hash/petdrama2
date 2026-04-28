@@ -4,7 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
-import { saveDraft } from "@/lib/storage";
+import { saveDraft, newCreationId } from "@/lib/storage";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,7 @@ export default function Create() {
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
       saveDraft({
+        creationId: newCreationId(),
         imageDataUrl,
         petName: petName.trim(),
         petType,
