@@ -1,10 +1,10 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
-import { saveDraft, newCreationId } from "@/lib/storage";
+import { saveDraft, loadDraft, clearDraft, newCreationId } from "@/lib/storage";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,24 @@ export default function Create() {
   const [styleId, setStyleId] = useState<DramaStyleId>("drama-queen");
   const [dragOver, setDragOver] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // Track the active draft so re-saving with the same inputs reuses creationId
+  // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
+  const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Restore the previous draft (if any) on mount so navigating away and back
+  // doesn't lose the user's work.
+  useEffect(() => {
+    const d = loadDraft();
+    if (d) {
+      setImageDataUrl(d.imageDataUrl);
+      setPetName(d.petName);
+      setPetType(d.petType);
+      setStyleId(d.styleId);
+      setActiveCreationId(d.creationId);
+      setRestored(true);
+    }
+  }, []);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -46,13 +64,27 @@ export default function Create() {
 
   const canGenerate = !!imageDataUrl && petName.trim().length > 0;
 
+  const onStartOver = () => {
+    clearDraft();
+    setImageDataUrl(null);
+    setPetName("");
+    setPetType("dog");
+    setStyleId("drama-queen");
+    setActiveCreationId(null);
+    setRestored(false);
+    toast.success("Started a fresh drama.");
+  };
+
   const onGenerate = () => {
     if (!canGenerate || !imageDataUrl) return;
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
+      // Reuse the active creationId so the same draft updates in place;
+      // a brand-new draft (after Start over) gets a fresh id.
+      const creationId = activeCreationId ?? newCreationId();
       saveDraft({
-        creationId: newCreationId(),
+        creationId,
         imageDataUrl,
         petName: petName.trim(),
         petType,
@@ -60,6 +92,7 @@ export default function Create() {
         drama,
         createdAt: Date.now(),
       });
+      setActiveCreationId(creationId);
       navigate("/result");
     }, 600);
   };
@@ -67,14 +100,26 @@ export default function Create() {
   return (
     <PageShell>
       <section className="container py-10 md:py-16">
-        <div className="mb-10">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Step 1 · 2 · 3</p>
-          <h1 className="mt-2 font-display text-4xl md:text-6xl font-extrabold tracking-tight">
-            Create your pet's drama.
-          </h1>
-          <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
-            Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
-          </p>
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Step 1 · 2 · 3</p>
+            <h1 className="mt-2 font-display text-4xl md:text-6xl font-extrabold tracking-tight">
+              Create your pet's drama.
+            </h1>
+            <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
+              Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
+            </p>
+            {restored && (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                ✦ Continuing your last drama
+              </p>
+            )}
+          </div>
+          {(restored || imageDataUrl || petName) && (
+            <StickerButton variant="ghost" onClick={onStartOver}>
+              ↺ Start over
+            </StickerButton>
+          )}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-12">
