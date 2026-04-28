@@ -211,21 +211,77 @@ export default function Result() {
 
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Preview */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 space-y-3">
+            {/* Variant toggle */}
+            {hasRemix && (
+              <div className="inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setVariant("original")}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                    variant === "original" ? "bg-foreground text-background" : "text-foreground/70",
+                  )}
+                >
+                  Original
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVariant("remix")}
+                  className={cn(
+                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                    variant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
+                  )}
+                >
+                  ✨ Remix
+                </button>
+              </div>
+            )}
+
             <StickerCard className="p-3 md:p-4 bg-background" shadow="lg">
               <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
-                {renderUrl ? (
-                  <img src={renderUrl} alt={`${displayName} as ${style.name}`} className="size-full object-cover" />
+                {activeRenderUrl ? (
+                  <img
+                    src={activeRenderUrl}
+                    alt={`${displayName} as ${style.name}${variant === "remix" ? " (remix)" : ""}`}
+                    className="size-full object-cover"
+                  />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center text-muted-foreground">
                     <div className="text-center">
                       <div className="text-4xl inline-block">🎭</div>
-                      <p className="mt-3 font-bold">Rendering your masterpiece…</p>
+                      <p className="mt-3 font-bold">
+                        {variant === "remix" ? "Rendering remix…" : "Rendering your masterpiece…"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isRemixing && (
+                  <div className="absolute inset-0 grid place-items-center bg-background/70 backdrop-blur-sm">
+                    <div className="text-center">
+                      <div className="text-4xl animate-pulse">✨</div>
+                      <p className="mt-3 font-extrabold">Cooking up the Drama Remix…</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Usually 5–15 seconds</p>
                     </div>
                   </div>
                 )}
               </div>
             </StickerCard>
+
+            {/* Drama Remix CTA — only when no remix yet */}
+            {!hasRemix && (
+              <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="font-display font-extrabold text-base">✨ Drama Remix</p>
+                  <p className="text-xs text-muted-foreground">
+                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                  </p>
+                </div>
+                <StickerButton variant="primary" onClick={onDramaRemix} disabled={isRemixing}>
+                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
+                </StickerButton>
+              </div>
+            )}
           </div>
 
           {/* Side panel */}
