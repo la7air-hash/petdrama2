@@ -4,7 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
-import { auditCreationAssets, loadDraft, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
+import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
