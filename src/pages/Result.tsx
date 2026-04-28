@@ -294,11 +294,18 @@ export default function Result() {
       if (!renderUrl) setRenderUrl(finalOriginal);
       if (finalRemix && !remixRenderUrl) setRemixRenderUrl(finalRemix);
 
-      saveToGallery({
+      // Persist renders + saved flag into the active draft so navigating
+      // away (Gallery / Create) and back keeps the same exact assets.
+      const persisted: DramaDraft = {
         ...draft,
         renderedDataUrl: finalOriginal,
         remixRenderedDataUrl: finalRemix,
-      });
+        savedToGallery: true,
+      };
+      saveDraft(persisted);
+      setDraft(persisted);
+
+      saveToGallery(persisted);
       toast.success("Saved to your gallery.");
     } catch {
       toast.error("Couldn't save — please try again.");
