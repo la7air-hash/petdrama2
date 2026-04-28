@@ -160,22 +160,41 @@ export default function Result() {
           petType: draft.petType,
         },
       });
-      if (error) throw error;
-      const remixUrl = (data as { imageDataUrl?: string; error?: string })?.imageDataUrl;
-      if (!remixUrl) throw new Error((data as any)?.error || "No remix returned");
+
+      // Try to read structured error from the function response body
+      let serverError: string | undefined;
+      let serverStatus: number | undefined;
+      if (error) {
+        serverStatus = (error as any)?.context?.status;
+        try {
+          const body = await (error as any)?.context?.response?.clone?.().json?.();
+          serverError = body?.error;
+        } catch {
+          /* ignore */
+        }
+      }
+
+      const remixUrl = (data as { imageDataUrl?: string })?.imageDataUrl;
+
+      if (!remixUrl) {
+        const msg =
+          serverStatus === 429
+            ? "AI is busy. Please try again in a moment."
+            : serverStatus === 402
+            ? "AI credits exhausted. Add credits to continue."
+            : serverError || (data as any)?.error || "Drama Remix failed. Please try again.";
+        toast.error(msg);
+        return; // keep original card; do NOT throw
+      }
+
       const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
       saveDraft(updated);
       setDraft(updated);
       setVariant("remix");
       toast.success("Drama Remix ready ✨");
     } catch (e: any) {
-      console.error(e);
-      const msg = e?.message?.includes("429")
-        ? "Too many requests. Try again shortly."
-        : e?.message?.includes("402")
-        ? "AI credits exhausted. Add credits to continue."
-        : "Remix failed. Please try again.";
-      toast.error(msg);
+      console.error("Drama Remix error:", e);
+      toast.error("Drama Remix failed. Please try again.");
     } finally {
       setIsRemixing(false);
     }
