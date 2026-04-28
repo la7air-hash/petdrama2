@@ -162,32 +162,54 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const maxTextW = size - sideMargin * 2;
   const quote = `“${opts.quote}”`;
 
-  const quoteTop = badgeY + badgeH + Math.round(size * 0.035);
-  const footerH = Math.round(size * 0.06);
-  // Reserve space for caption panel below the quote
-  const captionReserve = (opts.caption || "").trim() ? Math.round(size * 0.13) : 0;
-  const quoteAreaBottom = size - sideMargin - footerH - captionReserve;
+  // Safe top: clear the badge + its 6px hard shadow, the photo's tilt drop,
+  // and add a comfortable breathing gap so the quote is never visually crowded
+  // by the photo frame or badge.
+  const badgeBottom = badgeY + badgeH + 6; // include badge shadow
+  const tiltDrop = Math.round((frameW / 2) * Math.abs(tilt)); // vertical extent added by frame rotation
+  const breathingGap = Math.round(size * 0.055);
+  const quoteTop = Math.max(badgeBottom, photoBottom + tiltDrop) + breathingGap;
 
-  let qSize = quote.length > 90 ? 40 : quote.length > 60 ? 50 : 60;
+  const footerH = Math.round(size * 0.06);
+  // Reserve space for caption panel below the quote (panel + clear gap)
+  const hasCaption = !!(opts.caption || "").trim();
+  const captionReserve = hasCaption ? Math.round(size * 0.16) : Math.round(size * 0.02);
+  const quoteAreaBottom = size - sideMargin - footerH - captionReserve;
+  const quoteAreaH = Math.max(0, quoteAreaBottom - quoteTop);
+
+  // Start size scales by length; shrink aggressively until it fits cleanly.
+  let qSize =
+    quote.length > 140 ? 30 :
+    quote.length > 110 ? 34 :
+    quote.length > 90  ? 40 :
+    quote.length > 60  ? 50 : 60;
   let qLines: string[] = [];
   let qLineH = 0;
-  for (let attempt = 0; attempt < 10; attempt++) {
+  const MAX_LINES = 4;
+  for (let attempt = 0; attempt < 16; attempt++) {
     ctx.font = `800 ${qSize}px "Syne", system-ui, sans-serif`;
     qLines = wrapLines(ctx, quote, maxTextW);
-    qLineH = Math.round(qSize * 1.1);
-    if (qLines.length <= 3 && qLines.length * qLineH <= quoteAreaBottom - quoteTop) break;
-    qSize -= 4;
-    if (qSize <= 24) break;
+    qLineH = Math.round(qSize * 1.12);
+    const fitsLines = qLines.length <= MAX_LINES;
+    const fitsHeight = qLines.length * qLineH <= quoteAreaH;
+    if (fitsLines && fitsHeight) break;
+    qSize -= 3;
+    if (qSize <= 18) break;
   }
-  if (qLines.length > 3) {
-    qLines = qLines.slice(0, 3);
-    qLines[2] = qLines[2].replace(/\s+\S*$/, "") + "…”";
+  if (qLines.length > MAX_LINES) {
+    qLines = qLines.slice(0, MAX_LINES);
+    qLines[MAX_LINES - 1] = qLines[MAX_LINES - 1].replace(/\s+\S*$/, "") + "…”";
   }
+
+  // Vertically center the quote block within the safe quote area
+  // so it's clearly separated from both photo above and caption below.
+  const quoteBlockH = qLines.length * qLineH;
+  const quoteStartY = quoteTop + Math.max(0, (quoteAreaH - quoteBlockH) / 2);
 
   ctx.fillStyle = ink;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  let qy = quoteTop + qSize;
+  let qy = quoteStartY + qSize;
   for (const line of qLines) {
     ctx.fillText(line, size / 2, qy);
     qy += qLineH;
