@@ -84,6 +84,7 @@ export default function Result() {
     };
     saveDraft(updated);
     setDraft(updated);
+    setRenderUrl(null);
   };
 
   const onDownload = () => {
