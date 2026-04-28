@@ -371,15 +371,21 @@ export default function Result() {
             </StickerCard>
 
             <div className="grid grid-cols-2 gap-3">
-              <StickerButton variant="primary" onClick={onDownload} disabled={!renderUrl}>
-                ⬇ Download PNG
+              <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
+                ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
                 📋 Copy caption
               </StickerButton>
-              <StickerButton variant="ghost" onClick={onRegenerate}>
-                🔄 Generate again
-              </StickerButton>
+              {hasRemix ? (
+                <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
+                  {isRemixing ? "Remixing…" : "✨ Re-remix"}
+                </StickerButton>
+              ) : (
+                <StickerButton variant="ghost" onClick={onRegenerate}>
+                  🔄 Generate again
+                </StickerButton>
+              )}
               <StickerButton variant="dark" onClick={onSaveToGallery}>
                 ✦ Save to gallery
               </StickerButton>
