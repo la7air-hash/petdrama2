@@ -1,4 +1,9 @@
-// Renders a square shareable PNG with the pet image as the hero + dramatic quote overlay
+// Renders a square shareable PNG in POLAROID/STICKER style:
+// - thick colored frame around the photo
+// - clean pet photo (no overlay text)
+// - sticker pill badge centered on the bottom edge of the photo
+// - dramatic quote written below the photo, on the frame
+// - small PETDRAMA wordmark + optional watermark in the footer
 import { getStyle, type DramaStyleId } from "./drama";
 
 const STYLE_ACCENT: Record<string, string> = {
@@ -28,155 +33,144 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
 
   const style = getStyle(opts.styleId);
   const accent = STYLE_ACCENT[style.color] ?? STYLE_ACCENT.primary;
+  const onDark = style.color === "foreground" || style.color === "secondary";
 
-  // Solid background (visible only as a thin frame around the pet)
-  ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, size, size);
-
-  // Load image
-  const img = await loadImage(opts.imageDataUrl);
-
-  // Pet image fills almost the entire canvas — pet is the hero
-  const pad = Math.round(size * 0.025);
-  const cardX = pad;
-  const cardY = pad;
-  const cardW = size - pad * 2;
-  const cardH = size - pad * 2;
-  const radius = Math.round(size * 0.04);
-  drawRoundedImage(ctx, img, cardX, cardY, cardW, cardH, radius);
-
-  // Subtle dark gradient ONLY at the bottom — keeps the pet visible
-  const scrimH = Math.round(size * 0.42);
-  const scrimY = size - pad - scrimH;
-  ctx.save();
-  drawRoundedRect(ctx, cardX, cardY, cardW, cardH, radius);
-  ctx.clip();
-  const scrim = ctx.createLinearGradient(0, scrimY, 0, size - pad);
-  scrim.addColorStop(0, "rgba(0,0,0,0)");
-  scrim.addColorStop(0.45, "rgba(0,0,0,0.45)");
-  scrim.addColorStop(1, "rgba(0,0,0,0.88)");
-  ctx.fillStyle = scrim;
-  ctx.fillRect(cardX, scrimY, cardW, scrimH);
-  ctx.restore();
-
-  // === IDENTITY BADGE (top) — "Persy — Mafia Boss" ===
-  // Bold sticker-style badge so the pet identity is unmistakable.
-  const idText = `${(opts.petName || "Your pet").toUpperCase()} — ${style.name.toUpperCase()}`;
-  const badgeFontSize = Math.round(size * 0.038); // ~41 at 1080
-  ctx.font = `800 ${badgeFontSize}px "Syne", system-ui, sans-serif`;
-  const idMetrics = ctx.measureText(idText);
-  const badgePadX = Math.round(size * 0.032);
-  const badgePadY = Math.round(size * 0.018);
-  const badgeW = Math.min(cardW - pad * 2, idMetrics.width + badgePadX * 2);
-  const badgeH = badgeFontSize + badgePadY * 2;
-  const badgeX = cardX + (cardW - badgeW) / 2;
-  const badgeY = cardY + Math.round(size * 0.04);
-  const badgeR = Math.round(badgeH / 2);
-
-  // Hard offset shadow behind badge (sticker style)
-  drawRoundedRect(ctx, badgeX + 7, badgeY + 7, badgeW, badgeH, badgeR);
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.fill();
-  // Badge fill
-  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  // ---- Frame (Polaroid) ---------------------------------------------------
+  // Outer frame fills the canvas with the style color.
+  const outerR = Math.round(size * 0.05);
+  drawRoundedRect(ctx, 0, 0, size, size, outerR);
   ctx.fillStyle = accent;
   ctx.fill();
-  // Thick black border
-  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
-  ctx.lineWidth = 6;
+  // Thick black border for the sticker look
+  drawRoundedRect(ctx, 4, 4, size - 8, size - 8, outerR - 2);
+  ctx.lineWidth = 8;
   ctx.strokeStyle = "#121212";
   ctx.stroke();
-  // Text — pick contrast color based on accent
-  const onDark = style.color === "foreground" || style.color === "secondary";
-  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  // Auto-shrink if too wide for the card
+
+  // ---- Photo area ---------------------------------------------------------
+  const sideMargin = Math.round(size * 0.07);
+  const topMargin = Math.round(size * 0.07);
+  const photoW = size - sideMargin * 2;
+  const photoH = Math.round(size * 0.62); // square-ish photo area
+  const photoX = sideMargin;
+  const photoY = topMargin;
+  const photoR = Math.round(size * 0.035);
+
+  const img = await loadImage(opts.imageDataUrl);
+  drawRoundedImage(ctx, img, photoX, photoY, photoW, photoH, photoR);
+
+  // ---- Sticker badge (centered, sitting on the bottom edge of the photo) -
+  const idText = `${(opts.petName || "Your pet").toUpperCase()} — ${style.name.toUpperCase()}`;
+  const badgeFontSize = Math.round(size * 0.032);
+  ctx.font = `800 ${badgeFontSize}px "Syne", system-ui, sans-serif`;
   let actualText = idText;
   let actualSize = badgeFontSize;
-  while (ctx.measureText(actualText).width > badgeW - badgePadX * 2 && actualSize > 22) {
+  const badgePadX = Math.round(size * 0.028);
+  const maxBadgeW = photoW - sideMargin;
+  while (ctx.measureText(actualText).width + badgePadX * 2 > maxBadgeW && actualSize > 18) {
     actualSize -= 2;
     ctx.font = `800 ${actualSize}px "Syne", system-ui, sans-serif`;
   }
+  const badgePadY = Math.round(size * 0.016);
+  const badgeW = ctx.measureText(actualText).width + badgePadX * 2;
+  const badgeH = actualSize + badgePadY * 2;
+  const badgeX = photoX + (photoW - badgeW) / 2;
+  const badgeY = photoY + photoH - badgeH / 2;
+  const badgeR = Math.round(badgeH / 2);
+
+  // sticker shadow
+  drawRoundedRect(ctx, badgeX + 6, badgeY + 6, badgeW, badgeH, badgeR);
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fill();
+  // badge fill (dark to pop on any frame color, like the example cards)
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
+  ctx.fill();
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#121212";
+  ctx.stroke();
+  ctx.fillStyle = onDark ? "#121212" : "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillText(actualText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 2);
 
-  // Quote text on the scrim — bottom placement, no chips covering the pet
+  // ---- Quote area (below the photo, on the frame) ------------------------
   const quote = `“${opts.quote}”`;
-  const sidePad = Math.round(size * 0.05);
-  const maxQuoteWidth = cardW - sidePad * 2;
-  const fontSize = quote.length > 90 ? 38 : quote.length > 60 ? 44 : 50;
-  ctx.font = `800 ${fontSize}px "Syne", system-ui, sans-serif`;
-  ctx.fillStyle = "#ffffff";
+  const quoteTop = photoY + photoH + Math.round(badgeH / 2) + Math.round(size * 0.025);
+  const footerH = Math.round(size * 0.05);
+  const quoteAreaBottom = size - sideMargin - footerH;
+  const maxQuoteWidth = photoW;
+
+  // Frame text color: dark on light/bright frames, white on dark frames
+  const frameTextColor = onDark ? "#ffffff" : "#121212";
+
+  // Pick a font size that fits in the available block (max 4 lines)
+  let qSize = quote.length > 90 ? 40 : quote.length > 60 ? 48 : 56;
+  let qLines: string[] = [];
+  let qLineH = 0;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    ctx.font = `800 ${qSize}px "Syne", system-ui, sans-serif`;
+    qLines = wrapLines(ctx, quote, maxQuoteWidth);
+    qLineH = Math.round(qSize * 1.12);
+    const totalH = qLines.length * qLineH;
+    if (qLines.length <= 4 && totalH <= quoteAreaBottom - quoteTop - 60) break;
+    qSize -= 4;
+    if (qSize <= 24) break;
+  }
+  if (qLines.length > 4) {
+    qLines = qLines.slice(0, 4);
+    qLines[3] = qLines[3].replace(/\s+\S*$/, "") + "…”";
+  }
+
+  ctx.fillStyle = frameTextColor;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
+  let qy = quoteTop + qSize;
+  for (const line of qLines) {
+    ctx.fillText(line, photoX, qy);
+    qy += qLineH;
+  }
 
-  const lines = wrapLines(ctx, quote, maxQuoteWidth);
-  const lineHeight = Math.round(fontSize * 1.12);
-  const brandRowH = 22;
-  const bottomY = size - pad - 30;
-
-  // Caption (selected) — sits between quote and brand row
+  // ---- Caption (smaller, under the quote) --------------------------------
   const caption = (opts.caption || "").trim();
-  let captionLines: string[] = [];
-  let captionFontSize = 0;
-  let captionLineHeight = 0;
-  let captionBlockH = 0;
   if (caption) {
-    captionFontSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
-    captionLineHeight = Math.round(captionFontSize * 1.25);
-    ctx.font = `600 ${captionFontSize}px "Space Grotesk", system-ui, sans-serif`;
-    captionLines = wrapLines(ctx, caption, maxQuoteWidth);
-    // cap to 3 lines for clean composition
-    if (captionLines.length > 3) {
-      captionLines = captionLines.slice(0, 3);
-      const last = captionLines[2];
-      captionLines[2] = last.replace(/\s+\S*$/, "") + "…";
+    const cSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
+    const cLineH = Math.round(cSize * 1.25);
+    ctx.font = `600 ${cSize}px "Space Grotesk", system-ui, sans-serif`;
+    let cLines = wrapLines(ctx, caption, maxQuoteWidth);
+    if (cLines.length > 2) {
+      cLines = cLines.slice(0, 2);
+      cLines[1] = cLines[1].replace(/\s+\S*$/, "") + "…";
     }
-    captionBlockH = captionLines.length * captionLineHeight;
-  }
-
-  const captionGap = caption ? 22 : 0;
-  const captionBottom = bottomY - brandRowH - 18;
-  const quoteBottom = captionBottom - captionBlockH - captionGap;
-
-  // Draw quote
-  ctx.font = `800 ${fontSize}px "Syne", system-ui, sans-serif`;
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "left";
-  let y = quoteBottom - (lines.length - 1) * lineHeight;
-  for (const line of lines) {
-    ctx.fillText(line, cardX + sidePad, y);
-    y += lineHeight;
-  }
-
-  // Draw caption below quote
-  if (caption) {
-    ctx.font = `600 ${captionFontSize}px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    let cy = captionBottom - (captionLines.length - 1) * captionLineHeight;
-    for (const line of captionLines) {
-      ctx.fillText(line, cardX + sidePad, cy);
-      cy += captionLineHeight;
+    ctx.fillStyle = onDark ? "rgba(255,255,255,0.92)" : "rgba(18,18,18,0.78)";
+    let cy = qy + Math.round(size * 0.012);
+    // make sure it fits
+    const maxCy = quoteAreaBottom;
+    for (const line of cLines) {
+      if (cy > maxCy) break;
+      ctx.fillText(line, photoX, cy);
+      cy += cLineH;
     }
   }
 
-  // Small brand row: PETDRAMA (left) + pet name/style + watermark (right)
-  ctx.font = `800 18px "Syne", system-ui, sans-serif`;
+  // ---- Footer: PETDRAMA + watermark --------------------------------------
+  const footerY = size - sideMargin + 4;
+  ctx.font = `800 20px "Syne", system-ui, sans-serif`;
   ctx.textBaseline = "alphabetic";
-  ctx.beginPath();
-  ctx.arc(cardX + sidePad + 5, bottomY - 6, 6, 0, Math.PI * 2);
-  ctx.fillStyle = accent;
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "left";
-  ctx.fillText("PETDRAMA", cardX + sidePad + 18, bottomY);
+  ctx.beginPath();
+  ctx.arc(photoX + 6, footerY - 7, 6, 0, Math.PI * 2);
+  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
+  ctx.fill();
+  ctx.fillStyle = frameTextColor;
+  ctx.fillText("PETDRAMA", photoX + 20, footerY);
 
-  const right = cardX + cardW - sidePad;
   if (opts.watermark) {
     ctx.font = `500 13px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillStyle = onDark ? "rgba(255,255,255,0.7)" : "rgba(18,18,18,0.6)";
     ctx.textAlign = "right";
-    ctx.fillText("Made with PetDrama · petdrama.app", right, bottomY);
+    ctx.fillText("Made with PetDrama · petdrama.app", photoX + photoW, footerY);
   }
 
   return canvas.toDataURL("image/png");
@@ -214,7 +208,6 @@ function drawRoundedImage(
   ctx.save();
   drawRoundedRect(ctx, x, y, w, h, r);
   ctx.clip();
-  // cover fit, biased slightly upward so faces stay in frame
   const ir = img.width / img.height;
   const tr = w / h;
   let sx = 0,
@@ -226,43 +219,14 @@ function drawRoundedImage(
     sx = (img.width - sw) / 2;
   } else {
     sh = img.width / tr;
-    sy = Math.max(0, (img.height - sh) * 0.35);
+    sy = Math.max(0, (img.height - sh) * 0.3);
   }
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   ctx.restore();
-
-  // Border
   drawRoundedRect(ctx, x, y, w, h, r);
   ctx.lineWidth = 6;
   ctx.strokeStyle = "#121212";
   ctx.stroke();
-}
-
-function drawChip(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  bg: string,
-  fg: string,
-  rightAlign = false,
-) {
-  ctx.font = `700 20px "Space Grotesk", system-ui, sans-serif`;
-  const padX = 18;
-  const padY = 12;
-  const w = ctx.measureText(text).width + padX * 2;
-  const h = 20 + padY * 2;
-  const rx = rightAlign ? x - w : x;
-  drawRoundedRect(ctx, rx, y, w, h, 999);
-  ctx.fillStyle = bg;
-  ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "#121212";
-  ctx.stroke();
-  ctx.fillStyle = fg;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, rx + padX, y + h / 2 + 1);
 }
 
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {

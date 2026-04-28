@@ -38,24 +38,30 @@ export default function Gallery() {
             </Link>
           </StickerCard>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 pt-4">
             {items.map((item, i) => {
               const s = getStyle(item.styleId);
+              const tilt = [-3, 2, -1.5, 3, -2.5, 1.5][i % 6];
+              const frameColor = s.color;
               return (
-                <StickerCard key={i} className="p-3 bg-background">
-                  <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-foreground">
+                <StickerCard
+                  key={i}
+                  color={frameColor}
+                  rotate={tilt}
+                  shadow="lg"
+                  className="p-4 hover:rotate-0 transition-transform"
+                >
+                  <div className="relative aspect-square rounded-2xl overflow-hidden border-[3px] border-foreground">
                     <img src={item.imageDataUrl} alt={item.petName} className="size-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 glossy pointer-events-none" />
-                    <span className="absolute top-3 left-3 rounded-lg border-2 border-foreground bg-background px-2 py-1 text-[10px] font-bold uppercase">
-                      {s.emoji} {s.name}
+                  </div>
+                  <div className="relative -mt-4 flex justify-center">
+                    <span className="rounded-full border-2 border-foreground bg-foreground text-background px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                      {s.emoji} {item.petName.toUpperCase()} — {s.name}
                     </span>
                   </div>
-                  <div className="px-2 pt-3 pb-1">
-                    <p className="font-display font-extrabold text-lg leading-tight">"{item.drama.quote}"</p>
-                    <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      — {item.petName}
-                    </p>
-                  </div>
+                  <p className="px-1 pt-4 pb-1 font-display font-extrabold text-base leading-snug">
+                    "{item.drama.quote}"
+                  </p>
                 </StickerCard>
               );
             })}
