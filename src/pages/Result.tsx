@@ -121,15 +121,25 @@ export default function Result() {
 
   if (!draft || !style) return null;
 
-  const activeRenderUrl = variant === "remix" ? remixRenderUrl : renderUrl;
-  const hasRemix = !!draft.remixImageDataUrl;
+  const activeRenderUrl =
+    variant === "remix"
+      ? remixRenderUrl ?? draft.remixRenderedDataUrl ?? null
+      : renderUrl ?? draft.renderedDataUrl ?? null;
+  const hasRemix = !!(remixRenderUrl || draft.remixRenderedDataUrl || draft.remixImageDataUrl);
 
   // Persist a variant change so returning to Create -> Continue restores it.
   const switchVariant = (v: Variant) => {
+    if (v === "remix" && !hasRemix) return;
     setVariant(v);
     if (draft && draft.variant !== v) {
-      const updated = { ...draft, variant: v };
+      const updated = {
+        ...draft,
+        renderedDataUrl: renderUrl ?? draft.renderedDataUrl,
+        remixRenderedDataUrl: remixRenderUrl ?? draft.remixRenderedDataUrl,
+        variant: v,
+      };
       saveDraft(updated);
+      auditCreationAssets("result-switch-variant", updated);
       setDraft(updated);
     }
   };
