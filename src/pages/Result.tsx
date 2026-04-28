@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
-import { generateDrama, getStyle, pickCaption, normalizePetName } from "@/lib/drama";
+import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { loadDraft, saveDraft, saveToGallery, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { toast } from "sonner";
