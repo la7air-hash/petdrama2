@@ -14,6 +14,7 @@ interface RenderOpts {
   petName: string;
   styleId: DramaStyleId;
   quote: string;
+  caption?: string;
   watermark: boolean;
   size?: number;
 }
