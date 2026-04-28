@@ -194,7 +194,7 @@ export function generateDrama(styleId: DramaStyleId, petName: string): Generated
   const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
   return {
     quote: pick(content.quotes),
-    caption: pick(content.captions).replaceAll("{name}", name),
+    caption: pick(content.captions).split("{name}").join(name),
     hashtags: pick(content.hashtags),
   };
 }
