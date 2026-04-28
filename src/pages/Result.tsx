@@ -247,7 +247,12 @@ export default function Result() {
         /* fall back to effect-based render */
       }
 
-      const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
+      const updated: DramaDraft = {
+        ...draft,
+        remixImageDataUrl: remixUrl,
+        remixRenderedDataUrl: renderedRemix ?? undefined,
+        variant: "remix",
+      };
       saveDraft(updated);
       setDraft(updated);
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
