@@ -58,6 +58,49 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   ctx.fillRect(cardX, scrimY, cardW, scrimH);
   ctx.restore();
 
+  // === IDENTITY BADGE (top) — "Persy — Mafia Boss" ===
+  // Bold sticker-style badge so the pet identity is unmistakable.
+  const idText = `${(opts.petName || "Your pet").toUpperCase()} — ${style.name.toUpperCase()}`;
+  const badgeFontSize = Math.round(size * 0.038); // ~41 at 1080
+  ctx.font = `800 ${badgeFontSize}px "Syne", system-ui, sans-serif`;
+  const idMetrics = ctx.measureText(idText);
+  const badgePadX = Math.round(size * 0.032);
+  const badgePadY = Math.round(size * 0.018);
+  const badgeW = Math.min(cardW - pad * 2, idMetrics.width + badgePadX * 2);
+  const badgeH = badgeFontSize + badgePadY * 2;
+  const badgeX = cardX + (cardW - badgeW) / 2;
+  const badgeY = cardY + Math.round(size * 0.04);
+  const badgeR = Math.round(badgeH / 2);
+
+  // Shadow behind badge
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 6;
+  ctx.shadowOffsetY = 6;
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  ctx.fillStyle = accent;
+  ctx.fill();
+  ctx.restore();
+  // Border on top of shadow
+  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#121212";
+  ctx.stroke();
+  // Text — pick contrast color based on accent
+  const onDark = style.color === "foreground" || style.color === "secondary";
+  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  // Auto-shrink if too wide for the card
+  let actualText = idText;
+  let actualSize = badgeFontSize;
+  while (ctx.measureText(actualText).width > badgeW - badgePadX * 2 && actualSize > 22) {
+    actualSize -= 2;
+    ctx.font = `800 ${actualSize}px "Syne", system-ui, sans-serif`;
+  }
+  ctx.fillText(actualText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 2);
+
   // Quote text on the scrim — bottom placement, no chips covering the pet
   const quote = `“${opts.quote}”`;
   const sidePad = Math.round(size * 0.05);
