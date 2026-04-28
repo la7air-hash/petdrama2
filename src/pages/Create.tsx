@@ -21,9 +21,17 @@ export default function Create() {
   // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
   const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  // True when the restored draft already contains a generated result that the
+  // user can jump back into without regenerating.
+  const [hasGeneratedResult, setHasGeneratedResult] = useState(false);
+  // Snapshot of inputs at restore-time. If current inputs diverge, the existing
+  // result is considered outdated and we prompt the user before regenerating.
+  const [restoredSnapshot, setRestoredSnapshot] = useState<
+    { imageDataUrl: string; petName: string; petType: PetType; styleId: DramaStyleId } | null
+  >(null);
 
   // Restore the previous draft (if any) on mount so navigating away and back
-  // doesn't lose the user's work.
+  // doesn't lose the user's work — including the full generated result.
   useEffect(() => {
     const d = loadDraft();
     if (d) {
@@ -33,8 +41,26 @@ export default function Create() {
       setStyleId(d.styleId);
       setActiveCreationId(d.creationId);
       setRestored(true);
+      // A draft is only saved once the user has generated, so any restored
+      // draft has a result we can continue to.
+      setHasGeneratedResult(true);
+      setRestoredSnapshot({
+        imageDataUrl: d.imageDataUrl,
+        petName: d.petName,
+        petType: d.petType,
+        styleId: d.styleId,
+      });
     }
   }, []);
+
+  // Inputs differ from the snapshot taken when we restored → result is stale.
+  const isOutdated =
+    hasGeneratedResult &&
+    !!restoredSnapshot &&
+    (restoredSnapshot.imageDataUrl !== imageDataUrl ||
+      restoredSnapshot.petName !== petName ||
+      restoredSnapshot.petType !== petType ||
+      restoredSnapshot.styleId !== styleId);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -72,11 +98,22 @@ export default function Create() {
     setStyleId("drama-queen");
     setActiveCreationId(null);
     setRestored(false);
+    setHasGeneratedResult(false);
+    setRestoredSnapshot(null);
     toast.success("Started a fresh drama.");
   };
 
+  const onContinueToResult = () => navigate("/result");
+
   const onGenerate = () => {
     if (!canGenerate || !imageDataUrl) return;
+    // Outdated → confirm before discarding the existing result.
+    if (isOutdated) {
+      const ok = window.confirm(
+        "You changed something since the last drama. Generate a new one? Your previous result will be replaced.",
+      );
+      if (!ok) return;
+    }
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
@@ -109,9 +146,14 @@ export default function Create() {
             <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
               Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
             </p>
-            {restored && (
+            {restored && !isOutdated && (
               <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
                 ✦ Continuing your last drama
+              </p>
+            )}
+            {restored && isOutdated && (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-secondary text-secondary-foreground px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                ⚠ Inputs changed · result is outdated
               </p>
             )}
           </div>
@@ -247,21 +289,45 @@ export default function Create() {
           <StickerCard className="p-4 md:p-5 bg-background flex flex-col sm:flex-row items-center justify-between gap-4" shadow="lg">
             <div className="text-sm">
               <p className="font-display font-extrabold text-lg leading-tight">
-                {canGenerate ? "Ready to make some chaos." : "Add a photo + name to continue."}
+                {hasGeneratedResult && !isOutdated
+                  ? "Your drama is ready."
+                  : isOutdated
+                  ? "Inputs changed — regenerate to apply."
+                  : canGenerate
+                  ? "Ready to make some chaos."
+                  : "Add a photo + name to continue."}
               </p>
               <p className="text-muted-foreground text-xs">
                 Imaginary pet thoughts · For entertainment only
               </p>
             </div>
-            <StickerButton
-              variant="primary"
-              size="lg"
-              disabled={!canGenerate || generating}
-              onClick={onGenerate}
-              className="w-full sm:w-auto"
-            >
-              {generating ? "Generating drama…" : "Generate Pet Drama →"}
-            </StickerButton>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {hasGeneratedResult && (
+                <StickerButton
+                  variant={isOutdated ? "ghost" : "primary"}
+                  size="lg"
+                  onClick={onContinueToResult}
+                  className="w-full sm:w-auto"
+                >
+                  → Continue to result
+                </StickerButton>
+              )}
+              <StickerButton
+                variant={hasGeneratedResult && !isOutdated ? "ghost" : "primary"}
+                size="lg"
+                disabled={!canGenerate || generating}
+                onClick={onGenerate}
+                className="w-full sm:w-auto"
+              >
+                {generating
+                  ? "Generating drama…"
+                  : hasGeneratedResult
+                  ? isOutdated
+                    ? "🔄 Regenerate"
+                    : "🔄 New drama with same inputs"
+                  : "Generate Pet Drama →"}
+              </StickerButton>
+            </div>
           </StickerCard>
         </div>
       </section>

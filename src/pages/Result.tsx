@@ -43,12 +43,19 @@ export default function Result() {
       };
       saveDraft(d);
     }
+    // Restore previously cached renders so we don't re-render unnecessarily.
+    if (d.renderedDataUrl) setRenderUrl(d.renderedDataUrl);
+    if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
+    // Restore last-viewed variant (default original; only honor remix if a remix exists).
+    if (d.variant === "remix" && d.remixImageDataUrl) setVariant("remix");
     setDraft(d);
   }, [navigate]);
 
   // Render the ORIGINAL card whenever quote/caption/photo changes.
+  // Skip if renderUrl is already populated (restored from draft or pre-cached).
   useEffect(() => {
     if (!draft) return;
+    if (renderUrl) return;
     let cancelled = false;
     renderDramaPng({
       imageDataUrl: draft.imageDataUrl,
@@ -60,17 +67,23 @@ export default function Result() {
       size: 1080,
     })
       .then((url) => {
-        if (!cancelled) setRenderUrl(url);
+        if (cancelled) return;
+        setRenderUrl(url);
+        // Persist into draft so navigating away/back keeps the same asset.
+        const latest = loadDraft();
+        if (latest && latest.creationId === draft.creationId) {
+          saveDraft({ ...latest, renderedDataUrl: url });
+        }
       })
       .catch(() => toast.error("Could not render preview."));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, isPro]);
 
   // Render the REMIX card whenever the remix image or quote/caption changes.
-  // Skip if remixRenderUrl is already populated (e.g. pre-rendered inside onDramaRemix)
-  // — this prevents producing a second, slightly different data URL for the same asset.
+  // Skip if remixRenderUrl is already populated (restored from draft or pre-rendered).
   useEffect(() => {
     if (!draft?.remixImageDataUrl) {
       setRemixRenderUrl(null);
@@ -88,7 +101,12 @@ export default function Result() {
       size: 1080,
     })
       .then((url) => {
-        if (!cancelled) setRemixRenderUrl(url);
+        if (cancelled) return;
+        setRemixRenderUrl(url);
+        const latest = loadDraft();
+        if (latest && latest.creationId === draft.creationId) {
+          saveDraft({ ...latest, remixRenderedDataUrl: url });
+        }
       })
       .catch(() => toast.error("Could not render remix preview."));
     return () => {
@@ -105,11 +123,24 @@ export default function Result() {
   const activeRenderUrl = variant === "remix" ? remixRenderUrl : renderUrl;
   const hasRemix = !!draft.remixImageDataUrl;
 
+  // Persist a variant change so returning to Create -> Continue restores it.
+  const switchVariant = (v: Variant) => {
+    setVariant(v);
+    if (draft && draft.variant !== v) {
+      const updated = { ...draft, variant: v };
+      saveDraft(updated);
+      setDraft(updated);
+    }
+  };
+
   const onSelectQuote = (q: string) => {
     if (q === draft.drama.quote) return;
     const updated: DramaDraft = {
       ...draft,
       drama: { ...draft.drama, quote: q },
+      // Cached renders are now stale — drop them from the persisted draft too.
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
     };
     saveDraft(updated);
     setDraft(updated);
@@ -122,6 +153,8 @@ export default function Result() {
     const updated: DramaDraft = {
       ...draft,
       drama: { ...draft.drama, caption: c },
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
     };
     saveDraft(updated);
     setDraft(updated);
@@ -147,7 +180,13 @@ export default function Result() {
 
   const onRegenerate = () => {
     const next = generateDrama(draft.styleId, draft.petName, draft.petType);
-    const updated: DramaDraft = { ...draft, drama: next, createdAt: Date.now() };
+    const updated: DramaDraft = {
+      ...draft,
+      drama: next,
+      createdAt: Date.now(),
+      renderedDataUrl: undefined,
+      remixRenderedDataUrl: undefined,
+    };
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
@@ -208,7 +247,12 @@ export default function Result() {
         /* fall back to effect-based render */
       }
 
-      const updated: DramaDraft = { ...draft, remixImageDataUrl: remixUrl };
+      const updated: DramaDraft = {
+        ...draft,
+        remixImageDataUrl: remixUrl,
+        remixRenderedDataUrl: renderedRemix ?? undefined,
+        variant: "remix",
+      };
       saveDraft(updated);
       setDraft(updated);
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
@@ -250,11 +294,18 @@ export default function Result() {
       if (!renderUrl) setRenderUrl(finalOriginal);
       if (finalRemix && !remixRenderUrl) setRemixRenderUrl(finalRemix);
 
-      saveToGallery({
+      // Persist renders + saved flag into the active draft so navigating
+      // away (Gallery / Create) and back keeps the same exact assets.
+      const persisted: DramaDraft = {
         ...draft,
         renderedDataUrl: finalOriginal,
         remixRenderedDataUrl: finalRemix,
-      });
+        savedToGallery: true,
+      };
+      saveDraft(persisted);
+      setDraft(persisted);
+
+      saveToGallery(persisted);
       toast.success("Saved to your gallery.");
     } catch {
       toast.error("Couldn't save — please try again.");
@@ -292,7 +343,7 @@ export default function Result() {
               <div className="inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setVariant("original")}
+                  onClick={() => switchVariant("original")}
                   className={cn(
                     "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
                     variant === "original" ? "bg-foreground text-background" : "text-foreground/70",
@@ -302,7 +353,7 @@ export default function Result() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVariant("remix")}
+                  onClick={() => switchVariant("remix")}
                   className={cn(
                     "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
                     variant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
