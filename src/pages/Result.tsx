@@ -4,7 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
-import { auditCreationAssets, loadDraft, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
+import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -23,11 +23,43 @@ export default function Result() {
   const [isPro] = useState(false); // mocked
 
   useEffect(() => {
-    const d = loadDraft();
-    if (!d) {
+    const current = loadDraft();
+    if (!current) {
       navigate("/create", { replace: true });
       return;
     }
+    // Look for a richer copy of the same creation in the gallery — if the
+    // current draft lost remix fields somewhere, recover them from gallery.
+    const galleryMatch = loadGallery().find((g) => g.creationId === current.creationId) ?? null;
+
+    let source: "currentDraft" | "gallery" | "merged" = "currentDraft";
+    let d: DramaDraft = current;
+    if (galleryMatch) {
+      const currentMissingRemix =
+        !current.remixRenderedDataUrl && !current.remixImageDataUrl;
+      const galleryHasRemix =
+        !!galleryMatch.remixRenderedDataUrl || !!galleryMatch.remixImageDataUrl;
+      if (currentMissingRemix && galleryHasRemix) {
+        // Pure recovery from gallery for the missing remix bits.
+        d = {
+          ...current,
+          renderedDataUrl: current.renderedDataUrl ?? galleryMatch.renderedDataUrl,
+          remixImageDataUrl: galleryMatch.remixImageDataUrl,
+          remixRenderedDataUrl: galleryMatch.remixRenderedDataUrl,
+          variant: galleryMatch.variant ?? current.variant,
+          savedToGallery: current.savedToGallery ?? galleryMatch.savedToGallery,
+        };
+        source = "merged";
+        // Persist the recovered state so subsequent restores are clean.
+        saveDraft(d);
+      } else if (galleryHasRemix && !current.remixRenderedDataUrl && current.remixImageDataUrl) {
+        // Edge case: have remix image but lost the rendered card.
+        d = { ...current, remixRenderedDataUrl: galleryMatch.remixRenderedDataUrl };
+        source = "merged";
+        saveDraft(d);
+      }
+    }
+
     // Backward compat: ensure quoteOptions / captionOptions exist
     const needsRefresh =
       !d.drama.quoteOptions ||
@@ -36,18 +68,34 @@ export default function Result() {
       d.drama.captionOptions.length === 0;
     if (needsRefresh) {
       const fresh = generateDrama(d.styleId, d.petName, d.petType);
-      d.drama = {
-        ...fresh,
-        quote: d.drama.quote || fresh.quote,
-        caption: d.drama.caption || fresh.caption,
+      d = {
+        ...d,
+        drama: {
+          ...fresh,
+          quote: d.drama.quote || fresh.quote,
+          caption: d.drama.caption || fresh.caption,
+        },
       };
       saveDraft(d);
     }
     // Restore previously cached renders so Continue to result uses the exact persisted assets.
     if (d.renderedDataUrl) setRenderUrl(d.renderedDataUrl);
     if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
-    // Restore last-viewed variant (default original; only honor remix if a remix asset exists).
-    if (d.variant === "remix" && (d.remixRenderedDataUrl || d.remixImageDataUrl)) setVariant("remix");
+    // Default variant to remix when remix exists; only honor explicit "original" choice.
+    const hasAnyRemix = !!(d.remixRenderedDataUrl || d.remixImageDataUrl);
+    if (hasAnyRemix) {
+      // If the persisted variant is remix OR unset, show remix. Only "original" forces original.
+      if (d.variant !== "original") setVariant("remix");
+    }
+
+    console.info("[PetDrama restore source]", {
+      creationId: d.creationId,
+      source,
+      hasOriginal: !!d.renderedDataUrl,
+      hasRemixImage: !!d.remixImageDataUrl,
+      hasRemixRender: !!d.remixRenderedDataUrl,
+      variant: d.variant ?? (hasAnyRemix ? "remix" : "original"),
+    });
     console.info("[PetDrama restore on Result]", {
       creationId: d.creationId,
       hasOriginal: !!d.renderedDataUrl,
