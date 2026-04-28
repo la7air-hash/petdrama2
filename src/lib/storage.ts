@@ -100,7 +100,15 @@ export function saveToGallery(draft: DramaDraft): DramaDraft | null {
     // Upsert by creationId so re-saving the same creation never duplicates.
     const idx = list.findIndex((d) => d.creationId === incoming.creationId);
     if (idx >= 0) {
-      list[idx] = { ...list[idx], ...incoming };
+      const existing = list[idx];
+      list[idx] = {
+        ...existing,
+        ...incoming,
+        renderedDataUrl: incoming.renderedDataUrl ?? existing.renderedDataUrl,
+        remixImageDataUrl: incoming.remixImageDataUrl ?? existing.remixImageDataUrl,
+        remixRenderedDataUrl: incoming.remixRenderedDataUrl ?? existing.remixRenderedDataUrl,
+        variant: incoming.variant ?? existing.variant,
+      };
     } else {
       list.unshift(incoming);
     }
