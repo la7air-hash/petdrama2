@@ -314,12 +314,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Just a heads up — I'll be out of office under the bed for the rest of the day.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has scheduled a 1:1 to discuss your performance as their human. Bring treats.`,
-      (n, _v, dn) => `Quarterly review with ${dn}: needs improvement on petting frequency. Otherwise solid.`,
-      (n, _v, dn) => `${dn} has 47 unread barks and ${dn} would like everyone to be aware of that.`,
-      (n, _v, dn) => `Looping ${dn} in on this. ${dn} has thoughts. ${dn} always has thoughts.`,
+      (n, _v, dn) => `${dn} scheduled a 1:1. bring treats. 📎`,
+      (n, _v, dn) => `quarterly review w/ ${dn}: needs improvement on petting frequency`,
+      (n, _v, dn) => `${dn} has 47 unread barks and would like everyone to know`,
+      (n, _v, dn) => `looping ${dn} in. ${dn} has thoughts. ${dn} always has thoughts.`,
+      (n, _v, dn) => `pov: ${dn} sent another "per my last bark" email`,
+      (n, _v, dn) => `${dn} is in back-to-back naps today. circle back tmrw.`,
     ],
-    hashtags: ["#PetManager", "#PetDrama", "#WFH", "#PerMyLastBark", "#HRDepartment"],
+    hashtags: ["#PetManager", "#PetDrama", "#WFH", "#PerMyLastBark", "#PetTok"],
   },
 
   "venetian-noble": {
