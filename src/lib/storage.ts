@@ -43,7 +43,7 @@ function ensureId<T extends { creationId?: string; createdAt?: number }>(d: T): 
 
 export function saveDraft(draft: DramaDraft) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(ensureId(draft)));
+    localStorage.setItem(KEY, JSON.stringify(ensureId(draft)));
   } catch {
     /* noop */
   }
@@ -51,11 +51,21 @@ export function saveDraft(draft: DramaDraft) {
 
 export function loadDraft(): DramaDraft | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    // Prefer the persistent localStorage copy; fall back to sessionStorage for legacy.
+    const raw = localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY);
     if (!raw) return null;
     return ensureId(JSON.parse(raw) as DramaDraft);
   } catch {
     return null;
+  }
+}
+
+export function clearDraft() {
+  try {
+    localStorage.removeItem(KEY);
+    sessionStorage.removeItem(KEY);
+  } catch {
+    /* noop */
   }
 }
 
