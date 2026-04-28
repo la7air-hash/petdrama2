@@ -46,15 +46,15 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   drawRoundedImage(ctx, img, cardX, cardY, cardW, cardH, radius);
 
   // Subtle dark gradient ONLY at the bottom — keeps the pet visible
-  const scrimH = Math.round(size * 0.30);
+  const scrimH = Math.round(size * 0.42);
   const scrimY = size - pad - scrimH;
   ctx.save();
   drawRoundedRect(ctx, cardX, cardY, cardW, cardH, radius);
   ctx.clip();
   const scrim = ctx.createLinearGradient(0, scrimY, 0, size - pad);
   scrim.addColorStop(0, "rgba(0,0,0,0)");
-  scrim.addColorStop(0.55, "rgba(0,0,0,0.45)");
-  scrim.addColorStop(1, "rgba(0,0,0,0.82)");
+  scrim.addColorStop(0.45, "rgba(0,0,0,0.45)");
+  scrim.addColorStop(1, "rgba(0,0,0,0.88)");
   ctx.fillStyle = scrim;
   ctx.fillRect(cardX, scrimY, cardW, scrimH);
   ctx.restore();
