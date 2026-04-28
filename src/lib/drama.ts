@@ -170,12 +170,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "The mailman approaches the gates. Sound the alarm. Calmly.",
     ],
     captions: [
-      (n, _v, dn) => `Her/His Royal Highness ${dn}, undisputed ruler of the living room.`,
-      (n, _v, dn) => `${dn} has graciously accepted today's tribute of one (1) tiny treat.`,
-      (n, _v, dn) => `An audience with ${dn} is by appointment only. Bring snacks.`,
-      (n, _v, dn) => `${dn} doesn't ask for the throne. ${dn} simply sits, and the throne appears.`,
+      (n, _v, dn) => `bow down. ${dn} has entered the chat 👑`,
+      (n, _v, dn) => `${dn} doesn't sit on a throne. the throne appears 💅`,
+      (n, _v, dn) => `pov: you serve ${dn} now ✨`,
+      (n, _v, dn) => `audience with ${dn}: by appointment only. bring snacks 🍗`,
+      (n, _v, dn) => `today's tribute to ${dn}: one (1) tiny treat. accepted. barely.`,
+      (n, _v, dn) => `${dn} said "we are not amused" and meant it 😒`,
     ],
-    hashtags: ["#RoyalPet", "#PetDrama", "#HRH", "#YourMajesty", "#FluffAndCircumstance"],
+    hashtags: ["#RoyalPet", "#PetDrama", "#HRH", "#YourMajesty", "#PetTok"],
   },
 
   "tiny-villain": {
