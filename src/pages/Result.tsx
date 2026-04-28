@@ -68,16 +68,21 @@ export default function Result() {
     if (q === draft.drama.quote) return;
     const updated: DramaDraft = {
       ...draft,
-      drama: {
-        ...draft.drama,
-        quote: q,
-        // refresh caption so it pairs naturally with the new quote
-        caption: pickCaption(draft.styleId, draft.petName, draft.petType),
-      },
+      drama: { ...draft.drama, quote: q },
     };
     saveDraft(updated);
     setDraft(updated);
     setRenderUrl(null);
+  };
+
+  const onSelectCaption = (c: string) => {
+    if (c === draft.drama.caption) return;
+    const updated: DramaDraft = {
+      ...draft,
+      drama: { ...draft.drama, caption: c },
+    };
+    saveDraft(updated);
+    setDraft(updated);
   };
 
   const onDownload = () => {
