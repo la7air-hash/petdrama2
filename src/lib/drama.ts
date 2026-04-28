@@ -290,12 +290,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "If you open the fridge, I appear. I don't make the rules. I just enforce them.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} would like to remind you that dinner exists. And lunch. And second lunch.`,
-      (n, _v, dn) => `${dn}'s love language is treats. Specifically: more treats. Specifically: now.`,
-      (n, _v, dn) => `${dn} hears the fridge open from three rooms away. We've stopped questioning it.`,
-      (n, _v, dn) => `Currently negotiating a snack with ${dn}. The negotiations are not going well.`,
+      (n, _v, dn) => `${dn} would like to remind you dinner exists. and lunch. and second lunch. 🍗`,
+      (n, _v, dn) => `${dn}'s love language: snacks. now. urgent. 🚨`,
+      (n, _v, dn) => `pov: you opened the fridge. ${dn} appeared. 👻`,
+      (n, _v, dn) => `negotiating a snack with ${dn}. it's not going well.`,
+      (n, _v, dn) => `${dn} said "i'm starving" 4 minutes after dinner 💀`,
+      (n, _v, dn) => `the bowl is empty and ${dn} wants you to KNOW`,
     ],
-    hashtags: ["#HungryPet", "#PetDrama", "#FeedMeNow", "#SnackAttack", "#FoodMotivated"],
+    hashtags: ["#HungryPet", "#PetDrama", "#FeedMeNow", "#PetTok", "#FoodMotivated"],
   },
 
   "office-manager": {
