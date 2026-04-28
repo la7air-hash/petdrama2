@@ -48,6 +48,16 @@ export default function Result() {
     if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
     // Restore last-viewed variant (default original; only honor remix if a remix asset exists).
     if (d.variant === "remix" && (d.remixRenderedDataUrl || d.remixImageDataUrl)) setVariant("remix");
+    console.info("[PetDrama restore on Result]", {
+      creationId: d.creationId,
+      hasOriginal: !!d.renderedDataUrl,
+      hasRemixImage: !!d.remixImageDataUrl,
+      hasRemixRender: !!d.remixRenderedDataUrl,
+      variant: d.variant ?? "original",
+      savedToGallery: !!d.savedToGallery,
+      quote: d.drama?.quote,
+      caption: d.drama?.caption,
+    });
     auditCreationAssets("result-restore", d);
     setDraft(d);
   }, [navigate]);
@@ -119,16 +129,28 @@ export default function Result() {
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
   const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
+  // Reconcile React state with localStorage. Storage is the source of truth
+  // for assets — React state is the source of truth for the active variant
+  // and any in-flight render URLs not yet persisted.
   const getLiveDraft = (baseDraft: DramaDraft): DramaDraft => {
-    const latest = loadDraft();
-    const sameLatest = latest?.creationId === baseDraft.creationId ? latest : null;
-    return {
+    const stored = loadDraft();
+    const sameStored = stored?.creationId === baseDraft.creationId ? stored : null;
+    // Start from stored (most complete) when available, then layer baseDraft
+    // (current React state for drama text, etc), then in-flight render URLs.
+    const merged: DramaDraft = {
+      ...(sameStored ?? {} as DramaDraft),
       ...baseDraft,
-      renderedDataUrl: renderUrl ?? baseDraft.renderedDataUrl ?? sameLatest?.renderedDataUrl,
-      remixImageDataUrl: baseDraft.remixImageDataUrl ?? sameLatest?.remixImageDataUrl,
-      remixRenderedDataUrl: remixRenderUrl ?? baseDraft.remixRenderedDataUrl ?? sameLatest?.remixRenderedDataUrl,
+      // Asset URLs: prefer the freshest non-null value.
+      renderedDataUrl:
+        renderUrl ?? baseDraft.renderedDataUrl ?? sameStored?.renderedDataUrl,
+      remixImageDataUrl:
+        baseDraft.remixImageDataUrl ?? sameStored?.remixImageDataUrl,
+      remixRenderedDataUrl:
+        remixRenderUrl ?? baseDraft.remixRenderedDataUrl ?? sameStored?.remixRenderedDataUrl,
       variant,
+      savedToGallery: baseDraft.savedToGallery ?? sameStored?.savedToGallery,
     };
+    return merged;
   };
 
   if (!draft || !style) return null;
@@ -305,11 +327,12 @@ export default function Result() {
         watermark: !isPro,
         size: 1080 as const,
       };
-      // Ensure the original render exists & matches current quote/caption.
+      // Always ensure the original render exists.
       const finalOriginal =
         liveDraft.renderedDataUrl ??
         (await renderDramaPng({ ...common, imageDataUrl: liveDraft.imageDataUrl }));
-      // Ensure remix render exists if a remix image is present.
+
+      // If a remix image exists, the remix render MUST exist too — render it now if missing.
       let finalRemix: string | undefined = liveDraft.remixRenderedDataUrl ?? undefined;
       if (liveDraft.remixImageDataUrl && !finalRemix) {
         finalRemix = await renderDramaPng({
@@ -317,26 +340,52 @@ export default function Result() {
           imageDataUrl: liveDraft.remixImageDataUrl,
         });
       }
-      // Cache them locally so toggle/download use the exact same asset.
-      if (!renderUrl) setRenderUrl(finalOriginal);
-      if (finalRemix && !remixRenderUrl) setRemixRenderUrl(finalRemix);
 
-      // Persist renders + saved flag into the active draft so navigating
-      // away (Gallery / Create) and back keeps the same exact assets.
+      // Hard requirement: when remix exists, both assets must be present before we mark saved.
+      if (liveDraft.remixImageDataUrl && !finalRemix) {
+        toast.error("Remix asset isn't ready yet — try again in a moment.");
+        return;
+      }
+
+      // Cache renders locally so toggle/download use the same exact asset.
+      setRenderUrl(finalOriginal);
+      if (finalRemix) setRemixRenderUrl(finalRemix);
+
+      // Build the canonical persisted creation. This single object is the
+      // source of truth for: active draft, gallery card, gallery modal, downloads.
       const persisted: DramaDraft = {
         ...liveDraft,
         renderedDataUrl: finalOriginal,
+        remixImageDataUrl: liveDraft.remixImageDataUrl,
         remixRenderedDataUrl: finalRemix ?? liveDraft.remixRenderedDataUrl,
         variant,
         savedToGallery: true,
       };
-      saveDraft(persisted);
-      setDraft(persisted);
 
-      saveToGallery(persisted);
-      auditCreationAssets("result-save-to-gallery", persisted, [persisted]);
-      toast.success("Saved to your gallery.");
-    } catch {
+      // Verification log BEFORE writing — confirms both assets are in the payload.
+      console.info("[PetDrama save payload]", {
+        creationId: persisted.creationId,
+        hasOriginal: !!persisted.renderedDataUrl,
+        hasRemixImage: !!persisted.remixImageDataUrl,
+        hasRemixRender: !!persisted.remixRenderedDataUrl,
+        variant: persisted.variant,
+      });
+      if (persisted.remixImageDataUrl && !persisted.remixRenderedDataUrl) {
+        toast.error("Remix render missing from save payload.");
+        return;
+      }
+
+      saveDraft(persisted);
+      const stored = saveToGallery(persisted);
+      setDraft(persisted);
+      auditCreationAssets("result-save-to-gallery", persisted, stored ? [stored] : []);
+      toast.success(
+        persisted.remixRenderedDataUrl
+          ? "Saved Original + Remix to your gallery."
+          : "Saved to your gallery.",
+      );
+    } catch (e) {
+      console.error("[PetDrama save error]", e);
       toast.error("Couldn't save — please try again.");
     } finally {
       setIsSaving(false);
