@@ -50,3 +50,17 @@ export function loadGallery(): DramaDraft[] {
     return [];
   }
 }
+
+export function saveGallery(list: DramaDraft[]) {
+  try {
+    localStorage.setItem(GALLERY, JSON.stringify(list.slice(0, 24)));
+  } catch {
+    /* noop */
+  }
+}
+
+export function deleteFromGallery(createdAt: number): DramaDraft[] {
+  const list = loadGallery().filter((d) => d.createdAt !== createdAt);
+  saveGallery(list);
+  return list;
+}
