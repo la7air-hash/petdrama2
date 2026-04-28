@@ -343,7 +343,7 @@ export default function Result() {
               <div className="inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setVariant("original")}
+                  onClick={() => switchVariant("original")}
                   className={cn(
                     "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
                     variant === "original" ? "bg-foreground text-background" : "text-foreground/70",
@@ -353,7 +353,7 @@ export default function Result() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVariant("remix")}
+                  onClick={() => switchVariant("remix")}
                   className={cn(
                     "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
                     variant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
