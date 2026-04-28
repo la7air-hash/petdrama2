@@ -66,9 +66,9 @@ export default function Gallery() {
   const confirmDelete = () => {
     if (!pendingDelete) return;
     const snapshot = loadGallery();
-    const next = deleteFromGallery(pendingDelete.createdAt);
+    const next = deleteFromGallery(pendingDelete.creationId);
     setItems(next);
-    if (active && active.createdAt === pendingDelete.createdAt) setActive(null);
+    if (active && active.creationId === pendingDelete.creationId) setActive(null);
     setPendingDelete(null);
     toast.success("Creation deleted", {
       action: {
