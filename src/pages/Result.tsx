@@ -274,6 +274,7 @@ export default function Result() {
         ...liveDraft,
         remixImageDataUrl: remixUrl,
         remixRenderedDataUrl: renderedRemix ?? liveDraft.remixRenderedDataUrl,
+        savedToGallery: false,
         variant: "remix",
       };
       saveDraft(updated);
