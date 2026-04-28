@@ -50,7 +50,7 @@ export default function Create() {
     if (!canGenerate || !imageDataUrl) return;
     setGenerating(true);
     setTimeout(() => {
-      const drama = generateDrama(styleId, petName);
+      const drama = generateDrama(styleId, petName, petType);
       saveDraft({
         imageDataUrl,
         petName: petName.trim(),
