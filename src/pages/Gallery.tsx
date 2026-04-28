@@ -3,12 +3,22 @@ import { Link } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
-import { loadGallery, type DramaDraft } from "@/lib/storage";
+import { loadGallery, saveGallery, deleteFromGallery, type DramaDraft } from "@/lib/storage";
 import { getStyle, normalizePetName } from "@/lib/drama";
 import { downloadDataUrl } from "@/lib/render";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 
 function fileNameFor(item: DramaDraft) {
   const name = normalizePetName(item.petName).replace(/\s+/g, "-").toLowerCase() || "petdrama";
@@ -18,6 +28,7 @@ function fileNameFor(item: DramaDraft) {
 export default function Gallery() {
   const [items, setItems] = useState<DramaDraft[]>([]);
   const [active, setActive] = useState<DramaDraft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<DramaDraft | null>(null);
 
   useEffect(() => {
     setItems(loadGallery());
@@ -34,6 +45,29 @@ export default function Gallery() {
     toast.success("Downloaded!");
   };
 
+  const requestDelete = (item: DramaDraft, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setPendingDelete(item);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    const snapshot = loadGallery();
+    const next = deleteFromGallery(pendingDelete.createdAt);
+    setItems(next);
+    if (active && active.createdAt === pendingDelete.createdAt) setActive(null);
+    setPendingDelete(null);
+    toast.success("Creation deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          saveGallery(snapshot);
+          setItems(snapshot);
+        },
+      },
+    });
+  };
+
   return (
     <PageShell>
       <section className="container py-10 md:py-16">
@@ -44,7 +78,7 @@ export default function Gallery() {
               Your dramatic collection.
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Saved on this device. Tap any card to view & re-download.
+              Saved on this device. Tap any card to view, download or delete.
             </p>
           </div>
           <Link to="/create">
@@ -70,12 +104,20 @@ export default function Gallery() {
               const hasFinal = !!item.renderedDataUrl;
               return (
                 <StickerCard
-                  key={i}
+                  key={item.createdAt ?? i}
                   color={hasFinal ? "card" : s.color}
                   rotate={tilt}
                   shadow="lg"
-                  className="p-3 hover:rotate-0 transition-transform cursor-pointer group"
+                  className="p-3 hover:rotate-0 transition-transform cursor-pointer group relative"
                 >
+                  <button
+                    type="button"
+                    onClick={(e) => requestDelete(item, e)}
+                    className="absolute top-2 right-2 z-10 inline-flex items-center justify-center size-8 rounded-full border-2 border-foreground bg-background text-foreground sticker-shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    aria-label="Delete creation"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => setActive(item)}
@@ -132,15 +174,47 @@ export default function Gallery() {
                   "{active.drama.quote}"
                 </p>
               )}
-              <div className="mt-4 grid grid-cols-1 gap-2">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
                 <StickerButton variant="primary" onClick={() => handleDownload(active)}>
                   ⬇ Download PNG
+                </StickerButton>
+                <StickerButton
+                  variant="ghost"
+                  onClick={() => requestDelete(active)}
+                  className="!bg-destructive !text-destructive-foreground"
+                >
+                  <Trash2 className="size-4" /> Delete
                 </StickerButton>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this creation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete && (
+                <>
+                  This will remove <strong>{normalizePetName(pendingDelete.petName)} —{" "}
+                  {getStyle(pendingDelete.styleId).name}</strong> from your gallery. You can undo right after.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }
