@@ -103,13 +103,16 @@ interface DramaContent {
 const CONTENT: Record<DramaStyleId, DramaContent> = {
   "drama-queen": {
     quotes: [
+      () => "Not the audacity. Not today.",
+      () => "I'm going to need everyone to stop. Right now.",
+      () => "Bestie. We are NOT okay.",
       () => "I asked for the chicken. You brought the SAME chicken. We are DONE.",
       () => "The sun moved. My nap spot moved. My entire WORLD has shifted.",
       () => "You closed the door. With me INSIDE. We need to talk to my lawyer.",
       (v) => `I have been waiting on this ${v.spot} for THREE entire minutes.`,
       () => "The water bowl tastes like… water. AGAIN. Unbelievable.",
       () => "You sneezed. You scared me. I am traumatized for life. Goodbye.",
-      (v) => `I just did one (1) ${v.tinyAct} and now I'm exhausted. Carry me.`,
+      (v) => `One (1) ${v.tinyAct} and now I'm exhausted. Carry me.`,
       () => "Don't TOUCH me. Don't LOOK at me. Actually — pet me. Now leave.",
       () => "There is a leaf outside. A LEAF. Call somebody.",
       () => "You vacuumed. In MY house. On a TUESDAY. The audacity.",
