@@ -114,11 +114,50 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const lineHeight = Math.round(fontSize * 1.12);
   const brandRowH = 22;
   const bottomY = size - pad - 30;
-  const quoteBottom = bottomY - brandRowH - 18;
+
+  // Caption (selected) — sits between quote and brand row
+  const caption = (opts.caption || "").trim();
+  let captionLines: string[] = [];
+  let captionFontSize = 0;
+  let captionLineHeight = 0;
+  let captionBlockH = 0;
+  if (caption) {
+    captionFontSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
+    captionLineHeight = Math.round(captionFontSize * 1.25);
+    ctx.font = `600 ${captionFontSize}px "Space Grotesk", system-ui, sans-serif`;
+    captionLines = wrapLines(ctx, caption, maxQuoteWidth);
+    // cap to 3 lines for clean composition
+    if (captionLines.length > 3) {
+      captionLines = captionLines.slice(0, 3);
+      const last = captionLines[2];
+      captionLines[2] = last.replace(/\s+\S*$/, "") + "…";
+    }
+    captionBlockH = captionLines.length * captionLineHeight;
+  }
+
+  const captionGap = caption ? 22 : 0;
+  const captionBottom = bottomY - brandRowH - 18;
+  const quoteBottom = captionBottom - captionBlockH - captionGap;
+
+  // Draw quote
+  ctx.font = `800 ${fontSize}px "Syne", system-ui, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
   let y = quoteBottom - (lines.length - 1) * lineHeight;
   for (const line of lines) {
     ctx.fillText(line, cardX + sidePad, y);
     y += lineHeight;
+  }
+
+  // Draw caption below quote
+  if (caption) {
+    ctx.font = `600 ${captionFontSize}px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    let cy = captionBottom - (captionLines.length - 1) * captionLineHeight;
+    for (const line of captionLines) {
+      ctx.fillText(line, cardX + sidePad, cy);
+      cy += captionLineHeight;
+    }
   }
 
   // Small brand row: PETDRAMA (left) + pet name/style + watermark (right)
