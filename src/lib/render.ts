@@ -134,16 +134,9 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   ctx.fillText("PETDRAMA", cardX + sidePad + 18, bottomY);
 
   const right = cardX + cardW - sidePad;
-  if (opts.petName.trim()) {
-    ctx.font = `600 15px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.textAlign = "right";
-    const labelY = opts.watermark ? bottomY - 18 : bottomY;
-    ctx.fillText(`${opts.petName} · ${style.name}`, right, labelY);
-  }
   if (opts.watermark) {
-    ctx.font = `500 12px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = `500 13px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.textAlign = "right";
     ctx.fillText("Made with PetDrama · petdrama.app", right, bottomY);
   }
