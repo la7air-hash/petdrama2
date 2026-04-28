@@ -68,11 +68,14 @@ export default function Result() {
   }, [draft, isPro]);
 
   // Render the REMIX card whenever the remix image or quote/caption changes.
+  // Skip if remixRenderUrl is already populated (e.g. pre-rendered inside onDramaRemix)
+  // — this prevents producing a second, slightly different data URL for the same asset.
   useEffect(() => {
     if (!draft?.remixImageDataUrl) {
       setRemixRenderUrl(null);
       return;
     }
+    if (remixRenderUrl) return;
     let cancelled = false;
     renderDramaPng({
       imageDataUrl: draft.remixImageDataUrl,
@@ -90,6 +93,7 @@ export default function Result() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, isPro]);
 
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
