@@ -41,7 +41,7 @@ export default function Gallery() {
 
   const openItem = (item: DramaDraft) => {
     setActive(item);
-    setActiveVariant("original");
+    setActiveVariant(item.variant === "remix" && item.remixRenderedDataUrl ? "remix" : "original");
   };
 
   const handleDownload = (item: DramaDraft, variant: Variant, e?: React.MouseEvent) => {
@@ -113,9 +113,11 @@ export default function Gallery() {
             {items.map((item, i) => {
               const s = getStyle(item.styleId);
               const tilt = [-3, 2, -1.5, 3, -2.5, 1.5][i % 6];
-              const preview = item.renderedDataUrl || item.imageDataUrl;
               const hasFinal = !!item.renderedDataUrl;
               const hasRemix = !!item.remixRenderedDataUrl;
+              const preview = item.variant === "remix" && hasRemix
+                ? item.remixRenderedDataUrl!
+                : item.renderedDataUrl || item.imageDataUrl;
               return (
                 <StickerCard
                   key={item.creationId ?? item.createdAt ?? i}
