@@ -31,85 +31,193 @@ const STYLE_PROMPTS: Record<string, string> = {
     "baroque venetian carnival mood, candlelit warm tones, ornate damask background suggestion, rich burgundy and gold, painterly old-world portrait",
 };
 
+// Defensive image extraction — providers return images in various shapes.
+function extractImageUrl(data: any): string | null {
+  try {
+    const choice = data?.choices?.[0];
+    const msg = choice?.message;
+    if (!msg) return null;
+
+    // 1) Standard Lovable AI Gateway shape: message.images[0].image_url.url
+    const imgs = msg.images;
+    if (Array.isArray(imgs) && imgs.length > 0) {
+      const first = imgs[0];
+      const url =
+        first?.image_url?.url ||
+        first?.url ||
+        (typeof first === "string" ? first : null);
+      if (url) return url;
+    }
+
+    // 2) Some providers return content as array of parts with image_url
+    if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        const url = part?.image_url?.url || part?.image_url;
+        if (typeof url === "string" && url.length > 0) return url;
+        if (part?.type === "image" && typeof part?.source?.data === "string") {
+          const mime = part.source.media_type || "image/png";
+          return `data:${mime};base64,${part.source.data}`;
+        }
+      }
+    }
+
+    // 3) Top-level data url field (fallback)
+    if (typeof data?.image_url === "string") return data.image_url;
+    if (typeof data?.image === "string") return data.image;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractEmbeddedError(data: any): { code?: number; message?: string } | null {
+  const err = data?.choices?.[0]?.error || data?.error;
+  if (!err) return null;
+  return { code: err.code, message: err.message };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { imageDataUrl, styleId, petType } = await req.json();
+
+    console.log("drama-remix request:", {
+      hasImage: !!imageDataUrl,
+      imageLen: typeof imageDataUrl === "string" ? imageDataUrl.length : 0,
+      styleId,
+      petType,
+    });
+
     if (!imageDataUrl || !styleId) {
-      return new Response(JSON.stringify({ error: "Missing imageDataUrl or styleId" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Missing imageDataUrl or styleId" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "AI not configured. Please try again later." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const styleMood = STYLE_PROMPTS[styleId] ?? "stylized cinematic pet portrait, vibrant mood";
     const subject = petType && petType !== "other" ? `the same ${petType}` : "the same pet";
 
-    const prompt = `Restyle this photo of a pet into a stylized portrait. CRITICAL: keep ${subject} clearly recognizable — preserve the exact face, fur color and markings, eye color, breed, ears, and overall cuteness. Do NOT change the species or the individual animal. Only change the lighting, colors, background, and atmosphere to match this mood: ${styleMood}. Keep the pet as the clear focal point, centered, sharp, and adorable. Square 1:1 framing.`;
+    const prompt = `Restyle this photo of a pet into a stylized portrait. CRITICAL: keep ${subject} clearly recognizable — preserve the exact face, fur color and markings, eye color, breed, ears, and overall cuteness. Do NOT change the species or the individual animal. Only change the lighting, colors, background, and atmosphere to match this mood: ${styleMood}. Keep the pet as the clear focal point, centered, sharp, and adorable. Square 1:1 framing. Return the image.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: imageDataUrl } },
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    // Try up to 2 times if no image comes back (provider sometimes returns text only).
+    const MAX_ATTEMPTS = 2;
+    let lastReason = "Unknown error";
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "Remix failed. Please try again." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      console.log(`drama-remix attempt ${attempt}/${MAX_ATTEMPTS} (style=${styleId})`);
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: imageDataUrl } },
+              ],
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
       });
+
+      if (!response.ok) {
+        const t = await response.text().catch(() => "");
+        console.error("AI gateway HTTP error:", response.status, t.slice(0, 400));
+
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        lastReason = `HTTP ${response.status}`;
+        // brief backoff before retry
+        if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+
+      const data = await response.json().catch(() => null);
+      const shape = {
+        hasChoices: Array.isArray(data?.choices),
+        choiceCount: data?.choices?.length ?? 0,
+        hasImages: Array.isArray(data?.choices?.[0]?.message?.images),
+        imageCount: data?.choices?.[0]?.message?.images?.length ?? 0,
+        contentType: typeof data?.choices?.[0]?.message?.content,
+        finishReason: data?.choices?.[0]?.finish_reason,
+      };
+      console.log("AI response shape:", shape);
+
+      const embedded = extractEmbeddedError(data);
+      if (embedded) {
+        console.warn("Embedded provider error:", embedded);
+        if (embedded.code === 429) {
+          return new Response(
+            JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        lastReason = embedded.message || `provider error ${embedded.code}`;
+      }
+
+      const imageUrl = extractImageUrl(data);
+      if (imageUrl) {
+        console.log("drama-remix success on attempt", attempt);
+        return new Response(JSON.stringify({ imageDataUrl: imageUrl }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      lastReason = lastReason || "No image in response";
+      console.warn(
+        "No image extracted on attempt",
+        attempt,
+        "reason:",
+        lastReason,
+        "raw:",
+        JSON.stringify(data).slice(0, 400),
+      );
+
+      if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 600));
     }
 
-    const data = await response.json();
-    const remixedUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!remixedUrl) {
-      console.error("No image in AI response", JSON.stringify(data).slice(0, 500));
-      return new Response(JSON.stringify({ error: "No image returned. Please try again." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify({ imageDataUrl: remixedUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("drama-remix error:", e);
+    // Friendly failure — frontend will toast and keep original card.
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({
+        error: "Drama Remix failed. Please try again.",
+        reason: lastReason,
+      }),
+      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (e) {
+    console.error("drama-remix unexpected error:", e);
+    return new Response(
+      JSON.stringify({ error: "Drama Remix failed. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
