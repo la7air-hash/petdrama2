@@ -242,12 +242,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Joy is just dopamine. Dopamine is just chemistry. Chemistry is just… a lot.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has been staring at the wall for 47 minutes. We don't interrupt the contemplation.`,
-      (n, _v, dn) => `${dn} read one (1) philosophy book and now nothing brings ${dn} joy. Including the book.`,
-      (n, _v, dn) => `${dn} would like to remind you that the void is, in fact, looking back.`,
-      (n, _v, dn) => `Mood today: whatever ${dn} is doing on the rug. (We don't know what it is.)`,
+      (n, _v, dn) => `${dn} stared at the wall for 47 minutes. we don't ask 🥀`,
+      (n, _v, dn) => `mood: whatever ${dn} is doing on the rug rn`,
+      (n, _v, dn) => `${dn} read one (1) book and now nothing is real`,
+      (n, _v, dn) => `pov: ${dn} found out the void looks back 🌑`,
+      (n, _v, dn) => `${dn} is having Thoughts™ again`,
+      (n, _v, dn) => `me explaining joy to ${dn}. ${dn} is unconvinced.`,
     ],
-    hashtags: ["#PetPhilosopher", "#PetDrama", "#DeepThoughts", "#Existential", "#MoodyPet"],
+    hashtags: ["#PetPhilosopher", "#PetDrama", "#DeepThoughts", "#PetTok", "#MoodyPet"],
   },
 
   "luxury-pet": {
