@@ -1,17 +1,24 @@
-// Renders a square shareable PNG in POLAROID/STICKER style:
-// - thick colored frame around the photo
-// - clean pet photo (no overlay text)
-// - sticker pill badge centered on the bottom edge of the photo
-// - dramatic quote written below the photo, on the frame
-// - small PETDRAMA wordmark + optional watermark in the footer
+// Renders a square shareable PNG — premium colorful social meme card.
+// Composition:
+//   - bright colored "paper" background with a soft tinted dot pattern
+//   - two layered accent sticker shapes (offset blobs/squares) for liveliness
+//   - white polaroid-style photo frame with thick black border + offset shadow
+//   - sticker pill badge centered on the bottom edge of the photo
+//   - dramatic quote on the colored paper, with a bright accent underline
+//   - caption in a small white rounded panel for clear separation
+//   - tiny PETDRAMA mark + optional watermark in the footer
 import { getStyle, type DramaStyleId } from "./drama";
 
-const STYLE_ACCENT: Record<string, string> = {
-  primary: "#FF00BD",
-  secondary: "#2E16FF",
-  accent: "#00F0FF",
-  highlight: "#F4FF00",
-  foreground: "#121212",
+// Bright, curated palette per style (paper bg + accent + secondary accent).
+const STYLE_PALETTE: Record<
+  string,
+  { paper: string; accent: string; accent2: string; onPaper: "dark" | "light" }
+> = {
+  primary:    { paper: "#FFD9F0", accent: "#FF1FA8", accent2: "#2E16FF", onPaper: "dark"  }, // hot pink paper
+  secondary:  { paper: "#DCD7FF", accent: "#2E16FF", accent2: "#F4FF00", onPaper: "dark"  }, // electric blue
+  accent:     { paper: "#C8FBFF", accent: "#00C2D1", accent2: "#FF1FA8", onPaper: "dark"  }, // cyan
+  highlight:  { paper: "#FFFBA8", accent: "#FFD400", accent2: "#FF1FA8", onPaper: "dark"  }, // bright yellow
+  foreground: { paper: "#171717", accent: "#FF1FA8", accent2: "#F4FF00", onPaper: "light" }, // dark
 };
 
 interface RenderOpts {
@@ -32,149 +39,241 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const ctx = canvas.getContext("2d")!;
 
   const style = getStyle(opts.styleId);
-  const accent = STYLE_ACCENT[style.color] ?? STYLE_ACCENT.primary;
-  const onDark = style.color === "foreground" || style.color === "secondary";
+  const palette = STYLE_PALETTE[style.color] ?? STYLE_PALETTE.primary;
+  const isLightOnDark = palette.onPaper === "light";
+  const ink = isLightOnDark ? "#FFFFFF" : "#121212";
+  const inkSoft = isLightOnDark ? "rgba(255,255,255,0.78)" : "rgba(18,18,18,0.72)";
+  const black = "#121212";
 
-  // ---- Frame (Polaroid) ---------------------------------------------------
-  // Outer frame fills the canvas with the style color.
-  const outerR = Math.round(size * 0.05);
-  drawRoundedRect(ctx, 0, 0, size, size, outerR);
-  ctx.fillStyle = accent;
+  // ============== 1. PAPER BACKGROUND ==============
+  ctx.fillStyle = palette.paper;
+  ctx.fillRect(0, 0, size, size);
+
+  // Soft tinted dot pattern (very subtle)
+  drawDotGrid(ctx, size, isLightOnDark ? "rgba(255,255,255,0.07)" : "rgba(18,18,18,0.08)");
+
+  // ============== 2. LAYERED ACCENT STICKER SHAPES ==============
+  // A bold accent blob behind the top-left of the photo
+  ctx.save();
+  ctx.translate(size * 0.18, size * 0.16);
+  ctx.rotate(-0.18);
+  drawRoundedRect(ctx, -size * 0.18, -size * 0.08, size * 0.42, size * 0.18, size * 0.06);
+  ctx.fillStyle = palette.accent;
   ctx.fill();
-  // Thick black border for the sticker look
-  drawRoundedRect(ctx, 4, 4, size - 8, size - 8, outerR - 2);
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = "#121212";
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = black;
+  ctx.stroke();
+  ctx.restore();
+
+  // A small secondary sticker on the right side
+  ctx.save();
+  ctx.translate(size * 0.86, size * 0.74);
+  ctx.rotate(0.22);
+  drawRoundedRect(ctx, -size * 0.12, -size * 0.05, size * 0.24, size * 0.1, size * 0.04);
+  ctx.fillStyle = palette.accent2;
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = black;
+  ctx.stroke();
+  ctx.restore();
+
+  // A small dot/star marker top-right
+  drawStar(ctx, size * 0.9, size * 0.12, size * 0.045, 5, palette.accent2, black);
+
+  // ============== 3. POLAROID PHOTO FRAME (tilted, offset shadow) ==============
+  const frameW = Math.round(size * 0.78);
+  const frameH = Math.round(size * 0.66);
+  const frameX = Math.round((size - frameW) / 2);
+  const frameY = Math.round(size * 0.13);
+  const frameR = Math.round(size * 0.035);
+  const tilt = -0.025; // very subtle tilt
+
+  ctx.save();
+  // rotate around frame center
+  const cx = frameX + frameW / 2;
+  const cy = frameY + frameH / 2;
+  ctx.translate(cx, cy);
+  ctx.rotate(tilt);
+  ctx.translate(-cx, -cy);
+
+  // offset hard shadow
+  drawRoundedRect(ctx, frameX + 12, frameY + 14, frameW, frameH, frameR);
+  ctx.fillStyle = black;
+  ctx.fill();
+  // white polaroid card
+  drawRoundedRect(ctx, frameX, frameY, frameW, frameH, frameR);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = black;
   ctx.stroke();
 
-  // ---- Photo area ---------------------------------------------------------
-  const sideMargin = Math.round(size * 0.07);
-  const topMargin = Math.round(size * 0.07);
-  const photoW = size - sideMargin * 2;
-  const photoH = Math.round(size * 0.62); // square-ish photo area
-  const photoX = sideMargin;
-  const photoY = topMargin;
-  const photoR = Math.round(size * 0.035);
+  // Inner photo area
+  const inset = Math.round(size * 0.03);
+  const photoX = frameX + inset;
+  const photoY = frameY + inset;
+  const photoW = frameW - inset * 2;
+  const photoH = frameH - inset * 2 - Math.round(size * 0.04); // leave a small white strip at the bottom of polaroid
+  const photoR = Math.round(size * 0.022);
 
   const img = await loadImage(opts.imageDataUrl);
   drawRoundedImage(ctx, img, photoX, photoY, photoW, photoH, photoR);
 
-  // ---- Sticker badge (centered, sitting on the bottom edge of the photo) -
+  ctx.restore(); // end tilt
+
+  // ============== 4. STICKER BADGE (centered on photo bottom edge) ==============
+  // (Drawn un-tilted so it reads cleanly.)
   const idText = `${(opts.petName || "Your pet").toUpperCase()} — ${style.name.toUpperCase()}`;
-  const badgeFontSize = Math.round(size * 0.032);
+  let badgeFontSize = Math.round(size * 0.034);
   ctx.font = `800 ${badgeFontSize}px "Syne", system-ui, sans-serif`;
-  let actualText = idText;
-  let actualSize = badgeFontSize;
-  const badgePadX = Math.round(size * 0.028);
-  const maxBadgeW = photoW - sideMargin;
-  while (ctx.measureText(actualText).width + badgePadX * 2 > maxBadgeW && actualSize > 18) {
-    actualSize -= 2;
-    ctx.font = `800 ${actualSize}px "Syne", system-ui, sans-serif`;
+  const badgePadX = Math.round(size * 0.034);
+  const badgePadY = Math.round(size * 0.018);
+  const maxBadgeW = frameW - inset * 2 + 20;
+  while (ctx.measureText(idText).width + badgePadX * 2 > maxBadgeW && badgeFontSize > 18) {
+    badgeFontSize -= 2;
+    ctx.font = `800 ${badgeFontSize}px "Syne", system-ui, sans-serif`;
   }
-  const badgePadY = Math.round(size * 0.016);
-  const badgeW = ctx.measureText(actualText).width + badgePadX * 2;
-  const badgeH = actualSize + badgePadY * 2;
-  const badgeX = photoX + (photoW - badgeW) / 2;
-  const badgeY = photoY + photoH - badgeH / 2;
+  const badgeW = ctx.measureText(idText).width + badgePadX * 2;
+  const badgeH = badgeFontSize + badgePadY * 2;
+  const badgeX = (size - badgeW) / 2;
+  // Sit on the photo's visual bottom edge
+  const photoBottom = photoY + photoH;
+  const badgeY = photoBottom - badgeH / 2 + 4;
   const badgeR = Math.round(badgeH / 2);
 
-  // sticker shadow
+  // hard offset shadow
   drawRoundedRect(ctx, badgeX + 6, badgeY + 6, badgeW, badgeH, badgeR);
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fillStyle = black;
   ctx.fill();
-  // badge fill (dark to pop on any frame color, like the example cards)
+  // badge body — vibrant accent
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
-  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
+  ctx.fillStyle = palette.accent;
   ctx.fill();
-  drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
   ctx.lineWidth = 5;
-  ctx.strokeStyle = "#121212";
+  ctx.strokeStyle = black;
   ctx.stroke();
-  ctx.fillStyle = onDark ? "#121212" : "#ffffff";
+  ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(actualText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 2);
+  ctx.fillText(idText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 2);
 
-  // ---- Quote area (below the photo, on the frame) ------------------------
+  // ============== 5. QUOTE (on the colored paper) ==============
+  const sideMargin = Math.round(size * 0.085);
+  const maxTextW = size - sideMargin * 2;
   const quote = `“${opts.quote}”`;
-  const quoteTop = photoY + photoH + Math.round(badgeH / 2) + Math.round(size * 0.025);
-  const footerH = Math.round(size * 0.05);
-  const quoteAreaBottom = size - sideMargin - footerH;
-  const maxQuoteWidth = photoW;
 
-  // Frame text color: dark on light/bright frames, white on dark frames
-  const frameTextColor = onDark ? "#ffffff" : "#121212";
+  const quoteTop = badgeY + badgeH + Math.round(size * 0.035);
+  const footerH = Math.round(size * 0.06);
+  // Reserve space for caption panel below the quote
+  const captionReserve = (opts.caption || "").trim() ? Math.round(size * 0.13) : 0;
+  const quoteAreaBottom = size - sideMargin - footerH - captionReserve;
 
-  // Pick a font size that fits in the available block (max 4 lines)
-  let qSize = quote.length > 90 ? 40 : quote.length > 60 ? 48 : 56;
+  let qSize = quote.length > 90 ? 40 : quote.length > 60 ? 50 : 60;
   let qLines: string[] = [];
   let qLineH = 0;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (let attempt = 0; attempt < 10; attempt++) {
     ctx.font = `800 ${qSize}px "Syne", system-ui, sans-serif`;
-    qLines = wrapLines(ctx, quote, maxQuoteWidth);
-    qLineH = Math.round(qSize * 1.12);
-    const totalH = qLines.length * qLineH;
-    if (qLines.length <= 4 && totalH <= quoteAreaBottom - quoteTop - 60) break;
+    qLines = wrapLines(ctx, quote, maxTextW);
+    qLineH = Math.round(qSize * 1.1);
+    if (qLines.length <= 3 && qLines.length * qLineH <= quoteAreaBottom - quoteTop) break;
     qSize -= 4;
     if (qSize <= 24) break;
   }
-  if (qLines.length > 4) {
-    qLines = qLines.slice(0, 4);
-    qLines[3] = qLines[3].replace(/\s+\S*$/, "") + "…”";
+  if (qLines.length > 3) {
+    qLines = qLines.slice(0, 3);
+    qLines[2] = qLines[2].replace(/\s+\S*$/, "") + "…”";
   }
 
-  ctx.fillStyle = frameTextColor;
-  ctx.textAlign = "left";
+  ctx.fillStyle = ink;
+  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   let qy = quoteTop + qSize;
   for (const line of qLines) {
-    ctx.fillText(line, photoX, qy);
+    ctx.fillText(line, size / 2, qy);
     qy += qLineH;
   }
 
-  // ---- Caption (smaller, under the quote) --------------------------------
+  // Bright accent underline bar under the quote — adds a designed feel
+  const underlineW = Math.min(Math.round(size * 0.18), maxTextW * 0.4);
+  const underlineH = Math.round(size * 0.012);
+  const underlineY = qy - qLineH + Math.round(size * 0.018);
+  drawRoundedRect(ctx, (size - underlineW) / 2, underlineY, underlineW, underlineH, underlineH / 2);
+  ctx.fillStyle = palette.accent;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = black;
+  ctx.stroke();
+
+  // ============== 6. CAPTION PANEL ==============
   const caption = (opts.caption || "").trim();
   if (caption) {
-    const cSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
-    const cLineH = Math.round(cSize * 1.25);
+    const panelMargin = Math.round(size * 0.09);
+    const panelX = panelMargin;
+    const panelW = size - panelMargin * 2;
+    let cSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
     ctx.font = `600 ${cSize}px "Space Grotesk", system-ui, sans-serif`;
-    let cLines = wrapLines(ctx, caption, maxQuoteWidth);
+    let cLines = wrapLines(ctx, caption, panelW - Math.round(size * 0.05));
     if (cLines.length > 2) {
       cLines = cLines.slice(0, 2);
       cLines[1] = cLines[1].replace(/\s+\S*$/, "") + "…";
     }
-    ctx.fillStyle = onDark ? "rgba(255,255,255,0.92)" : "rgba(18,18,18,0.78)";
-    let cy = qy + Math.round(size * 0.012);
-    // make sure it fits
-    const maxCy = quoteAreaBottom;
+    const cLineH = Math.round(cSize * 1.3);
+    const panelPadY = Math.round(size * 0.022);
+    const panelH = cLines.length * cLineH + panelPadY * 2;
+    const panelY = size - footerH - panelH - Math.round(size * 0.025);
+    const panelR = Math.round(size * 0.03);
+
+    // shadow
+    drawRoundedRect(ctx, panelX + 5, panelY + 5, panelW, panelH, panelR);
+    ctx.fillStyle = black;
+    ctx.fill();
+    // panel body — white for clean separation (or accent2 tinted on dark paper)
+    drawRoundedRect(ctx, panelX, panelY, panelW, panelH, panelR);
+    ctx.fillStyle = isLightOnDark ? "#FFFFFF" : "#FFFFFF";
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = black;
+    ctx.stroke();
+
+    ctx.fillStyle = "#121212";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    let cy = panelY + panelPadY + cSize;
     for (const line of cLines) {
-      if (cy > maxCy) break;
-      ctx.fillText(line, photoX, cy);
+      ctx.fillText(line, size / 2, cy);
       cy += cLineH;
     }
   }
 
-  // ---- Footer: PETDRAMA + watermark --------------------------------------
-  const footerY = size - sideMargin + 4;
-  ctx.font = `800 20px "Syne", system-ui, sans-serif`;
+  // ============== 7. FOOTER (PETDRAMA mark + watermark) ==============
+  const footerY = size - Math.round(size * 0.035);
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
+
+  // small accent dot
   ctx.beginPath();
-  ctx.arc(photoX + 6, footerY - 7, 6, 0, Math.PI * 2);
-  ctx.fillStyle = onDark ? "#ffffff" : "#121212";
+  ctx.arc(sideMargin + 7, footerY - 8, 7, 0, Math.PI * 2);
+  ctx.fillStyle = palette.accent;
   ctx.fill();
-  ctx.fillStyle = frameTextColor;
-  ctx.fillText("PETDRAMA", photoX + 20, footerY);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = black;
+  ctx.stroke();
+
+  ctx.font = `800 20px "Syne", system-ui, sans-serif`;
+  ctx.fillStyle = ink;
+  ctx.fillText("PETDRAMA", sideMargin + 24, footerY);
 
   if (opts.watermark) {
     ctx.font = `500 13px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = onDark ? "rgba(255,255,255,0.7)" : "rgba(18,18,18,0.6)";
+    ctx.fillStyle = inkSoft;
     ctx.textAlign = "right";
-    ctx.fillText("Made with PetDrama · petdrama.app", photoX + photoW, footerY);
+    ctx.fillText("Made with PetDrama · petdrama.app", size - sideMargin, footerY);
   }
 
   return canvas.toDataURL("image/png");
 }
+
+// ============== Helpers ==============
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -187,12 +286,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
 }
 
@@ -223,10 +323,6 @@ function drawRoundedImage(
   }
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   ctx.restore();
-  drawRoundedRect(ctx, x, y, w, h, r);
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = "#121212";
-  ctx.stroke();
 }
 
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -244,6 +340,46 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   }
   if (line) lines.push(line);
   return lines;
+}
+
+function drawDotGrid(ctx: CanvasRenderingContext2D, size: number, color: string) {
+  const step = Math.round(size * 0.022);
+  const r = Math.max(1, Math.round(size * 0.0018));
+  ctx.fillStyle = color;
+  for (let y = step; y < size; y += step) {
+    for (let x = step; x < size; x += step) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  outerR: number,
+  points: number,
+  fill: string,
+  stroke: string,
+) {
+  const innerR = outerR * 0.45;
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const a = (Math.PI / points) * i - Math.PI / 2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string) {
