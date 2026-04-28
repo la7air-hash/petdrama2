@@ -44,67 +44,65 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const radius = Math.round(size * 0.04);
   drawRoundedImage(ctx, img, cardX, cardY, cardW, cardH, radius);
 
-  // Subtle bottom gradient scrim so the quote stays readable over any photo
-  const scrimH = Math.round(size * 0.42);
+  // Subtle dark gradient ONLY at the bottom — keeps the pet visible
+  const scrimH = Math.round(size * 0.30);
   const scrimY = size - pad - scrimH;
   ctx.save();
   drawRoundedRect(ctx, cardX, cardY, cardW, cardH, radius);
   ctx.clip();
   const scrim = ctx.createLinearGradient(0, scrimY, 0, size - pad);
   scrim.addColorStop(0, "rgba(0,0,0,0)");
-  scrim.addColorStop(1, "rgba(0,0,0,0.78)");
+  scrim.addColorStop(0.55, "rgba(0,0,0,0.45)");
+  scrim.addColorStop(1, "rgba(0,0,0,0.82)");
   ctx.fillStyle = scrim;
   ctx.fillRect(cardX, scrimY, cardW, scrimH);
   ctx.restore();
 
-  // Small style chip top-left
-  drawChip(ctx, `${style.emoji} ${style.name.toUpperCase()}`, cardX + 28, cardY + 28, "#ffffff", "#121212");
-
-  // Pet name chip top-right
-  if (opts.petName.trim()) {
-    const label = opts.petName.toUpperCase();
-    drawChip(ctx, label, cardX + cardW - 28, cardY + 28, accent, "#121212", true);
-  }
-
-  // Quote text directly on the scrim — no big white panel covering the pet
+  // Quote text on the scrim — bottom placement, no chips covering the pet
   const quote = `“${opts.quote}”`;
-  const maxQuoteWidth = cardW - 80;
-  const fontSize = quote.length > 90 ? 42 : quote.length > 60 ? 50 : 58;
+  const sidePad = Math.round(size * 0.05);
+  const maxQuoteWidth = cardW - sidePad * 2;
+  const fontSize = quote.length > 90 ? 38 : quote.length > 60 ? 44 : 50;
   ctx.font = `800 ${fontSize}px "Syne", system-ui, sans-serif`;
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 
-  // Compute wrapped lines first so we can position from the bottom
   const lines = wrapLines(ctx, quote, maxQuoteWidth);
   const lineHeight = Math.round(fontSize * 1.12);
-  const brandRowH = 44;
-  const bottomY = size - pad - 36; // baseline anchor for brand row
+  const brandRowH = 22;
+  const bottomY = size - pad - 30;
   const quoteBottom = bottomY - brandRowH - 18;
   let y = quoteBottom - (lines.length - 1) * lineHeight;
   for (const line of lines) {
-    ctx.fillText(line, cardX + 40, y);
+    ctx.fillText(line, cardX + sidePad, y);
     y += lineHeight;
   }
 
-  // Brand row (logo left, watermark right) — small, clean
-  ctx.font = `800 22px "Syne", system-ui, sans-serif`;
-  ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "left";
+  // Small brand row: PETDRAMA (left) + pet name/style + watermark (right)
+  ctx.font = `800 18px "Syne", system-ui, sans-serif`;
   ctx.textBaseline = "alphabetic";
-  // logo dot
   ctx.beginPath();
-  ctx.arc(cardX + 40 + 7, bottomY - 7, 8, 0, Math.PI * 2);
+  ctx.arc(cardX + sidePad + 5, bottomY - 6, 6, 0, Math.PI * 2);
   ctx.fillStyle = accent;
   ctx.fill();
   ctx.fillStyle = "#ffffff";
-  ctx.fillText("PETDRAMA", cardX + 40 + 24, bottomY);
+  ctx.textAlign = "left";
+  ctx.fillText("PETDRAMA", cardX + sidePad + 18, bottomY);
 
-  if (opts.watermark) {
-    ctx.font = `500 18px "Space Grotesk", system-ui, sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
+  const right = cardX + cardW - sidePad;
+  if (opts.petName.trim()) {
+    ctx.font = `600 15px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
     ctx.textAlign = "right";
-    ctx.fillText("Made with PetDrama · petdrama.app", cardX + cardW - 40, bottomY);
+    const labelY = opts.watermark ? bottomY - 18 : bottomY;
+    ctx.fillText(`${opts.petName} · ${style.name}`, right, labelY);
+  }
+  if (opts.watermark) {
+    ctx.font = `500 12px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.textAlign = "right";
+    ctx.fillText("Made with PetDrama · petdrama.app", right, bottomY);
   }
 
   return canvas.toDataURL("image/png");
