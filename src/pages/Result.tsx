@@ -4,7 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
-import { loadDraft, saveDraft, saveToGallery, type DramaDraft } from "@/lib/storage";
+import { loadDraft, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -273,9 +273,15 @@ export default function Result() {
               Meet <span className="text-primary">{displayName}</span>, {style.name.toLowerCase()}.
             </h1>
           </div>
-          <Link to="/create">
-            <StickerButton variant="ghost">← New drama</StickerButton>
-          </Link>
+          <StickerButton
+            variant="ghost"
+            onClick={() => {
+              clearDraft();
+              navigate("/create");
+            }}
+          >
+            ← New drama
+          </StickerButton>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-12">
