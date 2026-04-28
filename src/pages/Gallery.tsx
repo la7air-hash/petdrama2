@@ -32,20 +32,29 @@ function fileNameFor(item: DramaDraft, variant: Variant) {
 export default function Gallery() {
   const [items, setItems] = useState<DramaDraft[]>([]);
   const [active, setActive] = useState<DramaDraft | null>(null);
+  const [activeVariant, setActiveVariant] = useState<Variant>("original");
   const [pendingDelete, setPendingDelete] = useState<DramaDraft | null>(null);
 
   useEffect(() => {
     setItems(loadGallery());
   }, []);
 
-  const handleDownload = (item: DramaDraft, e?: React.MouseEvent) => {
+  const openItem = (item: DramaDraft) => {
+    setActive(item);
+    setActiveVariant("original");
+  };
+
+  const handleDownload = (item: DramaDraft, variant: Variant, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const url = item.renderedDataUrl || item.imageDataUrl;
+    const url =
+      variant === "remix"
+        ? item.remixRenderedDataUrl
+        : item.renderedDataUrl || item.imageDataUrl;
     if (!url) {
-      toast.error("This creation has no saved file.");
+      toast.error("This version isn't saved.");
       return;
     }
-    downloadDataUrl(url, fileNameFor(item));
+    downloadDataUrl(url, fileNameFor(item, variant));
     toast.success("Downloaded!");
   };
 
