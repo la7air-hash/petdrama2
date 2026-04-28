@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
-import { generateDrama, getStyle } from "@/lib/drama";
+import { generateDrama, getStyle, pickCaption, normalizePetName } from "@/lib/drama";
 import { loadDraft, saveDraft, saveToGallery, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function Result() {
   const navigate = useNavigate();
@@ -19,6 +20,12 @@ export default function Result() {
     if (!d) {
       navigate("/create", { replace: true });
       return;
+    }
+    // Backward compat: ensure quoteOptions exists
+    if (!d.drama.quoteOptions || d.drama.quoteOptions.length === 0) {
+      const fresh = generateDrama(d.styleId, d.petName, d.petType);
+      d.drama = { ...fresh, quote: d.drama.quote || fresh.quote };
+      saveDraft(d);
     }
     setDraft(d);
   }, [navigate]);
@@ -43,13 +50,30 @@ export default function Result() {
     };
   }, [draft, isPro]);
 
-  if (!draft) return null;
+  const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
+  const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
-  const style = getStyle(draft.styleId);
+  if (!draft || !style) return null;
+
+  const onSelectQuote = (q: string) => {
+    if (q === draft.drama.quote) return;
+    const updated: DramaDraft = {
+      ...draft,
+      drama: {
+        ...draft.drama,
+        quote: q,
+        // refresh caption so it pairs naturally with the new quote
+        caption: pickCaption(draft.styleId, draft.petName, draft.petType),
+      },
+    };
+    saveDraft(updated);
+    setDraft(updated);
+    setRenderUrl(null);
+  };
 
   const onDownload = () => {
     if (!renderUrl) return;
-    downloadDataUrl(renderUrl, `petdrama-${draft.petName.replace(/\s+/g, "-").toLowerCase()}.png`);
+    downloadDataUrl(renderUrl, `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}.png`);
     toast.success("Downloaded! Now post it 😎");
   };
 
@@ -60,7 +84,7 @@ export default function Result() {
   };
 
   const onRegenerate = () => {
-    const next = generateDrama(draft.styleId, draft.petName);
+    const next = generateDrama(draft.styleId, draft.petName, draft.petType);
     const updated: DramaDraft = { ...draft, drama: next, createdAt: Date.now() };
     saveDraft(updated);
     setDraft(updated);
@@ -79,7 +103,7 @@ export default function Result() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Result</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-              Meet <span className="text-primary">{draft.petName}</span>, {style.name.toLowerCase()}.
+              Meet <span className="text-primary">{displayName}</span>, {style.name.toLowerCase()}.
             </h1>
           </div>
           <Link to="/create">
@@ -93,11 +117,11 @@ export default function Result() {
             <StickerCard className="p-3 md:p-4 bg-background" shadow="lg">
               <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
                 {renderUrl ? (
-                  <img src={renderUrl} alt={`${draft.petName} as ${style.name}`} className="size-full object-cover" />
+                  <img src={renderUrl} alt={`${displayName} as ${style.name}`} className="size-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center text-muted-foreground">
                     <div className="text-center">
-                      <div className="text-4xl animate-wiggle inline-block">🎭</div>
+                      <div className="text-4xl inline-block">🎭</div>
                       <p className="mt-3 font-bold">Rendering your masterpiece…</p>
                     </div>
                   </div>
@@ -108,11 +132,48 @@ export default function Result() {
 
           {/* Side panel */}
           <div className="lg:col-span-5 space-y-6">
-            <StickerCard className="p-6 bg-highlight">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-70">The dramatic quote</p>
-              <p className="mt-3 font-display text-2xl md:text-3xl font-extrabold leading-tight">
-                "{draft.drama.quote}"
-              </p>
+            {/* Quote picker */}
+            <StickerCard className="p-5 md:p-6 bg-highlight">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-widest opacity-70">Pick your quote</p>
+                <button
+                  onClick={onRegenerate}
+                  className="text-xs font-bold uppercase tracking-widest underline decoration-2 underline-offset-4 hover:opacity-70"
+                >
+                  🔄 New batch
+                </button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {draft.drama.quoteOptions.map((q, i) => {
+                  const active = q === draft.drama.quote;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => onSelectQuote(q)}
+                      className={cn(
+                        "w-full text-left rounded-2xl border-2 border-foreground p-4 transition-all",
+                        active
+                          ? "bg-foreground text-background sticker-shadow-sm translate-x-[-1px] translate-y-[-1px]"
+                          : "bg-background hover:-translate-y-0.5",
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-foreground text-[11px] font-extrabold",
+                            active ? "bg-primary text-primary-foreground" : "bg-card",
+                          )}
+                        >
+                          {active ? "✓" : i + 1}
+                        </span>
+                        <p className="font-display text-base md:text-lg font-extrabold leading-snug">
+                          “{q}”
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </StickerCard>
 
             <StickerCard className="p-6 bg-background">
