@@ -294,21 +294,45 @@ export default function Create() {
           <StickerCard className="p-4 md:p-5 bg-background flex flex-col sm:flex-row items-center justify-between gap-4" shadow="lg">
             <div className="text-sm">
               <p className="font-display font-extrabold text-lg leading-tight">
-                {canGenerate ? "Ready to make some chaos." : "Add a photo + name to continue."}
+                {hasGeneratedResult && !isOutdated
+                  ? "Your drama is ready."
+                  : isOutdated
+                  ? "Inputs changed — regenerate to apply."
+                  : canGenerate
+                  ? "Ready to make some chaos."
+                  : "Add a photo + name to continue."}
               </p>
               <p className="text-muted-foreground text-xs">
                 Imaginary pet thoughts · For entertainment only
               </p>
             </div>
-            <StickerButton
-              variant="primary"
-              size="lg"
-              disabled={!canGenerate || generating}
-              onClick={onGenerate}
-              className="w-full sm:w-auto"
-            >
-              {generating ? "Generating drama…" : "Generate Pet Drama →"}
-            </StickerButton>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {hasGeneratedResult && (
+                <StickerButton
+                  variant={isOutdated ? "ghost" : "primary"}
+                  size="lg"
+                  onClick={onContinueToResult}
+                  className="w-full sm:w-auto"
+                >
+                  → Continue to result
+                </StickerButton>
+              )}
+              <StickerButton
+                variant={hasGeneratedResult && !isOutdated ? "ghost" : "primary"}
+                size="lg"
+                disabled={!canGenerate || generating}
+                onClick={onGenerate}
+                className="w-full sm:w-auto"
+              >
+                {generating
+                  ? "Generating drama…"
+                  : hasGeneratedResult
+                  ? isOutdated
+                    ? "🔄 Regenerate"
+                    : "🔄 New drama with same inputs"
+                  : "Generate Pet Drama →"}
+              </StickerButton>
+            </div>
           </StickerCard>
         </div>
       </section>
