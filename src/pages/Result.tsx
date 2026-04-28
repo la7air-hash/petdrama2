@@ -119,6 +119,18 @@ export default function Result() {
   const style = useMemo(() => (draft ? getStyle(draft.styleId) : null), [draft]);
   const displayName = useMemo(() => (draft ? normalizePetName(draft.petName) : ""), [draft]);
 
+  const getLiveDraft = (baseDraft: DramaDraft): DramaDraft => {
+    const latest = loadDraft();
+    const sameLatest = latest?.creationId === baseDraft.creationId ? latest : null;
+    return {
+      ...baseDraft,
+      renderedDataUrl: renderUrl ?? baseDraft.renderedDataUrl ?? sameLatest?.renderedDataUrl,
+      remixImageDataUrl: baseDraft.remixImageDataUrl ?? sameLatest?.remixImageDataUrl,
+      remixRenderedDataUrl: remixRenderUrl ?? baseDraft.remixRenderedDataUrl ?? sameLatest?.remixRenderedDataUrl,
+      variant,
+    };
+  };
+
   if (!draft || !style) return null;
 
   const activeRenderUrl =
@@ -132,8 +144,9 @@ export default function Result() {
     if (v === "remix" && !hasRemix) return;
     setVariant(v);
     if (draft && draft.variant !== v) {
+      const liveDraft = getLiveDraft(draft);
       const updated = {
-        ...draft,
+        ...liveDraft,
         renderedDataUrl: renderUrl ?? draft.renderedDataUrl,
         remixRenderedDataUrl: remixRenderUrl ?? draft.remixRenderedDataUrl,
         variant: v,
