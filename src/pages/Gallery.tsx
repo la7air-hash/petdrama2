@@ -19,10 +19,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Download, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-function fileNameFor(item: DramaDraft) {
+type Variant = "original" | "remix";
+
+function fileNameFor(item: DramaDraft, variant: Variant) {
   const name = normalizePetName(item.petName).replace(/\s+/g, "-").toLowerCase() || "petdrama";
-  return `petdrama-${name}.png`;
+  const tag = variant === "remix" ? "-remix" : "";
+  return `petdrama-${name}${tag}.png`;
 }
 
 export default function Gallery() {
