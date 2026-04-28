@@ -269,14 +269,17 @@ export default function Result() {
         /* fall back to effect-based render */
       }
 
+      const liveDraft = getLiveDraft(draft);
       const updated: DramaDraft = {
-        ...draft,
+        ...liveDraft,
         remixImageDataUrl: remixUrl,
-        remixRenderedDataUrl: renderedRemix ?? undefined,
+        remixRenderedDataUrl: renderedRemix ?? liveDraft.remixRenderedDataUrl,
         variant: "remix",
       };
       saveDraft(updated);
+      auditCreationAssets("result-remix-ready", updated);
       setDraft(updated);
+      if (updated.renderedDataUrl && !renderUrl) setRenderUrl(updated.renderedDataUrl);
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
       setVariant("remix");
       toast.success("Drama Remix ready ✨");
@@ -292,24 +295,25 @@ export default function Result() {
     if (isSaving) return; // prevent double-click duplicate saves
     setIsSaving(true);
     try {
+      const liveDraft = getLiveDraft(draft);
       const common = {
-        petName: normalizePetName(draft.petName),
-        styleId: draft.styleId,
-        quote: draft.drama.quote,
-        caption: draft.drama.caption,
+        petName: normalizePetName(liveDraft.petName),
+        styleId: liveDraft.styleId,
+        quote: liveDraft.drama.quote,
+        caption: liveDraft.drama.caption,
         watermark: !isPro,
         size: 1080 as const,
       };
       // Ensure the original render exists & matches current quote/caption.
       const finalOriginal =
-        renderUrl ??
-        (await renderDramaPng({ ...common, imageDataUrl: draft.imageDataUrl }));
+        liveDraft.renderedDataUrl ??
+        (await renderDramaPng({ ...common, imageDataUrl: liveDraft.imageDataUrl }));
       // Ensure remix render exists if a remix image is present.
-      let finalRemix: string | undefined = remixRenderUrl ?? undefined;
-      if (draft.remixImageDataUrl && !finalRemix) {
+      let finalRemix: string | undefined = liveDraft.remixRenderedDataUrl ?? undefined;
+      if (liveDraft.remixImageDataUrl && !finalRemix) {
         finalRemix = await renderDramaPng({
           ...common,
-          imageDataUrl: draft.remixImageDataUrl,
+          imageDataUrl: liveDraft.remixImageDataUrl,
         });
       }
       // Cache them locally so toggle/download use the exact same asset.
@@ -319,15 +323,17 @@ export default function Result() {
       // Persist renders + saved flag into the active draft so navigating
       // away (Gallery / Create) and back keeps the same exact assets.
       const persisted: DramaDraft = {
-        ...draft,
+        ...liveDraft,
         renderedDataUrl: finalOriginal,
-        remixRenderedDataUrl: finalRemix,
+        remixRenderedDataUrl: finalRemix ?? liveDraft.remixRenderedDataUrl,
+        variant,
         savedToGallery: true,
       };
       saveDraft(persisted);
       setDraft(persisted);
 
       saveToGallery(persisted);
+      auditCreationAssets("result-save-to-gallery", persisted, [persisted]);
       toast.success("Saved to your gallery.");
     } catch {
       toast.error("Couldn't save — please try again.");
