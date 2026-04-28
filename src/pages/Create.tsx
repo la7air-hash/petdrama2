@@ -21,9 +21,17 @@ export default function Create() {
   // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
   const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  // True when the restored draft already contains a generated result that the
+  // user can jump back into without regenerating.
+  const [hasGeneratedResult, setHasGeneratedResult] = useState(false);
+  // Snapshot of inputs at restore-time. If current inputs diverge, the existing
+  // result is considered outdated and we prompt the user before regenerating.
+  const [restoredSnapshot, setRestoredSnapshot] = useState<
+    { imageDataUrl: string; petName: string; petType: PetType; styleId: DramaStyleId } | null
+  >(null);
 
   // Restore the previous draft (if any) on mount so navigating away and back
-  // doesn't lose the user's work.
+  // doesn't lose the user's work — including the full generated result.
   useEffect(() => {
     const d = loadDraft();
     if (d) {
@@ -33,8 +41,26 @@ export default function Create() {
       setStyleId(d.styleId);
       setActiveCreationId(d.creationId);
       setRestored(true);
+      // A draft is only saved once the user has generated, so any restored
+      // draft has a result we can continue to.
+      setHasGeneratedResult(true);
+      setRestoredSnapshot({
+        imageDataUrl: d.imageDataUrl,
+        petName: d.petName,
+        petType: d.petType,
+        styleId: d.styleId,
+      });
     }
   }, []);
+
+  // Inputs differ from the snapshot taken when we restored → result is stale.
+  const isOutdated =
+    hasGeneratedResult &&
+    !!restoredSnapshot &&
+    (restoredSnapshot.imageDataUrl !== imageDataUrl ||
+      restoredSnapshot.petName !== petName ||
+      restoredSnapshot.petType !== petType ||
+      restoredSnapshot.styleId !== styleId);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -72,11 +98,27 @@ export default function Create() {
     setStyleId("drama-queen");
     setActiveCreationId(null);
     setRestored(false);
+    setHasGeneratedResult(false);
+    setRestoredSnapshot(null);
     toast.success("Started a fresh drama.");
   };
 
+  const onContinueToResult = () => navigate("/result");
+
   const onGenerate = () => {
     if (!canGenerate || !imageDataUrl) return;
+    // If a fresh result already exists and inputs are unchanged, just navigate.
+    if (hasGeneratedResult && !isOutdated) {
+      navigate("/result");
+      return;
+    }
+    // Outdated → confirm before discarding the existing result.
+    if (isOutdated) {
+      const ok = window.confirm(
+        "You changed something since the last drama. Generate a new one? Your previous result will be replaced.",
+      );
+      if (!ok) return;
+    }
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
