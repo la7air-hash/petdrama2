@@ -358,6 +358,8 @@ export interface GeneratedDrama {
   quoteOptions: string[];
   /** Caption tied to the chosen quote (uses the normalized pet name) */
   caption: string;
+  /** All 3 caption options offered for selection */
+  captionOptions: string[];
   hashtags: string[];
 }
 
@@ -373,8 +375,7 @@ function pickN<T>(arr: T[], n: number): T[] {
 }
 
 /**
- * Generate 3 quote options + a caption + hashtags for the given style/pet.
- * The caption uses the pet name when it's real, otherwise falls back gracefully.
+ * Generate 3 quote options + 3 caption options + hashtags for the given style/pet.
  */
 export function generateDrama(
   styleId: DramaStyleId,
@@ -387,13 +388,13 @@ export function generateDrama(
   const usableName = isRealName(display) ? display : `My ${vocab.noun}`;
 
   const quotes = pickN(content.quotes, 3).map((q) => q(vocab));
-  const captionFn = pickN(content.captions, 1)[0];
-  const caption = captionFn(usableName, vocab, usableName);
+  const captions = pickN(content.captions, 3).map((c) => c(usableName, vocab, usableName));
 
   return {
     quote: quotes[0],
     quoteOptions: quotes,
-    caption,
+    caption: captions[0],
+    captionOptions: captions,
     hashtags: content.hashtags,
   };
 }
