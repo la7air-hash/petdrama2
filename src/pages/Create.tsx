@@ -100,14 +100,26 @@ export default function Create() {
   return (
     <PageShell>
       <section className="container py-10 md:py-16">
-        <div className="mb-10">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Step 1 · 2 · 3</p>
-          <h1 className="mt-2 font-display text-4xl md:text-6xl font-extrabold tracking-tight">
-            Create your pet's drama.
-          </h1>
-          <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
-            Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
-          </p>
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Step 1 · 2 · 3</p>
+            <h1 className="mt-2 font-display text-4xl md:text-6xl font-extrabold tracking-tight">
+              Create your pet's drama.
+            </h1>
+            <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
+              Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
+            </p>
+            {restored && (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                ✦ Continuing your last drama
+              </p>
+            )}
+          </div>
+          {(restored || imageDataUrl || petName) && (
+            <StickerButton variant="ghost" onClick={onStartOver}>
+              ↺ Start over
+            </StickerButton>
+          )}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-12">
