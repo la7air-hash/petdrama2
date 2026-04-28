@@ -47,6 +47,7 @@ export default function Result() {
       petName: normalizePetName(draft.petName),
       styleId: draft.styleId,
       quote: draft.drama.quote,
+      caption: draft.drama.caption,
       watermark: !isPro,
       size: 1080,
     })
@@ -83,6 +84,7 @@ export default function Result() {
     };
     saveDraft(updated);
     setDraft(updated);
+    setRenderUrl(null);
   };
 
   const onDownload = () => {
