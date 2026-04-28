@@ -103,13 +103,16 @@ interface DramaContent {
 const CONTENT: Record<DramaStyleId, DramaContent> = {
   "drama-queen": {
     quotes: [
+      () => "Not the audacity. Not today.",
+      () => "I'm going to need everyone to stop. Right now.",
+      () => "Bestie. We are NOT okay.",
       () => "I asked for the chicken. You brought the SAME chicken. We are DONE.",
       () => "The sun moved. My nap spot moved. My entire WORLD has shifted.",
       () => "You closed the door. With me INSIDE. We need to talk to my lawyer.",
       (v) => `I have been waiting on this ${v.spot} for THREE entire minutes.`,
       () => "The water bowl tastes like… water. AGAIN. Unbelievable.",
       () => "You sneezed. You scared me. I am traumatized for life. Goodbye.",
-      (v) => `I just did one (1) ${v.tinyAct} and now I'm exhausted. Carry me.`,
+      (v) => `One (1) ${v.tinyAct} and now I'm exhausted. Carry me.`,
       () => "Don't TOUCH me. Don't LOOK at me. Actually — pet me. Now leave.",
       () => "There is a leaf outside. A LEAF. Call somebody.",
       () => "You vacuumed. In MY house. On a TUESDAY. The audacity.",
@@ -125,6 +128,9 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
 
   "mafia-boss": {
     quotes: [
+      () => "Pay the treat tax. We don't ask twice.",
+      () => "Respect the schedule or face the stare.",
+      () => "You eat. I watch. That's the arrangement.",
       () => "The treats. They were a tribute. Don't make this awkward.",
       () => "You feed me late again, we got a problem. Capisce?",
       () => "Nice couch. Be a shame if somebody… shed all over it.",
@@ -133,7 +139,7 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Kibble at 6. Sharp. Don't disrespect the schedule.",
       () => "You dropped that. On purpose. For me. Smart move.",
       (v) => `Every ${v.sound} in this house — that's me. Remember that.`,
-      () => "I'm not mad. I'm just very, very disappointed in your treat selection.",
+      () => "I'm not mad. Just very disappointed in your treat selection.",
       () => "The vet? We don't speak that name in this household.",
     ],
     captions: [
