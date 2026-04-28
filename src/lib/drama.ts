@@ -266,12 +266,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       (v) => `One more cheap ${v.noun} bed and I'm calling my agent.`,
     ],
     captions: [
-      (n, _v, dn) => `${dn} requires only the finest. Anything less is, frankly, offensive.`,
-      (n, _v, dn) => `Living that ${dn} lifestyle. The rest of us could never afford it.`,
+      (n, _v, dn) => `${dn} requires only the finest. anything less is offensive 💎`,
+      (n, _v, dn) => `living that ${dn} lifestyle. broke could never. 💸`,
       (n, _v, dn) => `${dn} doesn't have a price tag. ${dn} has a private invoice.`,
-      (n, _v, dn) => `Daily reminder that ${dn}'s skincare routine is more expensive than mine.`,
+      (n, _v, dn) => `pov: ${dn}'s skincare is more expensive than yours ✨`,
+      (n, _v, dn) => `${dn} said "in this economy?" and walked away`,
+      (n, _v, dn) => `${dn} doesn't go on walks. ${dn} makes appearances.`,
     ],
-    hashtags: ["#LuxuryPet", "#PetDrama", "#BougieBaby", "#PetCouture", "#SpoiledRotten"],
+    hashtags: ["#LuxuryPet", "#PetDrama", "#BougieBaby", "#PetTok", "#SpoiledRotten"],
   },
 
   "hungry-monster": {
