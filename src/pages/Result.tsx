@@ -147,8 +147,6 @@ export default function Result() {
       const liveDraft = getLiveDraft(draft);
       const updated = {
         ...liveDraft,
-        renderedDataUrl: renderUrl ?? draft.renderedDataUrl,
-        remixRenderedDataUrl: remixRenderUrl ?? draft.remixRenderedDataUrl,
         variant: v,
       };
       saveDraft(updated);
