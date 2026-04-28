@@ -151,9 +151,14 @@ export default function Create() {
             <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
               Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
             </p>
-            {restored && (
+            {restored && !isOutdated && (
               <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
                 ✦ Continuing your last drama
+              </p>
+            )}
+            {restored && isOutdated && (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-secondary text-secondary-foreground px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
+                ⚠ Inputs changed · result is outdated
               </p>
             )}
           </div>
