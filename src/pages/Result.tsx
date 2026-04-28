@@ -74,8 +74,8 @@ export default function Result() {
 
   return (
     <PageShell>
-      <section className="container py-10 md:py-16">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <section className="container pt-16 md:pt-24 pb-10 md:pb-16">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Result</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
