@@ -21,10 +21,19 @@ export default function Result() {
       navigate("/create", { replace: true });
       return;
     }
-    // Backward compat: ensure quoteOptions exists
-    if (!d.drama.quoteOptions || d.drama.quoteOptions.length === 0) {
+    // Backward compat: ensure quoteOptions / captionOptions exist
+    const needsRefresh =
+      !d.drama.quoteOptions ||
+      d.drama.quoteOptions.length === 0 ||
+      !d.drama.captionOptions ||
+      d.drama.captionOptions.length === 0;
+    if (needsRefresh) {
       const fresh = generateDrama(d.styleId, d.petName, d.petType);
-      d.drama = { ...fresh, quote: d.drama.quote || fresh.quote };
+      d.drama = {
+        ...fresh,
+        quote: d.drama.quote || fresh.quote,
+        caption: d.drama.caption || fresh.caption,
+      };
       saveDraft(d);
     }
     setDraft(d);
