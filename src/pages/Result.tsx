@@ -48,6 +48,16 @@ export default function Result() {
     if (d.remixRenderedDataUrl) setRemixRenderUrl(d.remixRenderedDataUrl);
     // Restore last-viewed variant (default original; only honor remix if a remix asset exists).
     if (d.variant === "remix" && (d.remixRenderedDataUrl || d.remixImageDataUrl)) setVariant("remix");
+    console.info("[PetDrama restore on Result]", {
+      creationId: d.creationId,
+      hasOriginal: !!d.renderedDataUrl,
+      hasRemixImage: !!d.remixImageDataUrl,
+      hasRemixRender: !!d.remixRenderedDataUrl,
+      variant: d.variant ?? "original",
+      savedToGallery: !!d.savedToGallery,
+      quote: d.drama?.quote,
+      caption: d.drama?.caption,
+    });
     auditCreationAssets("result-restore", d);
     setDraft(d);
   }, [navigate]);
