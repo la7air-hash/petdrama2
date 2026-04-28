@@ -19,6 +19,7 @@ export default function Result() {
   const [remixRenderUrl, setRemixRenderUrl] = useState<string | null>(null);
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPro] = useState(false); // mocked
 
   useEffect(() => {

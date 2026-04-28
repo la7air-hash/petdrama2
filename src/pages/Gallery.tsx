@@ -118,7 +118,7 @@ export default function Gallery() {
               const hasRemix = !!item.remixRenderedDataUrl;
               return (
                 <StickerCard
-                  key={item.createdAt ?? i}
+                  key={item.creationId ?? item.createdAt ?? i}
                   color={hasFinal ? "card" : s.color}
                   rotate={tilt}
                   shadow="lg"
