@@ -8,6 +8,8 @@ export interface DramaDraft {
   styleId: DramaStyleId;
   drama: GeneratedDrama;
   createdAt: number;
+  /** Final rendered PNG data URL — source of truth for Gallery preview & re-download. */
+  renderedDataUrl?: string;
 }
 
 const KEY = "petdrama:current";
