@@ -118,12 +118,15 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "You vacuumed. In MY house. On a TUESDAY. The audacity.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} would like to file a formal complaint about literally everything that happened today.`,
-      (n, _v, dn) => `Living with ${dn} is one long unpaid theatre residency and I am not the lead.`,
+      (n, _v, dn) => `pov: you live with ${dn} 🎭✨`,
+      (n, _v, dn) => `${dn} woke up and chose violence today 💅`,
+      (n, _v, dn) => `${dn} said "and I took that personally" 😤`,
+      (n, _v, dn) => `not ${dn} filing a formal complaint about literally everything 📝`,
       (n, _v, dn) => `${dn} is fine. ${dn} is just having a moment. (${dn} is not fine.)`,
-      (n, _v, dn) => `Currently negotiating peace talks with ${dn}. The demands are unreasonable.`,
+      (n, _v, dn) => `currently negotiating peace talks with ${dn}. demands are unreasonable 🚩`,
+      (n, _v, dn) => `living with ${dn} is one long unpaid theatre residency 🎭`,
     ],
-    hashtags: ["#DramaQueen", "#PetDrama", "#TheAudacity", "#PetsOfInstagram", "#ExtraAF"],
+    hashtags: ["#DramaQueen", "#PetDrama", "#TheAudacity", "#PetsOfTikTok", "#ExtraAF"],
   },
 
   "mafia-boss": {
