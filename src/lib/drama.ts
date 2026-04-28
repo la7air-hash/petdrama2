@@ -118,12 +118,15 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "You vacuumed. In MY house. On a TUESDAY. The audacity.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} would like to file a formal complaint about literally everything that happened today.`,
-      (n, _v, dn) => `Living with ${dn} is one long unpaid theatre residency and I am not the lead.`,
+      (n, _v, dn) => `pov: you live with ${dn} 🎭✨`,
+      (n, _v, dn) => `${dn} woke up and chose violence today 💅`,
+      (n, _v, dn) => `${dn} said "and I took that personally" 😤`,
+      (n, _v, dn) => `not ${dn} filing a formal complaint about literally everything 📝`,
       (n, _v, dn) => `${dn} is fine. ${dn} is just having a moment. (${dn} is not fine.)`,
-      (n, _v, dn) => `Currently negotiating peace talks with ${dn}. The demands are unreasonable.`,
+      (n, _v, dn) => `currently negotiating peace talks with ${dn}. demands are unreasonable 🚩`,
+      (n, _v, dn) => `living with ${dn} is one long unpaid theatre residency 🎭`,
     ],
-    hashtags: ["#DramaQueen", "#PetDrama", "#TheAudacity", "#PetsOfInstagram", "#ExtraAF"],
+    hashtags: ["#DramaQueen", "#PetDrama", "#TheAudacity", "#PetsOfTikTok", "#ExtraAF"],
   },
 
   "mafia-boss": {
@@ -143,12 +146,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "The vet? We don't speak that name in this household.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} runs this household. The rest of us are just lucky to live here.`,
-      (n, _v, dn) => `Nothing moves in this house without ${dn}'s approval. Including me.`,
-      (n, _v, dn) => `${dn} doesn't break the rules. ${dn} writes them on the back of the treat bag.`,
-      (n, _v, dn) => `Don't make ${dn} ask twice. I learned that the hard way.`,
+      (n, _v, dn) => `${dn} runs this house. I just pay rent 🕴️`,
+      (n, _v, dn) => `nobody moves until ${dn} says so 🤌`,
+      (n, _v, dn) => `${dn} doesn't ask twice. ask my couch 🛋️💀`,
+      (n, _v, dn) => `pov: ${dn} is the boss and you forgot the treat tax`,
+      (n, _v, dn) => `${dn} writes the rules on the back of the treat bag 📜`,
+      (n, _v, dn) => `respect ${dn} or face the stare 👁️`,
     ],
-    hashtags: ["#MafiaPet", "#PetDrama", "#TheBoss", "#TreatTribute", "#GoodFluff"],
+    hashtags: ["#MafiaPet", "#PetDrama", "#TheBoss", "#PetTok", "#GoodFluff"],
   },
 
   "royal-pet": {
@@ -165,12 +170,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "The mailman approaches the gates. Sound the alarm. Calmly.",
     ],
     captions: [
-      (n, _v, dn) => `Her/His Royal Highness ${dn}, undisputed ruler of the living room.`,
-      (n, _v, dn) => `${dn} has graciously accepted today's tribute of one (1) tiny treat.`,
-      (n, _v, dn) => `An audience with ${dn} is by appointment only. Bring snacks.`,
-      (n, _v, dn) => `${dn} doesn't ask for the throne. ${dn} simply sits, and the throne appears.`,
+      (n, _v, dn) => `bow down. ${dn} has entered the chat 👑`,
+      (n, _v, dn) => `${dn} doesn't sit on a throne. the throne appears 💅`,
+      (n, _v, dn) => `pov: you serve ${dn} now ✨`,
+      (n, _v, dn) => `audience with ${dn}: by appointment only. bring snacks 🍗`,
+      (n, _v, dn) => `today's tribute to ${dn}: one (1) tiny treat. accepted. barely.`,
+      (n, _v, dn) => `${dn} said "we are not amused" and meant it 😒`,
     ],
-    hashtags: ["#RoyalPet", "#PetDrama", "#HRH", "#YourMajesty", "#FluffAndCircumstance"],
+    hashtags: ["#RoyalPet", "#PetDrama", "#HRH", "#YourMajesty", "#PetTok"],
   },
 
   "tiny-villain": {
@@ -187,12 +194,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "If I fits, I sits. If I sits, I plots. It's a whole pipeline.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} is plotting something. We just don't know what yet. We never do.`,
-      (n, _v, dn) => `Behind those innocent eyes? Pure chaos. Documented. Hourly.`,
-      (n, _v, dn) => `${dn} sees a clean shelf the way most people see a personal challenge.`,
-      (n, _v, dn) => `Day 247 of pretending I don't know exactly who knocked that over. (It was ${dn}.)`,
+      (n, _v, dn) => `${dn} is plotting. we just don't know what 😈`,
+      (n, _v, dn) => `cute? sure. innocent? absolutely not 🚨`,
+      (n, _v, dn) => `pov: ${dn} sees a clean shelf as a personal challenge`,
+      (n, _v, dn) => `day 247 of pretending i don't know it was ${dn} 😬`,
+      (n, _v, dn) => `${dn} woke up and chose chaos. again. 🌀`,
+      (n, _v, dn) => `there is no other suspect. it is always ${dn}.`,
     ],
-    hashtags: ["#TinyVillain", "#PetDrama", "#ChaosAgent", "#PlottingSince", "#SmolButFeral"],
+    hashtags: ["#TinyVillain", "#PetDrama", "#ChaosAgent", "#PetTok", "#SmolButFeral"],
   },
 
   "jealous-pet": {
@@ -209,10 +218,12 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       (v) => `One more ${v.tinyAct} from across the room and you'll know exactly how I feel.`,
     ],
     captions: [
-      (n, _v, dn) => `${dn} has been monitoring my activity since 6 a.m. Concerns will be raised.`,
-      (n, _v, dn) => `The side-eye ${dn} gives when I greet another animal is genuinely unmatched.`,
-      (n, _v, dn) => `${dn} doesn't share. Not the couch, not the human, not the air.`,
-      (n, _v, dn) => `Quick reminder that ${dn} can read your screen and ${dn} has notes.`,
+      (n, _v, dn) => `${dn} saw the other dog. ${dn} has notes 👀`,
+      (n, _v, dn) => `the side-eye ${dn} just gave me. unmatched. 😐`,
+      (n, _v, dn) => `${dn} doesn't share. not the couch, not the human, not the air.`,
+      (n, _v, dn) => `pov: you petted ANOTHER animal and ${dn} found out 💀`,
+      (n, _v, dn) => `${dn} can read your screen and ${dn} is judging`,
+      (n, _v, dn) => `who. is. that. asking for a friend (${dn})`,
     ],
     hashtags: ["#JealousPet", "#PetDrama", "#SideEye", "#MineMineMine", "#PetTok"],
   },
@@ -231,12 +242,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Joy is just dopamine. Dopamine is just chemistry. Chemistry is just… a lot.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has been staring at the wall for 47 minutes. We don't interrupt the contemplation.`,
-      (n, _v, dn) => `${dn} read one (1) philosophy book and now nothing brings ${dn} joy. Including the book.`,
-      (n, _v, dn) => `${dn} would like to remind you that the void is, in fact, looking back.`,
-      (n, _v, dn) => `Mood today: whatever ${dn} is doing on the rug. (We don't know what it is.)`,
+      (n, _v, dn) => `${dn} stared at the wall for 47 minutes. we don't ask 🥀`,
+      (n, _v, dn) => `mood: whatever ${dn} is doing on the rug rn`,
+      (n, _v, dn) => `${dn} read one (1) book and now nothing is real`,
+      (n, _v, dn) => `pov: ${dn} found out the void looks back 🌑`,
+      (n, _v, dn) => `${dn} is having Thoughts™ again`,
+      (n, _v, dn) => `me explaining joy to ${dn}. ${dn} is unconvinced.`,
     ],
-    hashtags: ["#PetPhilosopher", "#PetDrama", "#DeepThoughts", "#Existential", "#MoodyPet"],
+    hashtags: ["#PetPhilosopher", "#PetDrama", "#DeepThoughts", "#PetTok", "#MoodyPet"],
   },
 
   "luxury-pet": {
@@ -253,12 +266,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       (v) => `One more cheap ${v.noun} bed and I'm calling my agent.`,
     ],
     captions: [
-      (n, _v, dn) => `${dn} requires only the finest. Anything less is, frankly, offensive.`,
-      (n, _v, dn) => `Living that ${dn} lifestyle. The rest of us could never afford it.`,
+      (n, _v, dn) => `${dn} requires only the finest. anything less is offensive 💎`,
+      (n, _v, dn) => `living that ${dn} lifestyle. broke could never. 💸`,
       (n, _v, dn) => `${dn} doesn't have a price tag. ${dn} has a private invoice.`,
-      (n, _v, dn) => `Daily reminder that ${dn}'s skincare routine is more expensive than mine.`,
+      (n, _v, dn) => `pov: ${dn}'s skincare is more expensive than yours ✨`,
+      (n, _v, dn) => `${dn} said "in this economy?" and walked away`,
+      (n, _v, dn) => `${dn} doesn't go on walks. ${dn} makes appearances.`,
     ],
-    hashtags: ["#LuxuryPet", "#PetDrama", "#BougieBaby", "#PetCouture", "#SpoiledRotten"],
+    hashtags: ["#LuxuryPet", "#PetDrama", "#BougieBaby", "#PetTok", "#SpoiledRotten"],
   },
 
   "hungry-monster": {
@@ -275,12 +290,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "If you open the fridge, I appear. I don't make the rules. I just enforce them.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} would like to remind you that dinner exists. And lunch. And second lunch.`,
-      (n, _v, dn) => `${dn}'s love language is treats. Specifically: more treats. Specifically: now.`,
-      (n, _v, dn) => `${dn} hears the fridge open from three rooms away. We've stopped questioning it.`,
-      (n, _v, dn) => `Currently negotiating a snack with ${dn}. The negotiations are not going well.`,
+      (n, _v, dn) => `${dn} would like to remind you dinner exists. and lunch. and second lunch. 🍗`,
+      (n, _v, dn) => `${dn}'s love language: snacks. now. urgent. 🚨`,
+      (n, _v, dn) => `pov: you opened the fridge. ${dn} appeared. 👻`,
+      (n, _v, dn) => `negotiating a snack with ${dn}. it's not going well.`,
+      (n, _v, dn) => `${dn} said "i'm starving" 4 minutes after dinner 💀`,
+      (n, _v, dn) => `the bowl is empty and ${dn} wants you to KNOW`,
     ],
-    hashtags: ["#HungryPet", "#PetDrama", "#FeedMeNow", "#SnackAttack", "#FoodMotivated"],
+    hashtags: ["#HungryPet", "#PetDrama", "#FeedMeNow", "#PetTok", "#FoodMotivated"],
   },
 
   "office-manager": {
@@ -297,12 +314,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "Just a heads up — I'll be out of office under the bed for the rest of the day.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has scheduled a 1:1 to discuss your performance as their human. Bring treats.`,
-      (n, _v, dn) => `Quarterly review with ${dn}: needs improvement on petting frequency. Otherwise solid.`,
-      (n, _v, dn) => `${dn} has 47 unread barks and ${dn} would like everyone to be aware of that.`,
-      (n, _v, dn) => `Looping ${dn} in on this. ${dn} has thoughts. ${dn} always has thoughts.`,
+      (n, _v, dn) => `${dn} scheduled a 1:1. bring treats. 📎`,
+      (n, _v, dn) => `quarterly review w/ ${dn}: needs improvement on petting frequency`,
+      (n, _v, dn) => `${dn} has 47 unread barks and would like everyone to know`,
+      (n, _v, dn) => `looping ${dn} in. ${dn} has thoughts. ${dn} always has thoughts.`,
+      (n, _v, dn) => `pov: ${dn} sent another "per my last bark" email`,
+      (n, _v, dn) => `${dn} is in back-to-back naps today. circle back tmrw.`,
     ],
-    hashtags: ["#PetManager", "#PetDrama", "#WFH", "#PerMyLastBark", "#HRDepartment"],
+    hashtags: ["#PetManager", "#PetDrama", "#WFH", "#PerMyLastBark", "#PetTok"],
   },
 
   "venetian-noble": {
@@ -319,12 +338,14 @@ const CONTENT: Record<DramaStyleId, DramaContent> = {
       () => "I attend only the most exclusive nap salons. Invitations are by whisker only.",
     ],
     captions: [
-      (n, _v, dn) => `${dn} has returned from the carnevale with stories you'll absolutely never hear.`,
-      (n, _v, dn) => `${dn} attends only the most exclusive nap salons. The waiting list is mythical.`,
-      (n, _v, dn) => `Behind every great household, a small dramatic noble. Ours is named ${dn}.`,
-      (n, _v, dn) => `${dn} doesn't enter a room. ${dn} arrives. There's a difference.`,
+      (n, _v, dn) => `${dn} returned from the carnevale w/ stories you'll never hear 🎭`,
+      (n, _v, dn) => `pov: ${dn} attends only the most exclusive nap salons`,
+      (n, _v, dn) => `${dn} doesn't enter a room. ${dn} arrives. ✨`,
+      (n, _v, dn) => `behind every great household, a small dramatic noble. say hi to ${dn}.`,
+      (n, _v, dn) => `${dn} said "bellissimo" and walked off into the canal mist 🌫️`,
+      (n, _v, dn) => `${dn} has secrets older than this rug 🤫`,
     ],
-    hashtags: ["#VenetianPet", "#PetDrama", "#Carnevale", "#Bellissimo", "#OldMoneyPet"],
+    hashtags: ["#VenetianPet", "#PetDrama", "#Carnevale", "#PetTok", "#OldMoneyPet"],
   },
 };
 
@@ -337,6 +358,8 @@ export interface GeneratedDrama {
   quoteOptions: string[];
   /** Caption tied to the chosen quote (uses the normalized pet name) */
   caption: string;
+  /** All 3 caption options offered for selection */
+  captionOptions: string[];
   hashtags: string[];
 }
 
@@ -352,8 +375,7 @@ function pickN<T>(arr: T[], n: number): T[] {
 }
 
 /**
- * Generate 3 quote options + a caption + hashtags for the given style/pet.
- * The caption uses the pet name when it's real, otherwise falls back gracefully.
+ * Generate 3 quote options + 3 caption options + hashtags for the given style/pet.
  */
 export function generateDrama(
   styleId: DramaStyleId,
@@ -366,13 +388,13 @@ export function generateDrama(
   const usableName = isRealName(display) ? display : `My ${vocab.noun}`;
 
   const quotes = pickN(content.quotes, 3).map((q) => q(vocab));
-  const captionFn = pickN(content.captions, 1)[0];
-  const caption = captionFn(usableName, vocab, usableName);
+  const captions = pickN(content.captions, 3).map((c) => c(usableName, vocab, usableName));
 
   return {
     quote: quotes[0],
     quoteOptions: quotes,
-    caption,
+    caption: captions[0],
+    captionOptions: captions,
     hashtags: content.hashtags,
   };
 }

@@ -72,19 +72,17 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const badgeY = cardY + Math.round(size * 0.04);
   const badgeR = Math.round(badgeH / 2);
 
-  // Shadow behind badge
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 6;
-  ctx.shadowOffsetY = 6;
+  // Hard offset shadow behind badge (sticker style)
+  drawRoundedRect(ctx, badgeX + 7, badgeY + 7, badgeW, badgeH, badgeR);
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fill();
+  // Badge fill
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
   ctx.fillStyle = accent;
   ctx.fill();
-  ctx.restore();
-  // Border on top of shadow
+  // Thick black border
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeR);
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 6;
   ctx.strokeStyle = "#121212";
   ctx.stroke();
   // Text — pick contrast color based on accent
