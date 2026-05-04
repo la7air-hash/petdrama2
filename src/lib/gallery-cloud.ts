@@ -62,7 +62,41 @@ export async function listMyGallery(): Promise<CloudGalleryItem[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  const rows = (data ?? []) as Omit<CloudGalleryItem, "originalSignedUrl" | "remixSignedUrl">[];
+  const rows = (data ?? []) as Omit<CloudGalleryItem, "originalSignedUrl" | "remixSignedUrl" | "remixes">[];
+
+  // Batch-fetch all remix variants for these items.
+  const ids = rows.map((r) => r.id);
+  let remixRows: any[] = [];
+  if (ids.length > 0) {
+    const { data: rData, error: rErr } = await supabase
+      .from("gallery_remixes")
+      .select("*")
+      .in("gallery_item_id", ids)
+      .order("created_at", { ascending: true });
+    if (rErr) console.error("[PetDrama remix list]", rErr);
+    remixRows = rData ?? [];
+  }
+  const remixById = new Map<string, RemixVariant[]>();
+  for (const r of remixRows) {
+    const list = remixById.get(r.gallery_item_id) ?? [];
+    try {
+      const signedUrl = await signUrl(r.image_path);
+      list.push({
+        id: r.id,
+        gallery_item_id: r.gallery_item_id,
+        image_path: r.image_path,
+        caption: r.caption,
+        quote: r.quote,
+        hashtags: r.hashtags ?? [],
+        created_at: r.created_at,
+        signedUrl,
+      });
+      remixById.set(r.gallery_item_id, list);
+    } catch (err) {
+      console.error("[PetDrama remix sign]", r.id, err);
+    }
+  }
+
   const out: CloudGalleryItem[] = [];
   for (const row of rows) {
     try {
@@ -70,7 +104,12 @@ export async function listMyGallery(): Promise<CloudGalleryItem[]> {
       const remixSignedUrl = row.remix_image_path
         ? await signUrl(row.remix_image_path).catch(() => undefined)
         : undefined;
-      out.push({ ...row, originalSignedUrl, remixSignedUrl });
+      out.push({
+        ...row,
+        originalSignedUrl,
+        remixSignedUrl,
+        remixes: remixById.get(row.id) ?? [],
+      });
     } catch (err) {
       console.error("[PetDrama gallery sign]", row.id, err);
     }
@@ -82,7 +121,7 @@ export interface SaveCloudArgs {
   draft: DramaDraft;
   /** Final rendered original card as data URL (PNG from canvas). Required. */
   originalDataUrl: string;
-  /** Final rendered remix card as data URL. Optional. */
+  /** Final rendered remix card as data URL. Optional — saved as a remix variant. */
   remixDataUrl?: string;
 }
 
@@ -92,7 +131,6 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
 
   const creationId = args.draft.creationId;
 
-  // Look for an existing row for this creation so we UPSERT (one PetDrama = one card).
   const { data: existingRows, error: lookupErr } = await supabase
     .from("gallery_items")
     .select("*")
@@ -102,20 +140,12 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
   if (lookupErr) throw lookupErr;
   const existing = existingRows?.[0] as { id: string } | undefined;
 
-  // Reuse the existing row's id (and storage folder) so we overwrite the same files.
   const id = existing?.id ?? crypto.randomUUID();
   const folder = `${userId}/${id}`;
   const originalPath = `${folder}/original.webp`;
 
   const originalBlob = await dataUrlToWebpBlob(args.originalDataUrl);
   await uploadToGallery(originalPath, originalBlob);
-
-  let remixPath: string | null = null;
-  if (args.remixDataUrl) {
-    remixPath = `${folder}/remix.webp`;
-    const remixBlob = await dataUrlToWebpBlob(args.remixDataUrl);
-    await uploadToGallery(remixPath, remixBlob);
-  }
 
   const style = getStyle(args.draft.styleId);
   const row = {
@@ -130,8 +160,9 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
     caption: args.draft.drama.caption ?? null,
     hashtags: args.draft.drama.hashtags ?? [],
     original_image_path: originalPath,
-    remix_image_path: remixPath,
-    variant: (args.draft.variant ?? (remixPath ? "remix" : "original")) as "original" | "remix",
+    // Keep the legacy single-remix slot null on new saves; we now append into gallery_remixes.
+    remix_image_path: existing ? undefined : null,
+    variant: (args.draft.variant ?? (args.remixDataUrl ? "remix" : "original")) as "original" | "remix",
   };
 
   const { data, error } = await supabase
@@ -140,25 +171,120 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
     .select()
     .single();
   if (error) {
-    // Best effort: only remove files we just wrote when this was a brand-new insert.
     if (!existing) {
-      await supabase.storage
-        .from("gallery")
-        .remove([originalPath, ...(remixPath ? [remixPath] : [])]);
+      await supabase.storage.from("gallery").remove([originalPath]);
     }
     throw error;
   }
 
+  // If a remix data URL was provided, append it as a NEW variant (never overwrite).
+  if (args.remixDataUrl) {
+    try {
+      await addRemixVariant({
+        galleryItemId: id,
+        userId,
+        dataUrl: args.remixDataUrl,
+        quote: args.draft.drama.quote,
+        caption: args.draft.drama.caption ?? null,
+        hashtags: args.draft.drama.hashtags ?? [],
+      });
+    } catch (err) {
+      console.error("[PetDrama remix variant save]", err);
+    }
+  }
+
   const originalSignedUrl = await signUrl(originalPath);
-  const remixSignedUrl = remixPath ? await signUrl(remixPath).catch(() => undefined) : undefined;
-  return { ...(data as any), originalSignedUrl, remixSignedUrl };
+  const remixSignedUrl = (data as any).remix_image_path
+    ? await signUrl((data as any).remix_image_path).catch(() => undefined)
+    : undefined;
+
+  // Re-fetch variants so the returned item is complete.
+  const { data: variantRows } = await supabase
+    .from("gallery_remixes")
+    .select("*")
+    .eq("gallery_item_id", id)
+    .order("created_at", { ascending: true });
+  const remixes: RemixVariant[] = [];
+  for (const r of variantRows ?? []) {
+    try {
+      const signedUrl = await signUrl((r as any).image_path);
+      remixes.push({
+        id: (r as any).id,
+        gallery_item_id: (r as any).gallery_item_id,
+        image_path: (r as any).image_path,
+        caption: (r as any).caption,
+        quote: (r as any).quote,
+        hashtags: (r as any).hashtags ?? [],
+        created_at: (r as any).created_at,
+        signedUrl,
+      });
+    } catch { /* skip */ }
+  }
+
+  return { ...(data as any), originalSignedUrl, remixSignedUrl, remixes };
+}
+
+export interface AddRemixArgs {
+  galleryItemId: string;
+  userId: string;
+  dataUrl: string;
+  quote: string;
+  caption: string | null;
+  hashtags: string[];
+}
+
+/** Append a new remix variant. Never overwrites previous remixes. */
+export async function addRemixVariant(args: AddRemixArgs): Promise<RemixVariant> {
+  const remixId = crypto.randomUUID();
+  const path = `${args.userId}/${args.galleryItemId}/remix-${remixId}.webp`;
+  const blob = await dataUrlToWebpBlob(args.dataUrl);
+  await uploadToGallery(path, blob);
+
+  const { data, error } = await supabase
+    .from("gallery_remixes")
+    .insert({
+      id: remixId,
+      gallery_item_id: args.galleryItemId,
+      user_id: args.userId,
+      image_path: path,
+      caption: args.caption,
+      quote: args.quote,
+      hashtags: args.hashtags,
+    })
+    .select()
+    .single();
+  if (error) {
+    await supabase.storage.from("gallery").remove([path]).catch(() => {});
+    throw error;
+  }
+  const signedUrl = await signUrl(path);
+  return {
+    id: (data as any).id,
+    gallery_item_id: (data as any).gallery_item_id,
+    image_path: (data as any).image_path,
+    caption: (data as any).caption,
+    quote: (data as any).quote,
+    hashtags: (data as any).hashtags ?? [],
+    created_at: (data as any).created_at,
+    signedUrl,
+  };
 }
 
 export async function deleteGalleryItem(item: Pick<CloudGalleryItem, "id" | "original_image_path" | "remix_image_path">): Promise<void> {
-  const paths = [item.original_image_path];
-  if (item.remix_image_path) paths.push(item.remix_image_path);
-  const { error: storageErr } = await supabase.storage.from("gallery").remove(paths);
-  if (storageErr) console.error("[PetDrama gallery delete storage]", storageErr);
+  // List & remove every file under this item's folder so all remix variants get cleaned up.
+  // We can't easily recover the user_id from the item, so derive folder from the original path.
+  const folder = item.original_image_path.split("/").slice(0, 2).join("/"); // "<user_id>/<item_id>"
+  try {
+    const { data: files } = await supabase.storage.from("gallery").list(folder);
+    const paths = (files ?? []).map((f) => `${folder}/${f.name}`);
+    if (paths.length > 0) {
+      const { error: storageErr } = await supabase.storage.from("gallery").remove(paths);
+      if (storageErr) console.error("[PetDrama gallery delete storage]", storageErr);
+    }
+  } catch (err) {
+    console.error("[PetDrama gallery delete list]", err);
+  }
+  // FK ON DELETE CASCADE removes gallery_remixes rows automatically.
   const { error } = await supabase.from("gallery_items").delete().eq("id", item.id);
   if (error) throw error;
 }
