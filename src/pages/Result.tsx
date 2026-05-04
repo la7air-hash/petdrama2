@@ -304,6 +304,7 @@ export default function Result() {
 
   const onDramaRemix = async () => {
     if (isRemixing) return;
+    if (!isPro) { setUpgradeReason("pro_only"); return; }
     setIsRemixing(true);
     try {
       const { data, error } = await supabase.functions.invoke("drama-remix", {
