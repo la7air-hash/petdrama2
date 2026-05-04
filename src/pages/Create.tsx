@@ -41,28 +41,43 @@ export default function Create() {
     { imageDataUrl: string; petName: string; petType: PetType; styleId: DramaStyleId } | null
   >(null);
 
-  // Restore the previous draft (if any) on mount so navigating away and back
-  // doesn't lose the user's work — including the full generated result.
+  // Restore draft for the *current owner only*. Re-runs when the auth owner
+  // changes so user A's photo/inputs never appear for user B on the same browser.
   useEffect(() => {
-    const d = loadDraft();
-    if (d) {
-      setImageDataUrl(d.imageDataUrl);
-      setPetName(d.petName);
-      setPetType(d.petType);
-      setStyleId(d.styleId);
-      setActiveCreationId(d.creationId);
-      setActiveSavedToGallery(!!d.savedToGallery);
-      setRestored(true);
-      // A draft is only saved once the user has generated, so any restored
-      // draft has a result we can continue to.
-      setHasGeneratedResult(true);
-      setRestoredSnapshot({
-        imageDataUrl: d.imageDataUrl,
-        petName: d.petName,
-        petType: d.petType,
-        styleId: d.styleId,
-      });
-    }
+    const restore = () => {
+      const d = loadDraft();
+      if (d) {
+        setImageDataUrl(d.imageDataUrl);
+        setPetName(d.petName);
+        setPetType(d.petType);
+        setStyleId(d.styleId);
+        setActiveCreationId(d.creationId);
+        setActiveSavedToGallery(!!d.savedToGallery);
+        setRestored(true);
+        setHasGeneratedResult(true);
+        setRestoredSnapshot({
+          imageDataUrl: d.imageDataUrl,
+          petName: d.petName,
+          petType: d.petType,
+          styleId: d.styleId,
+        });
+      } else {
+        // No draft for this owner → blank Create page (privacy: never leak prior owner).
+        setImageDataUrl(null);
+        setPetName("");
+        setPetType("dog");
+        setStyleId("drama-queen");
+        setActiveCreationId(null);
+        setActiveSavedToGallery(false);
+        setRestored(false);
+        setHasGeneratedResult(false);
+        setRestoredSnapshot(null);
+      }
+    };
+    restore();
+    const onOwnerChange = () => restore();
+    window.addEventListener(OWNER_CHANGED_EVENT, onOwnerChange);
+    return () => window.removeEventListener(OWNER_CHANGED_EVENT, onOwnerChange);
   }, []);
 
   // Inputs differ from the snapshot taken when we restored → result is stale.
