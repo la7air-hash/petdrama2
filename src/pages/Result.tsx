@@ -277,29 +277,36 @@ export default function Result() {
   };
 
   const onRegenerate = async () => {
-    const gate = await checkUsage("regenerate");
-    if (!gate.ok) {
-      const err = gate.error;
-      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
-        setUpgradeReason(err);
-      } else {
-        toast.error("Could not regenerate. Please try again.");
+    try {
+      const gate = await checkUsage("regenerate");
+      if (!gate.ok) {
+        const err = gate.error;
+        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+          setUpgradeReason(err);
+        } else if (err === "auth_required") {
+          setUpgradeReason("anon_limit");
+        } else {
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
+        }
+        return;
       }
-      return;
+      const next = generateDrama(draft.styleId, draft.petName, draft.petType);
+      const updated: DramaDraft = {
+        ...draft,
+        drama: next,
+        createdAt: Date.now(),
+        renderedDataUrl: undefined,
+        remixRenderedDataUrl: undefined,
+      };
+      saveDraft(updated);
+      setDraft(updated);
+      setRenderUrl(null);
+      setRemixRenderUrl(null);
+      refreshEntitlements();
+    } catch (e) {
+      console.error("[PetDrama regenerate error]", e);
+      toast.error("AI generation is temporarily unavailable. Please try again later.");
     }
-    const next = generateDrama(draft.styleId, draft.petName, draft.petType);
-    const updated: DramaDraft = {
-      ...draft,
-      drama: next,
-      createdAt: Date.now(),
-      renderedDataUrl: undefined,
-      remixRenderedDataUrl: undefined,
-    };
-    saveDraft(updated);
-    setDraft(updated);
-    setRenderUrl(null);
-    setRemixRenderUrl(null);
-    refreshEntitlements();
   };
 
   const onDramaRemix = async () => {
