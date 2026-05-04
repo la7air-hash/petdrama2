@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { AccountPill } from "./AccountPill";
 
 const NAV = [
   { to: "/create", label: "Create" },
@@ -38,18 +39,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className="hidden sm:inline-flex items-center rounded-full border-2 border-foreground bg-background px-4 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/create"
-            className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-4 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
-          >
-            Create
-          </Link>
+          <AccountPill />
         </div>
       </div>
     </header>
