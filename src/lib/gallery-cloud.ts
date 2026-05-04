@@ -8,6 +8,7 @@ import type { DramaDraft } from "./storage";
 export interface CloudGalleryItem {
   id: string;
   user_id: string;
+  creation_id: string;
   pet_name: string;
   pet_type: PetType;
   style_id: DramaStyleId;
@@ -73,7 +74,20 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("You must be signed in to save to your gallery.");
 
-  const id = crypto.randomUUID();
+  const creationId = args.draft.creationId;
+
+  // Look for an existing row for this creation so we UPSERT (one PetDrama = one card).
+  const { data: existingRows, error: lookupErr } = await supabase
+    .from("gallery_items")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("creation_id", creationId)
+    .limit(1);
+  if (lookupErr) throw lookupErr;
+  const existing = existingRows?.[0] as CloudGalleryItem | undefined;
+
+  // Reuse the existing row's id (and storage folder) so we overwrite the same files.
+  const id = existing?.id ?? crypto.randomUUID();
   const folder = `${userId}/${id}`;
   const originalPath = `${folder}/original.webp`;
 
@@ -91,6 +105,7 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
   const row = {
     id,
     user_id: userId,
+    creation_id: creationId,
     pet_name: args.draft.petName,
     pet_type: args.draft.petType,
     style_id: args.draft.styleId,
@@ -105,12 +120,16 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
 
   const { data, error } = await supabase
     .from("gallery_items")
-    .insert(row)
+    .upsert(row, { onConflict: "user_id,creation_id" })
     .select()
     .single();
   if (error) {
-    // Best effort: remove the orphaned files
-    await supabase.storage.from("gallery").remove([originalPath, ...(remixPath ? [remixPath] : [])]);
+    // Best effort: only remove files we just wrote when this was a brand-new insert.
+    if (!existing) {
+      await supabase.storage
+        .from("gallery")
+        .remove([originalPath, ...(remixPath ? [remixPath] : [])]);
+    }
     throw error;
   }
 
