@@ -617,7 +617,7 @@ export default function Result() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Stylize the photo to match {style.name}. Same pet, new vibe.
-                    {!isPaid && !isAdmin && " Free plan includes 5 remixes/month."}
+                    {!isPaid && !isAdmin && " Free plan includes 3 remixes/month."}
                   </p>
                 </div>
                 <StickerButton
