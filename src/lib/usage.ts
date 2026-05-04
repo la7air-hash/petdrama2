@@ -15,6 +15,7 @@ export interface UsageCheckResult {
     | "monthly_limit_reached"
     | "pro_only"
     | "auth_required"
+    | "ai_unavailable"
     | "server_error"
     | "bad_kind";
   signupRequired?: boolean;
@@ -28,9 +29,8 @@ export async function checkUsage(kind: UsageKind): Promise<UsageCheckResult> {
       kind,
       anonKey: token ? null : getAnonKey(),
     };
-    // Call the edge function with raw fetch so non-2xx responses (402/403)
-    // never throw — supabase-js's FunctionsHttpError otherwise propagates and
-    // can reach the global error boundary.
+    // Call the edge function with raw fetch so handled limit/unavailable states
+    // are always controlled data responses and never thrown exceptions.
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/usage-check`;
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
