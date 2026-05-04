@@ -87,7 +87,7 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
     .eq("creation_id", creationId)
     .limit(1);
   if (lookupErr) throw lookupErr;
-  const existing = existingRows?.[0] as (CloudGalleryItem & Record<string, unknown>) | undefined;
+  const existing = existingRows?.[0] as { id: string } | undefined;
 
   // Reuse the existing row's id (and storage folder) so we overwrite the same files.
   const id = existing?.id ?? crypto.randomUUID();
