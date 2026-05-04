@@ -696,6 +696,12 @@ export default function Result() {
               <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
                 ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
+            <div className="flex justify-center"><UsageMeter usage={usage} /></div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
+                ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
+              </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
                 📋 Copy caption + hashtags
               </StickerButton>
