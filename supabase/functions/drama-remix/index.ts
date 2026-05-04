@@ -193,12 +193,14 @@ serve(async (req) => {
         console.error("AI gateway HTTP error:", response.status, t.slice(0, 400));
 
         if (response.status === 429) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
         if (response.status === 402) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -206,7 +208,6 @@ serve(async (req) => {
         }
 
         lastReason = `HTTP ${response.status}`;
-        // brief backoff before retry
         if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 600));
         continue;
       }
