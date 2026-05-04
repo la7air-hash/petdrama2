@@ -20,6 +20,10 @@ export default function Create() {
   // Track the active draft so re-saving with the same inputs reuses creationId
   // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
   const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
+  // True if the restored draft was already saved to the gallery — in that case
+  // any new Generate must mint a fresh creationId so we never overwrite the
+  // gallery item the user already saved.
+  const [activeSavedToGallery, setActiveSavedToGallery] = useState(false);
   const [restored, setRestored] = useState(false);
   // True when the restored draft already contains a generated result that the
   // user can jump back into without regenerating.
