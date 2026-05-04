@@ -258,6 +258,7 @@ serve(async (req) => {
     }
 
     // Friendly failure — frontend will toast and keep original card.
+    await refund();
     return new Response(
       JSON.stringify({
         error: "Drama Remix failed. Please try again.",
