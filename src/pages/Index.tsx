@@ -130,7 +130,7 @@ export default function Home() {
               <br />
               Their <span className="text-primary">drama.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-muted-foreground leading-relaxed text-pretty">
+            <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty">
               Upload a photo and turn your pet into a funny dramatic character in seconds. Get a meme, a caption, hashtags — ready to share.
             </p>
 
