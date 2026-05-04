@@ -33,6 +33,17 @@ import {
 
 type Variant = "original" | "remix";
 
+/** A single selectable image inside an item's modal. */
+interface ItemVariant {
+  key: string;
+  label: string;
+  url: string;
+  quote: string;
+  caption: string | null;
+  hashtags: string[];
+  kind: Variant;
+}
+
 /** Unified item shape used by the UI. Wraps either a cloud row or a local draft. */
 interface UIItem {
   key: string;
@@ -44,20 +55,57 @@ interface UIItem {
   caption: string | null;
   hashtags: string[];
   originalUrl: string;
-  remixUrl?: string;
+  remixUrl?: string; // legacy single-remix preview (latest)
   variant: Variant;
+  variants: ItemVariant[]; // ordered: Original, Remix 1, Remix 2, …
   // Source refs for delete
   cloud?: CloudGalleryItem;
   local?: DramaDraft;
 }
 
-function fileNameFor(item: UIItem, variant: Variant) {
+function fileNameFor(item: UIItem, label: string) {
   const name = normalizePetName(item.petName).replace(/\s+/g, "-").toLowerCase() || "petdrama";
-  const tag = variant === "remix" ? "-remix" : "";
-  return `petdrama-${name}${tag}.png`;
+  const slug = label.toLowerCase().replace(/\s+/g, "-");
+  return `petdrama-${name}-${slug}.png`;
 }
 
 function cloudToUI(c: CloudGalleryItem): UIItem {
+  const variants: ItemVariant[] = [
+    {
+      key: `original`,
+      label: "Original",
+      url: c.originalSignedUrl,
+      quote: c.quote,
+      caption: c.caption,
+      hashtags: c.hashtags,
+      kind: "original",
+    },
+  ];
+  // Legacy single remix slot (older items) — show first if no variant rows.
+  if (c.remixSignedUrl && c.remixes.length === 0) {
+    variants.push({
+      key: `legacy-remix`,
+      label: "Remix",
+      url: c.remixSignedUrl,
+      quote: c.quote,
+      caption: c.caption,
+      hashtags: c.hashtags,
+      kind: "remix",
+    });
+  }
+  c.remixes.forEach((r, i) => {
+    variants.push({
+      key: `remix-${r.id}`,
+      label: `Remix ${i + 1}`,
+      url: r.signedUrl,
+      quote: r.quote || c.quote,
+      caption: r.caption ?? c.caption,
+      hashtags: r.hashtags?.length ? r.hashtags : c.hashtags,
+      kind: "remix",
+    });
+  });
+  // Latest remix becomes the card preview.
+  const latestRemix = variants.filter((v) => v.kind === "remix").slice(-1)[0];
   return {
     key: `cloud-${c.id}`,
     source: "cloud",
@@ -68,14 +116,37 @@ function cloudToUI(c: CloudGalleryItem): UIItem {
     caption: c.caption,
     hashtags: c.hashtags,
     originalUrl: c.originalSignedUrl,
-    remixUrl: c.remixSignedUrl,
-    variant: c.variant,
+    remixUrl: latestRemix?.url,
+    variant: latestRemix ? "remix" : c.variant,
+    variants,
     cloud: c,
   };
 }
 
 function localToUI(d: DramaDraft): UIItem {
   const original = d.renderedDataUrl || d.imageDataUrl;
+  const variants: ItemVariant[] = [
+    {
+      key: "original",
+      label: "Original",
+      url: original,
+      quote: d.drama.quote,
+      caption: d.drama.caption ?? null,
+      hashtags: d.drama.hashtags ?? [],
+      kind: "original",
+    },
+  ];
+  if (d.remixRenderedDataUrl) {
+    variants.push({
+      key: "local-remix",
+      label: "Remix",
+      url: d.remixRenderedDataUrl,
+      quote: d.drama.quote,
+      caption: d.drama.caption ?? null,
+      hashtags: d.drama.hashtags ?? [],
+      kind: "remix",
+    });
+  }
   return {
     key: `local-${getGalleryItemId(d)}`,
     source: "local",
@@ -88,6 +159,7 @@ function localToUI(d: DramaDraft): UIItem {
     originalUrl: original,
     remixUrl: d.remixRenderedDataUrl,
     variant: d.variant === "remix" && d.remixRenderedDataUrl ? "remix" : "original",
+    variants,
     local: d,
   };
 }
