@@ -79,18 +79,21 @@ export type Database = {
           created_at: string
           plan: string
           pro_until: string | null
+          standard_until: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           plan?: string
           pro_until?: string | null
+          standard_until?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           plan?: string
           pro_until?: string | null
+          standard_until?: string | null
           user_id?: string
         }
         Relationships: []
@@ -131,12 +134,12 @@ export type Database = {
       get_my_usage: {
         Args: never
         Returns: {
-          daily_limit: number
-          monthly_limit: number
+          is_admin: boolean
           plan: string
-          remix_allowed: boolean
-          used_month: number
-          used_today: number
+          remix_limit: number
+          remix_used: number
+          standard_limit: number
+          standard_used: number
         }[]
       }
       get_public_share: {
