@@ -282,7 +282,14 @@ export default function Result() {
       const gate = await checkUsage("regenerate");
       if (!gate.ok) {
         const err = gate.error;
-        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        if (
+          err === "anon_limit" ||
+          err === "daily_limit_reached" ||
+          err === "monthly_limit_reached" ||
+          err === "monthly_standard_limit_reached" ||
+          err === "monthly_remix_limit_reached" ||
+          err === "pro_only"
+        ) {
           setUpgradeReason(err);
         } else if (err === "auth_required") {
           setUpgradeReason("anon_limit");
@@ -312,19 +319,22 @@ export default function Result() {
 
   const onDramaRemix = async () => {
     if (isRemixing) return;
-    if (!isPro) { setUpgradeReason("pro_only"); return; }
+    // Anonymous users must sign in first; signed-in Free/Standard/Pro/Admin
+    // all hit the server which enforces the per-plan remix quota.
     setIsRemixing(true);
     try {
-      // Use raw fetch and controlled JSON states so handled usage/AI failures
-      // never throw into the global error overlay.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
+      if (!token) {
+        setUpgradeReason("anon_limit");
+        return;
+      }
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/drama-remix`;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
       };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
       let res: Response;
       try {
         res = await fetch(url, {
@@ -350,20 +360,15 @@ export default function Result() {
       const remixUrl: string | undefined = body?.imageDataUrl;
 
       if (body?.ok === false || !res.ok || !remixUrl) {
-        if (serverCode === "pro_only") {
-          setUpgradeReason("pro_only");
-          return;
-        }
-        if (serverCode === "monthly_limit_reached") {
-          setUpgradeReason("monthly_limit_reached");
-          return;
-        }
-        if (serverCode === "daily_limit_reached") {
-          setUpgradeReason("daily_limit_reached");
-          return;
-        }
-        if (serverCode === "anon_limit") {
-          setUpgradeReason("anon_limit");
+        if (
+          serverCode === "pro_only" ||
+          serverCode === "monthly_remix_limit_reached" ||
+          serverCode === "monthly_standard_limit_reached" ||
+          serverCode === "monthly_limit_reached" ||
+          serverCode === "daily_limit_reached" ||
+          serverCode === "anon_limit"
+        ) {
+          setUpgradeReason(serverCode as UpgradeReason);
           return;
         }
         if (serverCode === "ai_unavailable") {
