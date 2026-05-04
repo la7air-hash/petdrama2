@@ -315,30 +315,40 @@ export default function Result() {
     if (!isPro) { setUpgradeReason("pro_only"); return; }
     setIsRemixing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("drama-remix", {
-        body: {
-          imageDataUrl: draft.imageDataUrl,
-          styleId: draft.styleId,
-          petType: draft.petType,
-        },
-      });
-
-      // Try to read structured error from the function response body
-      let serverError: string | undefined;
-      let serverStatus: number | undefined;
-      if (error) {
-        serverStatus = (error as any)?.context?.status;
-        try {
-          const body = await (error as any)?.context?.response?.clone?.().json?.();
-          serverError = body?.error;
-        } catch {
-          /* ignore */
-        }
+      // Use raw fetch so non-2xx responses don't throw / log a console.error
+      // that would trip the dev runtime-error overlay.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/drama-remix`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            imageDataUrl: draft.imageDataUrl,
+            styleId: draft.styleId,
+            petType: draft.petType,
+          }),
+        });
+      } catch (netErr) {
+        console.warn("[Drama Remix network error]", netErr);
+        toast.error("AI generation is temporarily unavailable. Please try again later.");
+        return;
       }
 
-      const remixUrl = (data as { imageDataUrl?: string })?.imageDataUrl;
+      let body: any = null;
+      try { body = await res.json(); } catch { /* ignore */ }
+      const serverStatus = res.status;
+      const serverError: string | undefined = body?.error;
+      const remixUrl: string | undefined = body?.imageDataUrl;
 
-      if (!remixUrl) {
+      if (!res.ok || !remixUrl) {
         if (serverStatus === 403 && serverError === "pro_only") {
           setUpgradeReason("pro_only");
           return;
@@ -347,14 +357,20 @@ export default function Result() {
           setUpgradeReason("monthly_limit_reached");
           return;
         }
+        if (serverStatus === 402 && serverError === "daily_limit_reached") {
+          setUpgradeReason("daily_limit_reached");
+          return;
+        }
+        if (serverStatus === 402 && serverError === "anon_limit") {
+          setUpgradeReason("anon_limit");
+          return;
+        }
         const msg =
           serverStatus === 429
             ? "AI is busy. Please try again in a moment."
-            : serverStatus === 402
-            ? "AI credits exhausted. Add credits to continue."
-            : serverError || (data as any)?.error || "Drama Remix failed. Please try again.";
+            : "AI generation is temporarily unavailable. Please try again later.";
         toast.error(msg);
-        return; // keep original card; do NOT throw
+        return;
       }
 
       // Pre-render the remix card so the preview swap is instant.
@@ -390,8 +406,8 @@ export default function Result() {
       toast.success("Drama Remix ready ✨");
       refreshEntitlements();
     } catch (e: any) {
-      console.error("Drama Remix error:", e);
-      toast.error("Drama Remix failed. Please try again.");
+      console.warn("[Drama Remix unexpected]", e);
+      toast.error("AI generation is temporarily unavailable. Please try again later.");
     } finally {
       setIsRemixing(false);
     }
