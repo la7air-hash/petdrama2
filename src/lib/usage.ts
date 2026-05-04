@@ -21,21 +21,33 @@ export interface UsageCheckResult {
 }
 
 export async function checkUsage(kind: UsageKind): Promise<UsageCheckResult> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
-  const body = {
-    kind,
-    anonKey: token ? null : getAnonKey(),
-  };
-  const { data, error } = await supabase.functions.invoke("usage-check", { body });
-  if (error) {
-    // Try to extract structured error body
-    try {
-      const resp = (error as any)?.context?.response;
-      const parsed = await resp?.clone?.().json?.();
-      if (parsed && typeof parsed === "object") return parsed as UsageCheckResult;
-    } catch { /* ignore */ }
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const body = {
+      kind,
+      anonKey: token ? null : getAnonKey(),
+    };
+    // Call the edge function with raw fetch so non-2xx responses (402/403)
+    // never throw — supabase-js's FunctionsHttpError otherwise propagates and
+    // can reach the global error boundary.
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/usage-check`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    let parsed: any = null;
+    try { parsed = await res.json(); } catch { /* ignore */ }
+    if (parsed && typeof parsed === "object") return parsed as UsageCheckResult;
+    return { ok: false, error: "server_error" };
+  } catch (e) {
+    console.warn("[checkUsage] network error", e);
     return { ok: false, error: "server_error" };
   }
-  return data as UsageCheckResult;
 }
