@@ -1,183 +1,104 @@
+# PetDrama — 3 Fixes Plan
 
-# Tiered Pricing + Server-Enforced Usage Limits
+## Issue 1 — Per-user draft isolation (privacy)
 
-Scope: limits + Pro flag + Pricing page rewrite + Remix lock. **No real Stripe checkout.** Pro is structurally supported (DB flag) but cannot be bought yet — admin-only flip for now.
+**Root cause:** `localStorage` keys `petdrama:current` and `petdrama:gallery` are global, so when user B logs in on the same browser they see user A's last upload/draft on `/create`.
 
-## Tiers (no "unlimited" anywhere)
+**Fix:**
+1. **Namespace the active draft per identity.** In `src/lib/storage.ts`, change `KEY` from a constant to a function `draftKey(ownerId)` where `ownerId = "user:<uid>"` for logged-in users and `"anon"` for guests. `saveDraft/loadDraft/clearDraft` accept an owner id (or read it from a small in-module cache set by an auth listener).
+2. **Add an auth listener at app boot** (`src/App.tsx` or a new `src/lib/draft-owner.ts`) that:
+   - On `SIGNED_IN`, sets the active owner to that user id.
+   - On `SIGNED_OUT`, sets it to `"anon"` and **clears the previous user's active draft** (`localStorage.removeItem` for that user's key) — but does NOT touch the gallery cache (RLS already protects cloud gallery; local mirror can keep prior owners' entries keyed by user too).
+   - On `USER_UPDATED`/account swap (different uid than last seen), clear in-memory React state on `/create` via a small Zustand-less event (e.g. `window.dispatchEvent(new Event('petdrama:owner-changed'))`).
+3. **`Create.tsx` reacts to owner change**:
+   - On mount, only restore a draft if its owner matches the current uid.
+   - Listen for `petdrama:owner-changed` and reset all local state (`imageDataUrl`, `petName`, `petType`, `styleId`, `activeCreationId`, `restored`, `hasGeneratedResult`, `restoredSnapshot`).
+4. **Anon→login does not auto-import.** Anonymous draft stays under `anon` key; we do not migrate it into the user's namespace (matches requirement #2).
+5. **Gallery localStorage** (`petdrama:gallery`) gets the same per-owner namespacing for symmetry, since Gallery page also reads it.
 
-| Tier | Creations | Remix | Watermark | HD |
-|------|-----------|-------|-----------|----|
-| Anonymous | 1 total / device | ❌ | ✅ | ❌ |
-| Free (logged in) | 5 / day (UTC) | ❌ → upgrade prompt | ✅ | ❌ |
-| Pro | 150 / month (rolling 30d) | ✅ | ❌ | ✅ |
+## Issue 2 — Pricing limits + typography
 
-"Creation" = generate / regenerate / new-batch / remix. Save, Download, Copy, Share, public views are NOT counted.
+**Limit changes (DB):** new migration updating `consume_usage` and `get_my_usage`:
+- Free: standard 15→**10**, remix 5→**3**.
+- Standard/Pro/Admin unchanged.
 
-## 1. Database changes (one migration)
+**Frontend mirrors:**
+- `src/hooks/use-entitlements.ts` `FREE_FALLBACK`: `standard_limit: 10, remix_limit: 3`.
+- `src/pages/Pricing.tsx` Free bullets updated to "10 standard creations / month" and "3 Drama Remix / month". Standard/Pro copy unchanged.
 
+**Typography fix in Pricing cards:**
+- Replace `font-display text-6xl font-extrabold` price with a tighter scale: `text-4xl md:text-5xl` for the dollar amount and `text-base md:text-lg` for the `/month` suffix.
+- Wrap price in a `flex items-baseline gap-1` so suffix sits cleanly next to the number without wrapping.
+- Reduce card padding from `p-8` to `p-6 md:p-7` for breathing room on the smaller PRO card with the "Most popular" pill.
+- Verify three columns stay equal-height with `h-full` on `StickerCard` and `flex flex-col` so the CTA stays pinned at bottom.
+
+Buttons stay "Coming soon" (no Stripe).
+
+## Issue 3 — Multiple Remix variants per Gallery item
+
+**Recommended schema (safest, cleanest):** new table `gallery_remixes` (1:N from `gallery_items`). JSONB was considered but a child table gives proper RLS, ordered queries, individual delete, and signed-URL handling per row.
+
+**Migration:**
 ```sql
--- profiles: one row per auth user, default 'free'
-create table public.profiles (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  plan text not null default 'free' check (plan in ('free','pro')),
-  pro_until timestamptz,
-  created_at timestamptz not null default now()
-);
-alter table public.profiles enable row level security;
-create policy "read own profile" on public.profiles
-  for select using (auth.uid() = user_id);
--- no insert/update policy → only service-role (edge functions / admin) can flip plan
-
--- usage_events: one row per AI creation
-create table public.usage_events (
+create table public.gallery_remixes (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  anon_key text,                       -- hashed device id when not logged in
-  kind text not null check (kind in ('generate','regenerate','remix')),
+  gallery_item_id uuid not null references public.gallery_items(id) on delete cascade,
+  user_id uuid not null,
+  image_path text not null,
+  caption text,
+  quote text not null,
+  hashtags text[] not null default '{}',
   created_at timestamptz not null default now()
 );
-create index on public.usage_events (user_id, created_at desc);
-create index on public.usage_events (anon_key, created_at desc);
-alter table public.usage_events enable row level security;
-create policy "read own usage" on public.usage_events
-  for select using (auth.uid() = user_id);
--- no insert policy → only edge functions (service role) write
-
--- auto-create profile on signup
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
-begin
-  insert into public.profiles (user_id) values (new.id) on conflict do nothing;
-  return new;
-end $$;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
--- backfill existing users
-insert into public.profiles (user_id)
-  select id from auth.users on conflict do nothing;
-
--- helper RPC: read-only summary for the UI
-create or replace function public.get_my_usage()
-returns table(plan text, used_today int, used_month int, daily_limit int, monthly_limit int, remix_allowed boolean)
-language plpgsql stable security definer set search_path = public as $$
-declare p text; uid uuid := auth.uid();
-begin
-  if uid is null then
-    return query select 'anon'::text, 0, 0, 1, 1, false;
-    return;
-  end if;
-  select coalesce(pr.plan,'free') into p from public.profiles pr where pr.user_id = uid;
-  if p = 'pro' then
-    return query select 'pro',
-      0,
-      (select count(*)::int from public.usage_events where user_id = uid and created_at > now() - interval '30 days'),
-      0, 150, true;
-  else
-    return query select 'free',
-      (select count(*)::int from public.usage_events where user_id = uid and created_at::date = (now() at time zone 'utc')::date),
-      0, 5, 0, false;
-  end if;
-end $$;
+alter table public.gallery_remixes enable row level security;
+create policy "own remixes select" on public.gallery_remixes for select using (auth.uid() = user_id);
+create policy "own remixes insert" on public.gallery_remixes for insert with check (auth.uid() = user_id);
+create policy "own remixes delete" on public.gallery_remixes for delete using (auth.uid() = user_id);
+create index on public.gallery_remixes (gallery_item_id, created_at desc);
 ```
+- Keep `gallery_items.remix_image_path` for backward compatibility (treated as "Remix 0" if present and no rows in `gallery_remixes`).
 
-(`credit_packs` table is NOT created — listed as future work only.)
+**Storage layout:** `${user_id}/${gallery_item_id}/remix-${remix_id}.webp` (instead of overwriting `remix.webp`).
 
-## 2. New edge function: `usage-check`
+**Code changes (`src/lib/gallery-cloud.ts`):**
+- New `addRemixVariant({ galleryItemId, dataUrl, drama })` → uploads to a new path, inserts row, returns variant with signed URL.
+- New `listRemixVariants(galleryItemId)` → returns ordered variants with signed URLs.
+- `listMyGallery()` extended: for each item, also fetch its remix variants (single batched query: `select * from gallery_remixes where gallery_item_id in (...) order by created_at`). Attach `remixes: RemixVariant[]` and a derived `latestRemix` (first variant if any, else legacy `remix_image_path`).
+- `deleteGalleryItem()` already cascades via FK, but also remove all remix files from storage (list + remove) before deleting the row.
+- `saveGalleryItem()` no longer uploads remix to a fixed path — remix saves now go through `addRemixVariant` from `Result.tsx`.
 
-Single endpoint the frontend calls **before** every AI action. It both checks AND records.
+**`src/pages/Result.tsx`:**
+- After a successful `drama-remix` call + render, call `addRemixVariant` instead of overwriting. Latest variant becomes the visible one.
+- Quota: still call `checkUsage('remix')` before the AI call. Saving/displaying additional variants does not call `checkUsage`.
 
-```text
-POST /functions/v1/usage-check   (verify_jwt = false; we read JWT manually)
-body: { kind: 'generate'|'regenerate'|'remix', anonKey?: string }
-```
+**`src/pages/Gallery.tsx` (modal):**
+- One card per gallery item (unchanged grid).
+- Modal gets a small variant strip: `[Original] [Remix 1] [Remix 2] …` (chips). Clicking switches the previewed image, caption/quote/hashtags, and what the Download button targets.
+- Default selected: latest remix if any, else original (matches current behavior).
 
-Logic (using service-role client):
-1. Parse Authorization Bearer → `supabase.auth.getUser(token)` if present.
-2. Resolve plan: anon / free / pro (default free if profile missing).
-3. If `kind === 'remix'` and plan !== 'pro' → `403 { error:'pro_only' }`.
-4. Count usage in window:
-   - anon: lifetime count for `anon_key` >= 1 → `402 { error:'anon_limit', signupRequired:true }`
-   - free: today's count >= 5 → `402 { error:'daily_limit_reached' }`
-   - pro: last-30d count >= 150 → `402 { error:'monthly_limit_reached' }`
-5. Otherwise `INSERT into usage_events` and return `{ ok:true, remaining, plan }`.
+**Backward compatibility:**
+- Legacy items with only `remix_image_path` and no `gallery_remixes` rows render as `[Original] [Remix]` exactly like today.
+- No migration needed for existing rows; new remixes append to the new table.
 
-Atomicity: do count + insert inside one SQL function called from edge to avoid races (helper SECURITY DEFINER RPC `consume_usage(_kind, _anon_key)` returning the same shape; edge fn just thin-wraps it).
+**Public Share, Storage bucket, RLS on `gallery_items`, Google Auth — untouched.**
 
-## 3. `drama-remix` edge function changes
+## Files likely to change
+- `src/lib/storage.ts` (per-owner draft keying)
+- `src/App.tsx` or new `src/lib/draft-owner.ts` (auth listener + event)
+- `src/pages/Create.tsx` (owner-aware restore + reset listener)
+- `src/pages/Pricing.tsx` (limits text + typography/layout)
+- `src/hooks/use-entitlements.ts` (Free fallback 10/3)
+- `src/lib/gallery-cloud.ts` (remix variants CRUD)
+- `src/pages/Result.tsx` (append variant instead of overwrite)
+- `src/pages/Gallery.tsx` (variant switcher in modal)
+- New migration: update `consume_usage` + `get_my_usage` to 10/3, create `gallery_remixes` table + policies + index
+- `src/integrations/supabase/types.ts` will auto-regenerate
 
-At the top of the handler, before calling AI:
-- Read JWT from `Authorization` header.
-- If no user → `401`.
-- Call `consume_usage('remix', null)` via service-role client.
-- If response says `pro_only` → return `403 { error:'pro_only' }`.
-- If `monthly_limit_reached` → return `402 { error:'monthly_limit_reached' }`.
-- Else proceed with current AI flow.
+## Risks
+- **Auth listener double-clearing**: must distinguish "same user re-hydrating session" from "different user signed in" by comparing previous uid in module scope — otherwise refresh wipes the active draft.
+- **Storage cleanup on delete**: need to list `${user_id}/${gallery_item_id}/` prefix because remix filenames are now random; if listing fails we still let the FK cascade delete DB rows (orphan files are private and harmless but should be logged).
+- **Pricing typography on very narrow mobile**: verify `$9.99/month` doesn't wrap inside the PRO card after the tighter scale; fall back to stacking suffix below if needed.
+- **Quota change is retroactive**: existing Free users who already used 11–15 creations this 30-day window will see "limit reached" immediately. Acceptable per prior auto-migration agreement, but worth noting.
+- **No Stripe** — Standard/Pro upgrade buttons remain `toast("Coming soon")`.
 
-Also add `[functions.usage-check] verify_jwt = false` to `supabase/config.toml`.
-
-## 4. Frontend changes
-
-### New
-- `src/lib/anon-id.ts` — generate/persist a UUID in `localStorage` (`pd_anon_id`).
-- `src/lib/usage.ts` — `checkUsage(kind)` POSTs to `usage-check`, includes JWT if present, otherwise sends `anonKey`. Returns `{ ok, plan, remaining, error? }`.
-- `src/hooks/use-entitlements.ts` — on auth change calls `get_my_usage` RPC; exposes `{ plan, isPro, isAnon, usage, refresh() }`.
-- `src/components/UsageMeter.tsx` — small chip "3 / 5 today" or "62 / 150 this month".
-- `src/components/UpgradeModal.tsx` — reused dialog for pro_only / limit_reached / anon → signup.
-- `src/components/ProBadge.tsx` — "PRO" sticker.
-
-### Edited
-- `src/pages/Create.tsx` — `onGenerate`: call `checkUsage('generate')` first; if not ok show UpgradeModal (or signup CTA for anon) and abort. On success, run existing local generation. Render `<UsageMeter>` in the sticky bar. After success, call `refresh()`.
-- `src/pages/Result.tsx`:
-  - Replace `const [isPro] = useState(false)` with `useEntitlements()`.
-  - `onRegenerate` → `checkUsage('regenerate')` first.
-  - `onDramaRemix` → if `!isPro` show UpgradeModal, **don't** call function. Otherwise the edge function still re-checks and consumes.
-  - The Drama Remix CTA button shows a `<ProBadge>` + lock icon when `!isPro`.
-  - `watermark` flag for `renderDramaPng` already uses `!isPro` → now driven by real value.
-- `src/pages/Pricing.tsx` — full rewrite (see §5).
-- `src/components/AccountPill.tsx` — show plan badge + tiny remaining counter.
-- `supabase/config.toml` — add `[functions.usage-check]` block.
-
-### Untouched
-Gallery storage, public-share route, RLS on `gallery_items`, render pipeline, routing.
-
-## 5. Pricing page copy
-
-- **Free $0** — 5 creations per day, basic drama styles, personal gallery, small "Made with PetDrama" watermark, standard download. *No Drama Remix. No HD.*
-- **Pro $9.99/month** (toggle: $79/year, save ~34%) — 150 creations per month, Drama Remix unlocked, all styles, no watermark, HD downloads, share links, personal cloud gallery.
-- "Upgrade to Pro" button → opens modal: *"Pro checkout is coming soon. We're finalizing payments — leave your email to be notified."* (simple mailto / no-op for now). No live Stripe.
-- Footnote: "Need more? One-time credit packs coming soon."
-- Remove every occurrence of "Unlimited".
-
-## 6. How each requirement is satisfied
-
-- **Free vs Pro detection** → `profiles.plan`, surfaced via `useEntitlements()` and validated server-side in `usage-check` / `drama-remix`.
-- **Remix lock** → UI hides/locks button + Upgrade modal; **edge function returns 403 `pro_only`** even if bypassed.
-- **Counted actions** → only the three frontend code paths that produce AI output (Create generate, Result regenerate / new-batch, Drama Remix) call `checkUsage`. Save/Download/Copy/Share/public view never call it.
-- **Anonymous cap** → `anon_key` (hashed UUID) row in `usage_events`; second attempt returns `anon_limit` → signup modal. Imperfect (clearable) but server-recorded.
-
-## 7. Risks / limitations
-
-- Anonymous limit is bypassable by clearing `localStorage`; acceptable for v1. Optional IP-based rate limit can be added later.
-- No payments yet → no live Pro upgrade path; admins flip `profiles.plan='pro'` via SQL or future admin UI.
-- Daily window is UTC-based; minor edge-of-day confusion possible.
-- Existing logged-in users start as Free (backfill inserts default row).
-- AI failures must NOT consume credit — current plan inserts BEFORE the AI call; if AI fails we should refund. Mitigation: in `drama-remix`, on AI failure, `delete` the just-inserted usage row (track its id from `consume_usage`). Same for `usage-check`-only flows (generate/regenerate are deterministic local code so no refund needed).
-
-## 8. Implementation phases
-
-1. **DB migration** (profiles, usage_events, trigger, RPCs).
-2. **Edge**: `usage-check` function + `drama-remix` Pro/limit guard + config.toml.
-3. **Frontend lib/hook**: anon-id, usage.ts, useEntitlements.
-4. **UI gates**: Create + Result wired to `checkUsage`, Remix lock, UsageMeter, UpgradeModal.
-5. **Pricing page** rewrite.
-6. **Manual QA**: anon (1 then blocked), free (5 then blocked, remix blocked), pro (150 cap, remix works, no watermark).
-
-## 9. Confirmation summary (delivered after build)
-
-- Tables added: `profiles`, `usage_events`. Trigger: `on_auth_user_created`. RPCs: `get_my_usage`, `consume_usage`.
-- Edge functions: new `usage-check`; updated `drama-remix` with Pro + limit guard.
-- Free vs Pro: `profiles.plan` (default `'free'`), checked server-side every AI call; surfaced client-side via `useEntitlements`.
-- Remix lock: UI hides button behind PRO badge → UpgradeModal; server returns 403 `pro_only` regardless.
-- Counting: only `generate`/`regenerate`/`remix` insert a `usage_events` row; non-AI actions never call the check.
+After approval, I'll execute migration + code changes and redeploy `usage-check` and `drama-remix`.

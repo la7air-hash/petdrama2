@@ -25,8 +25,10 @@ export interface DramaDraft {
   savedToGallery?: boolean;
 }
 
-const KEY = "petdrama:current";
-const GALLERY = "petdrama:gallery";
+import { ownerKeySuffix } from "./draft-owner";
+
+const draftKey = () => `petdrama:current:${ownerKeySuffix()}`;
+const galleryKey = () => `petdrama:gallery:${ownerKeySuffix()}`;
 
 /** Generate a stable, collision-resistant id for a new creation. */
 export function newCreationId(): string {
@@ -60,7 +62,7 @@ export function getGalleryItemId(d: Pick<DramaDraft, "galleryId" | "creationId" 
 
 export function saveDraft(draft: DramaDraft) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(ensureId(draft)));
+    localStorage.setItem(draftKey(), JSON.stringify(ensureId(draft)));
   } catch {
     /* noop */
   }
@@ -69,7 +71,7 @@ export function saveDraft(draft: DramaDraft) {
 export function loadDraft(): DramaDraft | null {
   try {
     // Prefer the persistent localStorage copy; fall back to sessionStorage for legacy.
-    const raw = localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(draftKey()) ?? sessionStorage.getItem(draftKey());
     if (!raw) return null;
     return ensureId(JSON.parse(raw) as DramaDraft);
   } catch {
@@ -79,8 +81,8 @@ export function loadDraft(): DramaDraft | null {
 
 export function clearDraft() {
   try {
-    localStorage.removeItem(KEY);
-    sessionStorage.removeItem(KEY);
+    localStorage.removeItem(draftKey());
+    sessionStorage.removeItem(draftKey());
   } catch {
     /* noop */
   }
@@ -150,7 +152,7 @@ export function saveToGallery(draft: DramaDraft): DramaDraft {
   const next = [incoming, ...list];
 
   try {
-    localStorage.setItem(GALLERY, JSON.stringify(next));
+    localStorage.setItem(galleryKey(), JSON.stringify(next));
     auditCreationAssets("save-to-gallery-storage", incoming, next);
     console.info("[PetDrama gallery write]", {
       galleryId: incoming.galleryId,
@@ -170,7 +172,7 @@ export function saveToGallery(draft: DramaDraft): DramaDraft {
 
 export function loadGallery(): DramaDraft[] {
   try {
-    const raw = localStorage.getItem(GALLERY);
+    const raw = localStorage.getItem(galleryKey());
     if (!raw) return [];
     const list = (JSON.parse(raw) as DramaDraft[]).map((item) => ensureGalleryId(ensureId(item)));
     return list;
@@ -181,7 +183,7 @@ export function loadGallery(): DramaDraft[] {
 
 export function saveGallery(list: DramaDraft[]) {
   try {
-    localStorage.setItem(GALLERY, JSON.stringify(list.map((item) => ensureGalleryId(ensureId(item)))));
+    localStorage.setItem(galleryKey(), JSON.stringify(list.map((item) => ensureGalleryId(ensureId(item)))));
   } catch (err) {
     if (isQuotaError(err)) throw new GalleryQuotaError();
     throw err;
