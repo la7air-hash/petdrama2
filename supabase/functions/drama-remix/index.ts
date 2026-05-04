@@ -13,6 +13,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const handled = (body: Record<string, unknown>) =>
+  new Response(JSON.stringify({ ok: false, ...body }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 const STYLE_PROMPTS: Record<string, string> = {
   "drama-queen":
     "theatrical spotlight, soft pink and magenta cinematic lighting, glamorous editorial portrait mood, subtle sparkle bokeh, fashion magazine cover vibe",
@@ -122,18 +128,13 @@ serve(async (req) => {
       _user_id: userId, _anon_key: null, _kind: "remix",
     });
     if (consumeErr) {
-      console.error("consume_usage error:", consumeErr);
-      return new Response(JSON.stringify({ error: "server_error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("consume_usage unavailable:", consumeErr);
+      return handled({ error: "ai_unavailable", code: "ai_unavailable" });
     }
     const consumeRes = consume as Record<string, unknown>;
     if (!consumeRes?.ok) {
       const code = consumeRes?.error as string;
-      const status = code === "pro_only" ? 403 : 402;
-      return new Response(JSON.stringify({ error: code, code }), {
-        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return handled({ error: code, code });
     }
     const eventId = consumeRes.event_id as string | undefined;
     const refund = async () => {
