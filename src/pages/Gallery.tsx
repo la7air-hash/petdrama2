@@ -443,9 +443,10 @@ export default function Gallery() {
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-lg p-4 md:p-6">
           {active && (() => {
-            const itemHasRemix = !!active.remixUrl;
-            const showRemix = activeVariant === "remix" && itemHasRemix;
-            const previewUrl = showRemix ? active.remixUrl! : active.originalUrl;
+            const variants = active.variants;
+            const selected = variants.find((v) => v.key === activeVariantKey) ?? variants[0];
+            const previewUrl = selected.url;
+            const showVariants = variants.length > 1;
             return (
               <>
                 <DialogTitle className="font-display text-xl font-extrabold">
@@ -454,49 +455,57 @@ export default function Gallery() {
                 </DialogTitle>
                 <DialogDescription className="sr-only">Saved creation preview and download.</DialogDescription>
 
-                {itemHasRemix && (
-                  <div className="mt-3 inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
-                    <button
-                      type="button"
-                      onClick={() => setActiveVariant("original")}
-                      className={cn(
-                        "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
-                        activeVariant === "original" ? "bg-foreground text-background" : "text-foreground/70",
-                      )}
-                    >
-                      Original
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveVariant("remix")}
-                      className={cn(
-                        "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
-                        activeVariant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
-                      )}
-                    >
-                      ✨ Remix
-                    </button>
+                {showVariants && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {variants.map((v) => {
+                      const isActive = v.key === selected.key;
+                      const isRemix = v.kind === "remix";
+                      return (
+                        <button
+                          key={v.key}
+                          type="button"
+                          onClick={() => setActiveVariantKey(v.key)}
+                          className={cn(
+                            "rounded-full border-2 border-foreground px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider sticker-shadow-sm transition-transform hover:-translate-y-0.5",
+                            isActive
+                              ? isRemix
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-foreground text-background"
+                              : "bg-background text-foreground/80",
+                          )}
+                        >
+                          {isRemix ? "✨ " : ""}{v.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
                 <div className="mt-2 rounded-2xl overflow-hidden border-2 border-foreground bg-foreground/5">
                   <img
                     src={previewUrl}
-                    alt={`${normalizePetName(active.petName)} as ${getStyle(active.styleId).name}${showRemix ? " (remix)" : ""}`}
+                    alt={`${normalizePetName(active.petName)} as ${getStyle(active.styleId).name} (${selected.label})`}
                     className="w-full h-auto block"
                   />
                 </div>
-                {active.quote && (
+                {selected.quote && (
                   <p className="mt-3 font-display font-extrabold text-base leading-snug">
-                    "{active.quote}"
+                    "{selected.quote}"
                   </p>
                 )}
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
                   <StickerButton
                     variant="primary"
-                    onClick={() => handleDownload(active, showRemix ? "remix" : "original")}
+                    onClick={async () => {
+                      try {
+                        await downloadUrlAsFile(selected.url, fileNameFor(active, selected.label));
+                        toast.success("Downloaded!");
+                      } catch {
+                        toast.error("Couldn't download — please try again.");
+                      }
+                    }}
                   >
-                    ⬇ Download {showRemix ? "Remix" : ""}
+                    ⬇ Download {selected.label}
                   </StickerButton>
                   <StickerButton
                     variant="ghost"
