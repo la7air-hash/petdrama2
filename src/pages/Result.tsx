@@ -305,7 +305,7 @@ export default function Result() {
       setRemixRenderUrl(null);
       refreshEntitlements();
     } catch (e) {
-      console.error("[PetDrama regenerate error]", e);
+      console.warn("[PetDrama regenerate unavailable]", e);
       toast.error("AI generation is temporarily unavailable. Please try again later.");
     }
   };
@@ -315,8 +315,8 @@ export default function Result() {
     if (!isPro) { setUpgradeReason("pro_only"); return; }
     setIsRemixing(true);
     try {
-      // Use raw fetch so non-2xx responses don't throw / log a console.error
-      // that would trip the dev runtime-error overlay.
+      // Use raw fetch and controlled JSON states so handled usage/AI failures
+      // never throw into the global error overlay.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/drama-remix`;
