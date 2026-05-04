@@ -216,10 +216,7 @@ serve(async (req) => {
         console.warn("Embedded provider error:", embedded);
         if (embedded.code === 429) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
         lastReason = embedded.message || `provider error ${embedded.code}`;
       }
@@ -247,18 +244,9 @@ serve(async (req) => {
 
     // Friendly failure — frontend will toast and keep original card.
     await refund();
-    return new Response(
-      JSON.stringify({
-        error: "Drama Remix failed. Please try again.",
-        reason: lastReason,
-      }),
-      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return handled({ error: "ai_unavailable", code: "ai_unavailable", reason: lastReason });
   } catch (e) {
-    console.error("drama-remix unexpected error:", e);
-    return new Response(
-      JSON.stringify({ error: "Drama Remix failed. Please try again." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    console.warn("drama-remix unexpected error:", e);
+    return handled({ error: "ai_unavailable", code: "ai_unavailable" });
   }
 });
