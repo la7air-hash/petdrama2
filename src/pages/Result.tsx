@@ -7,6 +7,7 @@ import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
+import { saveGalleryItem, getCurrentUserId } from "@/lib/gallery-cloud";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -424,18 +425,40 @@ export default function Result() {
       }
 
       saveDraft(persisted);
-      try {
-        const stored = saveToGallery(persisted);
-        setDraft(persisted);
-        auditCreationAssets("result-save-to-gallery", persisted, [stored]);
-        toast.success(
-          persisted.remixRenderedDataUrl
-            ? "Original + Remix saved to your gallery."
-            : "Original saved to your gallery.",
-        );
-      } catch (saveErr: any) {
-        console.error("[PetDrama save error]", saveErr);
-        toast.error(saveErr?.message || "Couldn't save to gallery — please try again.");
+
+      // Auth-aware: logged in → cloud; anonymous → localStorage (existing behavior).
+      const userId = await getCurrentUserId();
+      if (userId) {
+        try {
+          await saveGalleryItem({
+            draft: persisted,
+            originalDataUrl: finalOriginal,
+            remixDataUrl: finalRemix,
+          });
+          setDraft(persisted);
+          toast.success(
+            persisted.remixRenderedDataUrl
+              ? "Original + Remix saved to your account gallery."
+              : "Original saved to your account gallery.",
+          );
+        } catch (cloudErr: any) {
+          console.error("[PetDrama cloud save error]", cloudErr);
+          toast.error(cloudErr?.message || "Couldn't save to your gallery — please try again.");
+        }
+      } else {
+        try {
+          const stored = saveToGallery(persisted);
+          setDraft(persisted);
+          auditCreationAssets("result-save-to-gallery", persisted, [stored]);
+          toast.success(
+            persisted.remixRenderedDataUrl
+              ? "Original + Remix saved to this device. Sign in to save permanently."
+              : "Original saved to this device. Sign in to save permanently.",
+          );
+        } catch (saveErr: any) {
+          console.error("[PetDrama save error]", saveErr);
+          toast.error(saveErr?.message || "Couldn't save to gallery — please try again.");
+        }
       }
     } catch (e) {
       console.error("[PetDrama save error]", e);

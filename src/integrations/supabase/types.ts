@@ -14,7 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      gallery_items: {
+        Row: {
+          caption: string | null
+          created_at: string
+          hashtags: string[]
+          id: string
+          original_image_path: string
+          pet_name: string
+          pet_role: string
+          pet_type: string
+          quote: string
+          remix_image_path: string | null
+          style_id: string
+          user_id: string
+          variant: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          original_image_path: string
+          pet_name: string
+          pet_role: string
+          pet_type: string
+          quote: string
+          remix_image_path?: string | null
+          style_id: string
+          user_id: string
+          variant?: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          original_image_path?: string
+          pet_name?: string
+          pet_role?: string
+          pet_type?: string
+          quote?: string
+          remix_image_path?: string | null
+          style_id?: string
+          user_id?: string
+          variant?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
