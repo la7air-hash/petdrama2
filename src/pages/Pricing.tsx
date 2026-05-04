@@ -9,7 +9,7 @@ const FREE = [
   "5 creations per day",
   "Basic drama styles",
   "Personal gallery",
-  "Standard download",
+  "Standard download + share links",
   'Small "Made with PetDrama" watermark',
 ];
 const PRO = [

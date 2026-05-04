@@ -5,6 +5,7 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { UpgradeModal, type UpgradeReason } from "@/components/UpgradeModal";
 import { ProBadge } from "@/components/ProBadge";
+import { UsageMeter } from "@/components/UsageMeter";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { checkUsage } from "@/lib/usage";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
@@ -25,7 +26,7 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isPro, refresh: refreshEntitlements } = useEntitlements();
+  const { isPro, usage, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
   useEffect(() => {
@@ -273,33 +274,40 @@ export default function Result() {
   const onCopyCaption = async () => {
     const text = `${draft.drama.caption}\n\n${draft.drama.hashtags.join(" ")}`;
     await navigator.clipboard.writeText(text);
-    toast.success("Caption copied to clipboard.");
+    toast.success("Caption + hashtags copied to clipboard.");
   };
 
   const onRegenerate = async () => {
-    const gate = await checkUsage("regenerate");
-    if (!gate.ok) {
-      const err = gate.error;
-      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
-        setUpgradeReason(err);
-      } else {
-        toast.error("Could not regenerate. Please try again.");
+    try {
+      const gate = await checkUsage("regenerate");
+      if (!gate.ok) {
+        const err = gate.error;
+        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+          setUpgradeReason(err);
+        } else if (err === "auth_required") {
+          setUpgradeReason("anon_limit");
+        } else {
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
+        }
+        return;
       }
-      return;
+      const next = generateDrama(draft.styleId, draft.petName, draft.petType);
+      const updated: DramaDraft = {
+        ...draft,
+        drama: next,
+        createdAt: Date.now(),
+        renderedDataUrl: undefined,
+        remixRenderedDataUrl: undefined,
+      };
+      saveDraft(updated);
+      setDraft(updated);
+      setRenderUrl(null);
+      setRemixRenderUrl(null);
+      refreshEntitlements();
+    } catch (e) {
+      console.error("[PetDrama regenerate error]", e);
+      toast.error("AI generation is temporarily unavailable. Please try again later.");
     }
-    const next = generateDrama(draft.styleId, draft.petName, draft.petType);
-    const updated: DramaDraft = {
-      ...draft,
-      drama: next,
-      createdAt: Date.now(),
-      renderedDataUrl: undefined,
-      remixRenderedDataUrl: undefined,
-    };
-    saveDraft(updated);
-    setDraft(updated);
-    setRenderUrl(null);
-    setRemixRenderUrl(null);
-    refreshEntitlements();
   };
 
   const onDramaRemix = async () => {
@@ -684,12 +692,14 @@ export default function Result() {
               </div>
             </StickerCard>
 
+            <div className="flex justify-center"><UsageMeter usage={usage} /></div>
+
             <div className="grid grid-cols-2 gap-3">
               <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
                 ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
-                📋 Copy caption
+                📋 Copy caption + hashtags
               </StickerButton>
               {hasRemix ? (
                 <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
