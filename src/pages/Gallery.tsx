@@ -99,6 +99,9 @@ export default function Gallery() {
   const [active, setActive] = useState<UIItem | null>(null);
   const [activeVariant, setActiveVariant] = useState<Variant>("original");
   const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  // Per-cloud-item share state, keyed by cloud row id. Mirrors DB after toggle.
+  const [shareState, setShareState] = useState<Record<string, { enabled: boolean; slug: string | null }>>({});
 
   const refresh = async () => {
     setLoading(true);
@@ -109,6 +112,11 @@ export default function Gallery() {
       if (user) {
         const cloud = await listMyGallery();
         setItems(cloud.map(cloudToUI));
+        const s: Record<string, { enabled: boolean; slug: string | null }> = {};
+        for (const c of cloud) {
+          s[c.id] = { enabled: !!c.share_enabled, slug: c.public_share_slug ?? null };
+        }
+        setShareState(s);
       } else {
         const local = loadGallery();
         setItems(local.map(localToUI));
