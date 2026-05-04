@@ -13,6 +13,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const handled = (body: Record<string, unknown>) =>
+  new Response(JSON.stringify({ ok: false, ...body }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 const STYLE_PROMPTS: Record<string, string> = {
   "drama-queen":
     "theatrical spotlight, soft pink and magenta cinematic lighting, glamorous editorial portrait mood, subtle sparkle bokeh, fashion magazine cover vibe",
@@ -122,18 +128,13 @@ serve(async (req) => {
       _user_id: userId, _anon_key: null, _kind: "remix",
     });
     if (consumeErr) {
-      console.error("consume_usage error:", consumeErr);
-      return new Response(JSON.stringify({ error: "server_error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("consume_usage unavailable:", consumeErr);
+      return handled({ error: "ai_unavailable", code: "ai_unavailable" });
     }
     const consumeRes = consume as Record<string, unknown>;
     if (!consumeRes?.ok) {
       const code = consumeRes?.error as string;
-      const status = code === "pro_only" ? 403 : 402;
-      return new Response(JSON.stringify({ error: code, code }), {
-        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return handled({ error: code, code });
     }
     const eventId = consumeRes.event_id as string | undefined;
     const refund = async () => {
@@ -142,12 +143,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.warn("LOVABLE_API_KEY not configured");
       await refund();
-      return new Response(
-        JSON.stringify({ error: "AI not configured. Please try again later." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return handled({ error: "ai_unavailable", code: "ai_unavailable" });
     }
 
 
@@ -186,21 +184,15 @@ serve(async (req) => {
 
       if (!response.ok) {
         const t = await response.text().catch(() => "");
-        console.error("AI gateway HTTP error:", response.status, t.slice(0, 400));
+        console.warn("AI gateway HTTP error:", response.status, t.slice(0, 400));
 
         if (response.status === 429) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
         if (response.status === 402) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
 
         lastReason = `HTTP ${response.status}`;
@@ -224,10 +216,7 @@ serve(async (req) => {
         console.warn("Embedded provider error:", embedded);
         if (embedded.code === 429) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
         lastReason = embedded.message || `provider error ${embedded.code}`;
       }
@@ -255,18 +244,9 @@ serve(async (req) => {
 
     // Friendly failure — frontend will toast and keep original card.
     await refund();
-    return new Response(
-      JSON.stringify({
-        error: "Drama Remix failed. Please try again.",
-        reason: lastReason,
-      }),
-      { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return handled({ error: "ai_unavailable", code: "ai_unavailable", reason: lastReason });
   } catch (e) {
-    console.error("drama-remix unexpected error:", e);
-    return new Response(
-      JSON.stringify({ error: "Drama Remix failed. Please try again." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    console.warn("drama-remix unexpected error:", e);
+    return handled({ error: "ai_unavailable", code: "ai_unavailable" });
   }
 });

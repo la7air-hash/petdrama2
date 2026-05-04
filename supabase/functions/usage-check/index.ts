@@ -42,24 +42,16 @@ serve(async (req) => {
     });
 
     if (error) {
-      console.error("consume_usage error:", error);
-      return json({ ok: false, error: "server_error" }, 500);
+      console.warn("consume_usage unavailable:", error);
+      return json({ ok: false, error: "server_error" }, 200);
     }
 
     const result = data as Record<string, unknown>;
-    if (!result?.ok) {
-      const code = result?.error;
-      const status = code === "pro_only" ? 403
-                   : code === "anon_limit" ? 402
-                   : code === "daily_limit_reached" ? 402
-                   : code === "monthly_limit_reached" ? 402
-                   : 400;
-      return json(result, status);
-    }
+    if (!result?.ok) return json(result, 200);
     return json(result, 200);
   } catch (e) {
-    console.error("usage-check unexpected:", e);
-    return json({ ok: false, error: "server_error" }, 500);
+    console.warn("usage-check unexpected:", e);
+    return json({ ok: false, error: "server_error" }, 200);
   }
 });
 

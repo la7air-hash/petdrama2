@@ -305,7 +305,7 @@ export default function Result() {
       setRemixRenderUrl(null);
       refreshEntitlements();
     } catch (e) {
-      console.error("[PetDrama regenerate error]", e);
+      console.warn("[PetDrama regenerate unavailable]", e);
       toast.error("AI generation is temporarily unavailable. Please try again later.");
     }
   };
@@ -315,8 +315,8 @@ export default function Result() {
     if (!isPro) { setUpgradeReason("pro_only"); return; }
     setIsRemixing(true);
     try {
-      // Use raw fetch so non-2xx responses don't throw / log a console.error
-      // that would trip the dev runtime-error overlay.
+      // Use raw fetch and controlled JSON states so handled usage/AI failures
+      // never throw into the global error overlay.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/drama-remix`;
@@ -346,23 +346,28 @@ export default function Result() {
       try { body = await res.json(); } catch { /* ignore */ }
       const serverStatus = res.status;
       const serverError: string | undefined = body?.error;
+      const serverCode: string | undefined = body?.code ?? serverError;
       const remixUrl: string | undefined = body?.imageDataUrl;
 
-      if (!res.ok || !remixUrl) {
-        if (serverStatus === 403 && serverError === "pro_only") {
+      if (body?.ok === false || !res.ok || !remixUrl) {
+        if (serverCode === "pro_only") {
           setUpgradeReason("pro_only");
           return;
         }
-        if (serverStatus === 402 && serverError === "monthly_limit_reached") {
+        if (serverCode === "monthly_limit_reached") {
           setUpgradeReason("monthly_limit_reached");
           return;
         }
-        if (serverStatus === 402 && serverError === "daily_limit_reached") {
+        if (serverCode === "daily_limit_reached") {
           setUpgradeReason("daily_limit_reached");
           return;
         }
-        if (serverStatus === 402 && serverError === "anon_limit") {
+        if (serverCode === "anon_limit") {
           setUpgradeReason("anon_limit");
+          return;
+        }
+        if (serverCode === "ai_unavailable") {
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
           return;
         }
         const msg =

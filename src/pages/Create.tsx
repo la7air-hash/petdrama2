@@ -118,50 +118,62 @@ export default function Create() {
   const onContinueToResult = () => navigate("/result");
 
   const onGenerate = async () => {
-    if (!canGenerate || !imageDataUrl) return;
-    // Outdated → confirm before discarding the existing result.
-    if (isOutdated) {
-      const ok = window.confirm(
-        "You changed something since the last drama. Generate a new one? Your previous result will be replaced.",
-      );
-      if (!ok) return;
-    }
-    setGenerating(true);
-    // Server-side gate: counts as 1 creation. Counts regenerate when input is unchanged.
-    const kind = isOutdated || !activeCreationId ? "generate" : "regenerate";
-    const gate = await checkUsage(kind);
-    if (!gate.ok) {
-      setGenerating(false);
-      const err = gate.error;
-      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
-        setUpgradeReason(err);
-      } else if (err === "auth_required") {
-        setUpgradeReason("anon_limit");
-      } else {
-        toast.error("AI generation is temporarily unavailable. Please try again later.");
+    try {
+      if (!canGenerate || !imageDataUrl) return;
+      // Outdated → confirm before discarding the existing result.
+      if (isOutdated) {
+        const ok = window.confirm(
+          "You changed something since the last drama. Generate a new one? Your previous result will be replaced.",
+        );
+        if (!ok) return;
       }
-      return;
+      setGenerating(true);
+      // Server-side gate: counts as 1 creation. Counts regenerate when input is unchanged.
+      const kind = isOutdated || !activeCreationId ? "generate" : "regenerate";
+      const gate = await checkUsage(kind);
+      if (!gate.ok) {
+        setGenerating(false);
+        const err = gate.error;
+        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+          setUpgradeReason(err);
+        } else if (err === "auth_required") {
+          setUpgradeReason("anon_limit");
+        } else {
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
+        }
+        return;
+      }
+      setTimeout(() => {
+        try {
+          const drama = generateDrama(styleId, petName, petType);
+          const reuseId =
+            !!activeCreationId && !activeSavedToGallery && !isOutdated;
+          const creationId = reuseId ? activeCreationId! : newCreationId();
+          saveDraft({
+            creationId,
+            imageDataUrl,
+            petName: petName.trim(),
+            petType,
+            styleId,
+            drama,
+            createdAt: Date.now(),
+          });
+          setActiveCreationId(creationId);
+          setActiveSavedToGallery(false);
+          setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
+          refreshEntitlements();
+          navigate("/result");
+        } catch (e) {
+          console.warn("[PetDrama generate unavailable]", e);
+          setGenerating(false);
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
+        }
+      }, 600);
+    } catch (e) {
+      console.warn("[PetDrama generate unavailable]", e);
+      setGenerating(false);
+      toast.error("AI generation is temporarily unavailable. Please try again later.");
     }
-    setTimeout(() => {
-      const drama = generateDrama(styleId, petName, petType);
-      const reuseId =
-        !!activeCreationId && !activeSavedToGallery && !isOutdated;
-      const creationId = reuseId ? activeCreationId! : newCreationId();
-      saveDraft({
-        creationId,
-        imageDataUrl,
-        petName: petName.trim(),
-        petType,
-        styleId,
-        drama,
-        createdAt: Date.now(),
-      });
-      setActiveCreationId(creationId);
-      setActiveSavedToGallery(false);
-      setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
-      refreshEntitlements();
-      navigate("/result");
-    }, 600);
   };
 
   return (
