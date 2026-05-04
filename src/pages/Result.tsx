@@ -380,6 +380,7 @@ export default function Result() {
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
       setVariant("remix");
       toast.success("Drama Remix ready ✨");
+      refreshEntitlements();
     } catch (e: any) {
       console.error("Drama Remix error:", e);
       toast.error("Drama Remix failed. Please try again.");
