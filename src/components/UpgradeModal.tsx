@@ -13,13 +13,13 @@ export type UpgradeReason =
 const COPY: Record<UpgradeReason, { title: string; body: string; primary: string; primaryTo: string }> = {
   anon_limit: {
     title: "Create a free account to keep going",
-    body: "You've used your free trial creation. Sign in (it's free) to get 5 creations per day.",
+    body: "Create a free account to generate more PetDramas. Free accounts get 5 creations per day.",
     primary: "Sign in — free",
     primaryTo: "/login",
   },
   daily_limit_reached: {
     title: "Daily limit reached",
-    body: "You've used all 5 free creations today. Come back tomorrow, or upgrade to Pro for 150 / month and Drama Remix.",
+    body: "You've used your 5 free creations for today. Upgrade to Pro or come back tomorrow.",
     primary: "Upgrade to Pro",
     primaryTo: "/pricing",
   },
