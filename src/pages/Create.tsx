@@ -135,8 +135,10 @@ export default function Create() {
       const err = gate.error;
       if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
         setUpgradeReason(err);
+      } else if (err === "auth_required") {
+        setUpgradeReason("anon_limit");
       } else {
-        toast.error("Could not start a new drama. Please try again.");
+        toast.error("AI generation is temporarily unavailable. Please try again later.");
       }
       return;
     }
