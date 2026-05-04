@@ -6,8 +6,8 @@ import { StickerCard } from "@/components/StickerCard";
 import { toast } from "sonner";
 
 const FREE = [
-  "15 standard creations / month",
-  "5 Drama Remix / month",
+  "10 standard creations / month",
+  "3 Drama Remix / month",
   "Basic drama styles",
   "Personal gallery",
   "Standard download + share links",
