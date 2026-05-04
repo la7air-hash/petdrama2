@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           caption: string | null
           created_at: string
+          creation_id: string
           hashtags: string[]
           id: string
           original_image_path: string
@@ -33,6 +34,7 @@ export type Database = {
         Insert: {
           caption?: string | null
           created_at?: string
+          creation_id: string
           hashtags?: string[]
           id?: string
           original_image_path: string
@@ -48,6 +50,7 @@ export type Database = {
         Update: {
           caption?: string | null
           created_at?: string
+          creation_id?: string
           hashtags?: string[]
           id?: string
           original_image_path?: string
