@@ -74,11 +74,71 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          plan: string
+          pro_until: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          plan?: string
+          pro_until?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          plan?: string
+          pro_until?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_events: {
+        Row: {
+          anon_key: string | null
+          created_at: string
+          id: string
+          kind: string
+          user_id: string | null
+        }
+        Insert: {
+          anon_key?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          user_id?: string | null
+        }
+        Update: {
+          anon_key?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      consume_usage: {
+        Args: { _anon_key: string; _kind: string; _user_id: string }
+        Returns: Json
+      }
+      get_my_usage: {
+        Args: never
+        Returns: {
+          daily_limit: number
+          monthly_limit: number
+          plan: string
+          remix_allowed: boolean
+          used_month: number
+          used_today: number
+        }[]
+      }
       get_public_share: {
         Args: { _slug: string }
         Returns: {
@@ -94,6 +154,7 @@ export type Database = {
           variant: string
         }[]
       }
+      refund_usage: { Args: { _event_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

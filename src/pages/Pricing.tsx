@@ -1,23 +1,34 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
+import { toast } from "sonner";
 
 const FREE = [
-  "3 creations per day",
+  "5 creations per day",
   "Basic drama styles",
-  "Standard resolution download",
-  "Includes small watermark",
+  "Personal gallery",
+  "Standard download",
+  'Small "Made with PetDrama" watermark',
 ];
 const PRO = [
-  "Unlimited creations",
-  "All 10 drama styles unlocked",
-  "HD downloads, no watermark",
-  "Personal gallery (cloud sync soon)",
-  "Priority new styles",
+  "150 creations per month",
+  "Drama Remix unlocked (AI photo restyle)",
+  "All drama styles",
+  "No watermark · HD downloads",
+  "Personal cloud gallery + share links",
 ];
 
 export default function Pricing() {
+  const [annual, setAnnual] = useState(false);
+  const price = annual ? "$79" : "$9.99";
+  const period = annual ? "/year" : "/month";
+
+  const onUpgradeClick = () => {
+    toast("Pro checkout is coming soon — we're finalizing payments.");
+  };
+
   return (
     <PageShell>
       <section className="container py-12 md:py-20 text-center">
@@ -28,6 +39,27 @@ export default function Pricing() {
         <p className="mt-4 max-w-xl mx-auto text-muted-foreground text-lg">
           Start free. Go Pro when your pet's fame demands it.
         </p>
+
+        <div className="mt-8 inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
+          <button
+            type="button"
+            onClick={() => setAnnual(false)}
+            className={`px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors ${
+              !annual ? "bg-foreground text-background" : "text-foreground/70"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnnual(true)}
+            className={`px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors ${
+              annual ? "bg-foreground text-background" : "text-foreground/70"
+            }`}
+          >
+            Annual · save ~34%
+          </button>
+        </div>
       </section>
 
       <section className="container pb-24">
@@ -43,6 +75,10 @@ export default function Pricing() {
                   <span>{f}</span>
                 </li>
               ))}
+              <li className="flex gap-3 text-muted-foreground">
+                <span className="font-bold">·</span>
+                <span>No Drama Remix · No HD download</span>
+              </li>
             </ul>
             <Link to="/create" className="block mt-8">
               <StickerButton variant="ghost" className="w-full">Start free</StickerButton>
@@ -57,9 +93,11 @@ export default function Pricing() {
               </span>
             </div>
             <p className="mt-2 font-display text-6xl font-extrabold">
-              $5<span className="text-2xl font-bold">/mo</span>
+              {price}<span className="text-2xl font-bold">{period}</span>
             </p>
-            <p className="text-sm opacity-80">Cancel anytime.</p>
+            <p className="text-sm opacity-80">
+              {annual ? "≈ $6.58/month · billed yearly" : "Cancel anytime."}
+            </p>
             <ul className="mt-6 space-y-3 text-base">
               {PRO.map((f) => (
                 <li key={f} className="flex gap-3">
@@ -68,14 +106,18 @@ export default function Pricing() {
                 </li>
               ))}
             </ul>
-            <Link to="/login" className="block mt-8">
-              <StickerButton variant="dark" className="w-full">Go Pro</StickerButton>
-            </Link>
+            <StickerButton variant="dark" className="w-full mt-8" onClick={onUpgradeClick}>
+              Upgrade to Pro
+            </StickerButton>
+            <p className="mt-3 text-xs opacity-80">
+              Pro checkout is coming soon — we're finalizing payments.
+            </p>
           </StickerCard>
         </div>
 
         <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
-          PetDrama is for entertainment only. Generated quotes are imaginary pet thoughts and do not represent real animal communication.
+          Need more? One-time credit packs coming soon. PetDrama is for entertainment only —
+          generated quotes are imaginary pet thoughts and do not represent real animal communication.
         </p>
       </section>
     </PageShell>

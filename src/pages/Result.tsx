@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
+import { UpgradeModal, type UpgradeReason } from "@/components/UpgradeModal";
+import { ProBadge } from "@/components/ProBadge";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { checkUsage } from "@/lib/usage";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
@@ -21,7 +25,8 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPro] = useState(false); // mocked
+  const { isPro, refresh: refreshEntitlements } = useEntitlements();
+  const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
   useEffect(() => {
     const current = loadDraft();
@@ -271,7 +276,17 @@ export default function Result() {
     toast.success("Caption copied to clipboard.");
   };
 
-  const onRegenerate = () => {
+  const onRegenerate = async () => {
+    const gate = await checkUsage("regenerate");
+    if (!gate.ok) {
+      const err = gate.error;
+      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        setUpgradeReason(err);
+      } else {
+        toast.error("Could not regenerate. Please try again.");
+      }
+      return;
+    }
     const next = generateDrama(draft.styleId, draft.petName, draft.petType);
     const updated: DramaDraft = {
       ...draft,
@@ -284,10 +299,12 @@ export default function Result() {
     setDraft(updated);
     setRenderUrl(null);
     setRemixRenderUrl(null);
+    refreshEntitlements();
   };
 
   const onDramaRemix = async () => {
     if (isRemixing) return;
+    if (!isPro) { setUpgradeReason("pro_only"); return; }
     setIsRemixing(true);
     try {
       const { data, error } = await supabase.functions.invoke("drama-remix", {
@@ -314,6 +331,14 @@ export default function Result() {
       const remixUrl = (data as { imageDataUrl?: string })?.imageDataUrl;
 
       if (!remixUrl) {
+        if (serverStatus === 403 && serverError === "pro_only") {
+          setUpgradeReason("pro_only");
+          return;
+        }
+        if (serverStatus === 402 && serverError === "monthly_limit_reached") {
+          setUpgradeReason("monthly_limit_reached");
+          return;
+        }
         const msg =
           serverStatus === 429
             ? "AI is busy. Please try again in a moment."
@@ -355,6 +380,7 @@ export default function Result() {
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
       setVariant("remix");
       toast.success("Drama Remix ready ✨");
+      refreshEntitlements();
     } catch (e: any) {
       console.error("Drama Remix error:", e);
       toast.error("Drama Remix failed. Please try again.");
@@ -552,13 +578,21 @@ export default function Result() {
             {!hasRemix && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="font-display font-extrabold text-base">✨ Drama Remix</p>
+                  <p className="font-display font-extrabold text-base flex items-center gap-2">
+                    ✨ Drama Remix {!isPro && <ProBadge />}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                    {isPro
+                      ? `Stylize the photo to match ${style.name}. Same pet, new vibe.`
+                      : "Pro feature — stylize the photo to match the drama style."}
                   </p>
                 </div>
-                <StickerButton variant="primary" onClick={onDramaRemix} disabled={isRemixing}>
-                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
+                <StickerButton
+                  variant="primary"
+                  onClick={isPro ? onDramaRemix : () => setUpgradeReason("pro_only")}
+                  disabled={isRemixing}
+                >
+                  {isRemixing ? "Remixing…" : isPro ? "✨ Drama Remix" : "🔒 Upgrade to Remix"}
                 </StickerButton>
               </div>
             )}
@@ -689,6 +723,7 @@ export default function Result() {
           </div>
         </div>
       </section>
+      <UpgradeModal open={!!upgradeReason} reason={upgradeReason} onClose={() => setUpgradeReason(null)} />
     </PageShell>
   );
 }

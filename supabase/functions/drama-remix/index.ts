@@ -1,6 +1,11 @@
 // Drama Remix — stylizes an existing pet photo using Lovable AI image editing.
 // Keeps the pet recognizable while applying a mood from the chosen drama style.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SB_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,9 +102,53 @@ serve(async (req) => {
       );
     }
 
+    // ---- Pro guard + usage consumption ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "auth_required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, SB_ANON);
+    const { data: userData } = await userClient.auth.getUser(authHeader.slice("Bearer ".length));
+    const userId = userData?.user?.id ?? null;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "auth_required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: consume, error: consumeErr } = await admin.rpc("consume_usage", {
+      _user_id: userId, _anon_key: null, _kind: "remix",
+    });
+    if (consumeErr) {
+      console.error("consume_usage error:", consumeErr);
+      return new Response(JSON.stringify({ error: "server_error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const consumeRes = consume as Record<string, unknown>;
+    if (!consumeRes?.ok) {
+      const code = consumeRes?.error as string;
+      const status = code === "pro_only" ? 403 : 402;
+      return new Response(JSON.stringify({ error: code, code }), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const eventId = consumeRes.event_id as string | undefined;
+    const refund = async () => {
+      if (eventId) await admin.rpc("refund_usage", { _event_id: eventId });
+    };
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY not configured");
+      await refund();
+      return new Response(
+        JSON.stringify({ error: "AI not configured. Please try again later." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
       return new Response(
         JSON.stringify({ error: "AI not configured. Please try again later." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -144,12 +193,14 @@ serve(async (req) => {
         console.error("AI gateway HTTP error:", response.status, t.slice(0, 400));
 
         if (response.status === 429) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
         if (response.status === 402) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -157,7 +208,6 @@ serve(async (req) => {
         }
 
         lastReason = `HTTP ${response.status}`;
-        // brief backoff before retry
         if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 600));
         continue;
       }
@@ -177,6 +227,7 @@ serve(async (req) => {
       if (embedded) {
         console.warn("Embedded provider error:", embedded);
         if (embedded.code === 429) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -207,6 +258,7 @@ serve(async (req) => {
     }
 
     // Friendly failure — frontend will toast and keep original card.
+    await refund();
     return new Response(
       JSON.stringify({
         error: "Drama Remix failed. Please try again.",

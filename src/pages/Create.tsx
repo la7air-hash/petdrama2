@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
+import { UsageMeter } from "@/components/UsageMeter";
+import { UpgradeModal, type UpgradeReason } from "@/components/UpgradeModal";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { checkUsage } from "@/lib/usage";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
 import { saveDraft, loadDraft, clearDraft, newCreationId } from "@/lib/storage";
 import { toast } from "sonner";
@@ -11,6 +15,8 @@ import { cn } from "@/lib/utils";
 export default function Create() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { usage, refresh: refreshEntitlements } = useEntitlements();
+  const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
   const [petType, setPetType] = useState<PetType>("dog");
@@ -111,7 +117,7 @@ export default function Create() {
 
   const onContinueToResult = () => navigate("/result");
 
-  const onGenerate = () => {
+  const onGenerate = async () => {
     if (!canGenerate || !imageDataUrl) return;
     // Outdated → confirm before discarding the existing result.
     if (isOutdated) {
@@ -121,11 +127,21 @@ export default function Create() {
       if (!ok) return;
     }
     setGenerating(true);
+    // Server-side gate: counts as 1 creation. Counts regenerate when input is unchanged.
+    const kind = isOutdated || !activeCreationId ? "generate" : "regenerate";
+    const gate = await checkUsage(kind);
+    if (!gate.ok) {
+      setGenerating(false);
+      const err = gate.error;
+      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        setUpgradeReason(err);
+      } else {
+        toast.error("Could not start a new drama. Please try again.");
+      }
+      return;
+    }
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
-      // Reuse the active creationId only when we're iterating on an UNSAVED
-      // draft with the SAME inputs. Otherwise mint a fresh id so we never
-      // overwrite a previously-saved gallery item.
       const reuseId =
         !!activeCreationId && !activeSavedToGallery && !isOutdated;
       const creationId = reuseId ? activeCreationId! : newCreationId();
@@ -139,10 +155,9 @@ export default function Create() {
         createdAt: Date.now(),
       });
       setActiveCreationId(creationId);
-      // The new draft has not been saved to the gallery yet.
       setActiveSavedToGallery(false);
-      // Refresh snapshot so subsequent edits compare against current inputs.
       setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
+      refreshEntitlements();
       navigate("/result");
     }, 600);
   };
@@ -308,6 +323,7 @@ export default function Create() {
               <p className="text-muted-foreground text-xs">
                 Imaginary pet thoughts · For entertainment only
               </p>
+              <div className="mt-2"><UsageMeter usage={usage} /></div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {(restored || imageDataUrl || petName) && (
@@ -349,6 +365,7 @@ export default function Create() {
           </StickerCard>
         </div>
       </section>
+      <UpgradeModal open={!!upgradeReason} reason={upgradeReason} onClose={() => setUpgradeReason(null)} />
     </PageShell>
   );
 }

@@ -1,160 +1,183 @@
-## Phase 2 — Gallery Share Links
 
-Add a public sharing system on top of the existing private cloud Gallery without changing how saving/listing/deleting works today.
+# Tiered Pricing + Server-Enforced Usage Limits
 
----
+Scope: limits + Pro flag + Pricing page rewrite + Remix lock. **No real Stripe checkout.** Pro is structurally supported (DB flag) but cannot be bought yet — admin-only flip for now.
 
-### 1. Database changes (one migration)
+## Tiers (no "unlimited" anywhere)
 
-Add three columns to `gallery_items`:
+| Tier | Creations | Remix | Watermark | HD |
+|------|-----------|-------|-----------|----|
+| Anonymous | 1 total / device | ❌ | ✅ | ❌ |
+| Free (logged in) | 5 / day (UTC) | ❌ → upgrade prompt | ✅ | ❌ |
+| Pro | 150 / month (rolling 30d) | ✅ | ❌ | ✅ |
 
-- `public_share_slug TEXT UNIQUE` — null until first share
-- `share_enabled BOOLEAN NOT NULL DEFAULT false`
-- `shared_at TIMESTAMPTZ` — null until first share
+"Creation" = generate / regenerate / new-batch / remix. Save, Download, Copy, Share, public views are NOT counted.
 
-Index: `CREATE UNIQUE INDEX gallery_items_public_share_slug_key ON gallery_items (public_share_slug) WHERE public_share_slug IS NOT NULL;`
-
-No changes to existing columns. No rename. No backfill needed (existing rows stay private).
-
-### 2. Slug generation
-
-Generate slugs server-side via a Postgres helper or in the edge function (preferred — see §6) using a 10-char base62 string (e.g. `nanoid`-style). Retry on unique conflict. Slug is opaque, not guessable, never includes user_id or pet name.
-
-### 3. RLS / security plan
-
-Keep all 4 existing policies on `gallery_items` (owner-only SELECT/INSERT/UPDATE/DELETE).
-
-Add ONE additional policy:
+## 1. Database changes (one migration)
 
 ```sql
-create policy "Public can view shared gallery items"
-on public.gallery_items
-for select
-to anon, authenticated
-using (share_enabled = true and public_share_slug is not null);
+-- profiles: one row per auth user, default 'free'
+create table public.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan text not null default 'free' check (plan in ('free','pro')),
+  pro_until timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+create policy "read own profile" on public.profiles
+  for select using (auth.uid() = user_id);
+-- no insert/update policy → only service-role (edge functions / admin) can flip plan
+
+-- usage_events: one row per AI creation
+create table public.usage_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  anon_key text,                       -- hashed device id when not logged in
+  kind text not null check (kind in ('generate','regenerate','remix')),
+  created_at timestamptz not null default now()
+);
+create index on public.usage_events (user_id, created_at desc);
+create index on public.usage_events (anon_key, created_at desc);
+alter table public.usage_events enable row level security;
+create policy "read own usage" on public.usage_events
+  for select using (auth.uid() = user_id);
+-- no insert policy → only edge functions (service role) write
+
+-- auto-create profile on signup
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (user_id) values (new.id) on conflict do nothing;
+  return new;
+end $$;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- backfill existing users
+insert into public.profiles (user_id)
+  select id from auth.users on conflict do nothing;
+
+-- helper RPC: read-only summary for the UI
+create or replace function public.get_my_usage()
+returns table(plan text, used_today int, used_month int, daily_limit int, monthly_limit int, remix_allowed boolean)
+language plpgsql stable security definer set search_path = public as $$
+declare p text; uid uuid := auth.uid();
+begin
+  if uid is null then
+    return query select 'anon'::text, 0, 0, 1, 1, false;
+    return;
+  end if;
+  select coalesce(pr.plan,'free') into p from public.profiles pr where pr.user_id = uid;
+  if p = 'pro' then
+    return query select 'pro',
+      0,
+      (select count(*)::int from public.usage_events where user_id = uid and created_at > now() - interval '30 days'),
+      0, 150, true;
+  else
+    return query select 'free',
+      (select count(*)::int from public.usage_events where user_id = uid and created_at::date = (now() at time zone 'utc')::date),
+      0, 5, 0, false;
+  end if;
+end $$;
 ```
 
-Sensitive columns (`user_id`, `original_image_path`, `remix_image_path`, `creation_id`) are technically still selectable when the row is shared. To avoid leaking the user_id and storage paths to anonymous clients, the public page will NOT query the table directly. Instead it calls a public edge function (§6) that returns only display fields + signed image URLs.
+(`credit_packs` table is NOT created — listed as future work only.)
 
-The new RLS policy is needed so the edge function (using anon key + the unauthenticated request context) — or a SECURITY DEFINER RPC — can read shared rows. We will use a SECURITY DEFINER RPC `get_public_share(slug)` that returns only safe columns, so the public-select policy can be omitted entirely. **Recommended: SECURITY DEFINER RPC, no public-select RLS policy.** This keeps user_id and storage paths fully hidden.
+## 2. New edge function: `usage-check`
 
-### 4. Storage plan — recommendation: Option A (signed URLs)
+Single endpoint the frontend calls **before** every AI action. It both checks AND records.
 
-The `gallery` bucket stays **private**. The public share edge function generates short-lived signed URLs (e.g. 24h TTL) for `original.webp` and `remix.webp` on each page request. The public page caches the signed URLs only for the session.
+```text
+POST /functions/v1/usage-check   (verify_jwt = false; we read JWT manually)
+body: { kind: 'generate'|'regenerate'|'remix', anonKey?: string }
+```
 
-Why Option A over Option B (copy to public bucket):
-- No duplicate storage cost
-- Unsharing or deleting instantly revokes access (no orphan public copies)
-- Avoids a public bucket which is harder to lock back down later
-- Signed URLs are still hot-linkable for the OG preview window — fine because anyone with the slug already has access by design
+Logic (using service-role client):
+1. Parse Authorization Bearer → `supabase.auth.getUser(token)` if present.
+2. Resolve plan: anon / free / pro (default free if profile missing).
+3. If `kind === 'remix'` and plan !== 'pro' → `403 { error:'pro_only' }`.
+4. Count usage in window:
+   - anon: lifetime count for `anon_key` >= 1 → `402 { error:'anon_limit', signupRequired:true }`
+   - free: today's count >= 5 → `402 { error:'daily_limit_reached' }`
+   - pro: last-30d count >= 150 → `402 { error:'monthly_limit_reached' }`
+5. Otherwise `INSERT into usage_events` and return `{ ok:true, remaining, plan }`.
 
-Tradeoff: signed URLs expire, so OG image scrapers (WhatsApp/Facebook) see a fresh URL each fetch. This is fine because they re-scrape; the long-lived `og:image` URL is our own `/api/og?slug=…` endpoint (§7), not the raw storage URL.
+Atomicity: do count + insert inside one SQL function called from edge to avoid races (helper SECURITY DEFINER RPC `consume_usage(_kind, _anon_key)` returning the same shape; edge fn just thin-wraps it).
 
-### 5. Public route
+## 3. `drama-remix` edge function changes
 
-New route `/p/:slug` → `src/pages/PublicShare.tsx`.
+At the top of the handler, before calling AI:
+- Read JWT from `Authorization` header.
+- If no user → `401`.
+- Call `consume_usage('remix', null)` via service-role client.
+- If response says `pro_only` → return `403 { error:'pro_only' }`.
+- If `monthly_limit_reached` → return `402 { error:'monthly_limit_reached' }`.
+- Else proceed with current AI flow.
 
-Page content:
-- PetDrama branding header (logo, link to `/`)
-- Card image (Original / Remix tabs if both exist; default to the row's `variant`)
-- Pet name, pet role (style name), quote, caption, hashtag chips
-- Share buttons (Copy / WhatsApp / Facebook / native Share / Download)
-- Big CTA: "Create your own PetDrama →" linking to `/create`
-- 404 state if slug not found / `share_enabled=false` / row deleted
+Also add `[functions.usage-check] verify_jwt = false` to `supabase/config.toml`.
 
-No login required. No access to private data. No "browse all public" listing anywhere.
+## 4. Frontend changes
 
-### 6. Edge functions
+### New
+- `src/lib/anon-id.ts` — generate/persist a UUID in `localStorage` (`pd_anon_id`).
+- `src/lib/usage.ts` — `checkUsage(kind)` POSTs to `usage-check`, includes JWT if present, otherwise sends `anonKey`. Returns `{ ok, plan, remaining, error? }`.
+- `src/hooks/use-entitlements.ts` — on auth change calls `get_my_usage` RPC; exposes `{ plan, isPro, isAnon, usage, refresh() }`.
+- `src/components/UsageMeter.tsx` — small chip "3 / 5 today" or "62 / 150 this month".
+- `src/components/UpgradeModal.tsx` — reused dialog for pro_only / limit_reached / anon → signup.
+- `src/components/ProBadge.tsx` — "PRO" sticker.
 
-Two new edge functions, both `verify_jwt = true` for the toggle, `verify_jwt = false` for the public read.
+### Edited
+- `src/pages/Create.tsx` — `onGenerate`: call `checkUsage('generate')` first; if not ok show UpgradeModal (or signup CTA for anon) and abort. On success, run existing local generation. Render `<UsageMeter>` in the sticky bar. After success, call `refresh()`.
+- `src/pages/Result.tsx`:
+  - Replace `const [isPro] = useState(false)` with `useEntitlements()`.
+  - `onRegenerate` → `checkUsage('regenerate')` first.
+  - `onDramaRemix` → if `!isPro` show UpgradeModal, **don't** call function. Otherwise the edge function still re-checks and consumes.
+  - The Drama Remix CTA button shows a `<ProBadge>` + lock icon when `!isPro`.
+  - `watermark` flag for `renderDramaPng` already uses `!isPro` → now driven by real value.
+- `src/pages/Pricing.tsx` — full rewrite (see §5).
+- `src/components/AccountPill.tsx` — show plan badge + tiny remaining counter.
+- `supabase/config.toml` — add `[functions.usage-check]` block.
 
-a) `share-toggle` (authenticated)
-   - Input: `{ gallery_item_id, enabled: boolean }`
-   - Validates the item belongs to `auth.uid()`
-   - If enabling and no slug yet: generates a unique slug, sets `share_enabled=true`, `shared_at=now()`, `public_share_slug=<slug>`
-   - If enabling and slug exists: just sets `share_enabled=true`
-   - If disabling: sets `share_enabled=false` (keeps slug so re-enabling restores the same URL)
-   - Returns `{ slug, url }`
+### Untouched
+Gallery storage, public-share route, RLS on `gallery_items`, render pipeline, routing.
 
-b) `public-share` (unauthenticated, `verify_jwt = false`)
-   - Input: `?slug=…`
-   - Calls SECURITY DEFINER SQL function `get_public_share(slug)` which returns only: `pet_name, pet_type, style_id, pet_role, quote, caption, hashtags, variant, original_image_path, remix_image_path` when `share_enabled=true`
-   - Generates 24h signed URLs for the two image paths
-   - Returns `{ petName, styleId, petRole, quote, caption, hashtags, variant, originalUrl, remixUrl }` — NO user_id, NO email, NO storage paths
-   - Returns 404 JSON if not found
+## 5. Pricing page copy
 
-### 7. Open Graph previews — simple first version
+- **Free $0** — 5 creations per day, basic drama styles, personal gallery, small "Made with PetDrama" watermark, standard download. *No Drama Remix. No HD.*
+- **Pro $9.99/month** (toggle: $79/year, save ~34%) — 150 creations per month, Drama Remix unlocked, all styles, no watermark, HD downloads, share links, personal cloud gallery.
+- "Upgrade to Pro" button → opens modal: *"Pro checkout is coming soon. We're finalizing payments — leave your email to be notified."* (simple mailto / no-op for now). No live Stripe.
+- Footnote: "Need more? One-time credit packs coming soon."
+- Remove every occurrence of "Unlimited".
 
-SPAs can't serve dynamic per-route `<meta>` tags to scrapers because WhatsApp/Facebook don't run JS. Two options:
+## 6. How each requirement is satisfied
 
-**v1 (simple, recommended):** ship static OG tags in `index.html` (current PetDrama brand image + generic title/description). All shared links show the same brand preview. Pros: zero infra. Cons: preview isn't personalised.
+- **Free vs Pro detection** → `profiles.plan`, surfaced via `useEntitlements()` and validated server-side in `usage-check` / `drama-remix`.
+- **Remix lock** → UI hides/locks button + Upgrade modal; **edge function returns 403 `pro_only`** even if bypassed.
+- **Counted actions** → only the three frontend code paths that produce AI output (Create generate, Result regenerate / new-batch, Drama Remix) call `checkUsage`. Save/Download/Copy/Share/public view never call it.
+- **Anonymous cap** → `anon_key` (hashed UUID) row in `usage_events`; second attempt returns `anon_limit` → signup modal. Imperfect (clearable) but server-recorded.
 
-**v2 (later):** an edge function `og-share?slug=…` that returns HTML with per-slug `<meta>` tags and a redirect/refresh to `/p/:slug`. The shared URL becomes `…/og-share?slug=…`. Adds complexity (separate URL, image must be a stable public URL).
+## 7. Risks / limitations
 
-Plan for Phase 2: ship v1 only. Add a note in the plan doc that v2 is a follow-up.
+- Anonymous limit is bypassable by clearing `localStorage`; acceptable for v1. Optional IP-based rate limit can be added later.
+- No payments yet → no live Pro upgrade path; admins flip `profiles.plan='pro'` via SQL or future admin UI.
+- Daily window is UTC-based; minor edge-of-day confusion possible.
+- Existing logged-in users start as Free (backfill inserts default row).
+- AI failures must NOT consume credit — current plan inserts BEFORE the AI call; if AI fails we should refund. Mitigation: in `drama-remix`, on AI failure, `delete` the just-inserted usage row (track its id from `consume_usage`). Same for `usage-check`-only flows (generate/regenerate are deterministic local code so no refund needed).
 
-### 8. Frontend changes — Gallery only, no redesign
+## 8. Implementation phases
 
-Edit `src/pages/Gallery.tsx`:
-- In the modal, add a Share section under the existing Download/Delete row:
-  - "Share publicly" toggle (calls `share-toggle`)
-  - When enabled: show the share URL (read-only input) + buttons:
-    - Copy link
-    - Native Share (uses `navigator.share` if available; tries `navigator.canShare({ files })` with the WEBP file fetched from the signed URL, else shares the URL)
-    - WhatsApp (`https://wa.me/?text=<encoded url>`)
-    - Facebook (`https://www.facebook.com/sharer/sharer.php?u=<encoded url>`)
-    - Download PNG (existing behaviour)
-- On the card grid: add a small "shared" badge when `share_enabled=true` (optional, low priority)
+1. **DB migration** (profiles, usage_events, trigger, RPCs).
+2. **Edge**: `usage-check` function + `drama-remix` Pro/limit guard + config.toml.
+3. **Frontend lib/hook**: anon-id, usage.ts, useEntitlements.
+4. **UI gates**: Create + Result wired to `checkUsage`, Remix lock, UsageMeter, UpgradeModal.
+5. **Pricing page** rewrite.
+6. **Manual QA**: anon (1 then blocked), free (5 then blocked, remix blocked), pro (150 cap, remix works, no watermark).
 
-New helper file `src/lib/share.ts`:
-- `enableShare(itemId)` / `disableShare(itemId)` → call edge function
-- `getShareUrl(slug)` → builds `${origin}/p/${slug}`
-- `shareNative({ url, file? })` → Web Share API wrapper with file fallback
-- WhatsApp / Facebook URL builders
+## 9. Confirmation summary (delivered after build)
 
-New page `src/pages/PublicShare.tsx` + route in `src/App.tsx` (`/p/:slug`).
-
-Update `src/lib/gallery-cloud.ts`:
-- Add `public_share_slug`, `share_enabled`, `shared_at` to `CloudGalleryItem`
-- Include them in the SELECT (already `select("*")`, just type them)
-
-Instagram / TikTok: no direct publishing. The Download PNG button + native share sheet on mobile is the documented path.
-
-### 9. Files likely to change
-
-- `supabase/migrations/<new>.sql` — columns + index + SECURITY DEFINER `get_public_share` function
-- `supabase/functions/share-toggle/index.ts` — new
-- `supabase/functions/public-share/index.ts` — new
-- `supabase/config.toml` — add `[functions.public-share] verify_jwt = false`
-- `src/lib/gallery-cloud.ts` — extend type, no behaviour change
-- `src/lib/share.ts` — new
-- `src/pages/Gallery.tsx` — add share UI inside existing modal
-- `src/pages/PublicShare.tsx` — new
-- `src/App.tsx` — add `/p/:slug` route
-- `src/integrations/supabase/types.ts` — auto-regenerated
-
-Do NOT touch: existing save/list/delete code paths, Examples page, private RLS policies, Create/Result flow.
-
-### 10. Risks and limitations
-
-- **OG previews are generic in v1** — WhatsApp/Facebook show the brand preview, not the user's pet. Mitigation: clearly call out v2 follow-up.
-- **Signed URL expiry** — if a user copies the public page URL and reopens after 24h, images re-fetch fine because the page re-calls `public-share`. But if a user hot-links the raw image URL (e.g. pastes into Discord), it expires. Acceptable; the share URL is the page, not the image.
-- **Slug enumeration** — 10-char base62 ≈ 60 bits of entropy, not enumerable.
-- **Web Share API file support** — Safari iOS supports file sharing; Android Chrome partial; Desktop usually URL-only. Code must feature-detect with `navigator.canShare({ files })` and fall back to URL share.
-- **Deleted items** — delete already removes the row; public page returns 404 automatically. Slug is freed (but unique index allows reuse only if we ever recycled — we won't).
-- **Disable vs delete slug** — disabling keeps the slug so re-enabling gives the same URL. If a user wants to invalidate, they delete the item.
-
-### 11. Implementation phases (within Phase 2)
-
-1. Migration + SECURITY DEFINER RPC
-2. `share-toggle` edge function + `src/lib/share.ts` (toggle + Copy link only)
-3. `public-share` edge function + `src/pages/PublicShare.tsx` + route
-4. Gallery modal UI: add toggle + Copy link + WhatsApp + Facebook + Native Share
-5. Manual QA per the test checklist
-6. Note v2 OG follow-up in plan doc
-
-Order matters: backend before frontend so the UI has something to call.
-
-### What gets built first
-
-Migration + SECURITY DEFINER RPC + `share-toggle` and `public-share` edge functions. Once those return correct data via curl, wire the UI.
+- Tables added: `profiles`, `usage_events`. Trigger: `on_auth_user_created`. RPCs: `get_my_usage`, `consume_usage`.
+- Edge functions: new `usage-check`; updated `drama-remix` with Pro + limit guard.
+- Free vs Pro: `profiles.plan` (default `'free'`), checked server-side every AI call; surfaced client-side via `useEntitlements`.
+- Remix lock: UI hides button behind PRO badge → UpgradeModal; server returns 403 `pro_only` regardless.
+- Counting: only `generate`/`regenerate`/`remix` insert a `usage_events` row; non-AI actions never call the check.
