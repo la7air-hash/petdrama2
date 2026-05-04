@@ -209,7 +209,7 @@ export default function Gallery() {
     });
     if (!ok) handleCopyShare(slug);
   };
-
+  const requestDelete = (item: UIItem, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setPendingDelete(item);
   };
