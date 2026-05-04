@@ -331,6 +331,14 @@ export default function Result() {
       const remixUrl = (data as { imageDataUrl?: string })?.imageDataUrl;
 
       if (!remixUrl) {
+        if (serverStatus === 403 && serverError === "pro_only") {
+          setUpgradeReason("pro_only");
+          return;
+        }
+        if (serverStatus === 402 && serverError === "monthly_limit_reached") {
+          setUpgradeReason("monthly_limit_reached");
+          return;
+        }
         const msg =
           serverStatus === 429
             ? "AI is busy. Please try again in a moment."
