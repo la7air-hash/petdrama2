@@ -81,10 +81,12 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   drawStar(ctx, size * 0.9, size * 0.12, size * 0.045, 5, palette.accent2, black);
 
   // ============== 3. POLAROID PHOTO FRAME (tilted, offset shadow) ==============
-  const frameW = Math.round(size * 0.78);
-  const frameH = Math.round(size * 0.66);
+  // NOTE: frame height reduced to 0.56 (from 0.66) to guarantee vertical
+  // headroom for a non-overlapping quote area + caption panel below.
+  const frameW = Math.round(size * 0.74);
+  const frameH = Math.round(size * 0.56);
   const frameX = Math.round((size - frameW) / 2);
-  const frameY = Math.round(size * 0.13);
+  const frameY = Math.round(size * 0.1);
   const frameR = Math.round(size * 0.035);
   const tilt = -0.025; // very subtle tilt
 
@@ -157,29 +159,54 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   ctx.textBaseline = "middle";
   ctx.fillText(idText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 2);
 
-  // ============== 5. QUOTE (on the colored paper) ==============
+  // ============== 5. QUOTE + CAPTION (top-down layout, guaranteed no overlap) ==============
   const sideMargin = Math.round(size * 0.085);
   const maxTextW = size - sideMargin * 2;
   const quote = `“${opts.quote}”`;
+  const footerH = Math.round(size * 0.06);
 
-  // Safe top: clear the badge + its 6px hard shadow, the photo's tilt drop,
-  // and add a comfortable breathing gap so the quote is never visually crowded
-  // by the photo frame or badge.
-  const badgeBottom = badgeY + badgeH + 6; // include badge shadow
-  const tiltDrop = Math.round((frameW / 2) * Math.abs(tilt)); // vertical extent added by frame rotation
-  const breathingGap = Math.round(size * 0.055);
+  // Safe top for the quote: clear the badge + its 6px hard shadow and the
+  // photo's tilt drop, plus a comfortable breathing gap.
+  const badgeBottom = badgeY + badgeH + 6;
+  const tiltDrop = Math.round((frameW / 2) * Math.abs(tilt));
+  const breathingGap = Math.round(size * 0.04);
   const quoteTop = Math.max(badgeBottom, photoBottom + tiltDrop) + breathingGap;
 
-  const footerH = Math.round(size * 0.06);
-  // Reserve space for caption panel below the quote (panel + clear gap)
-  const hasCaption = !!(opts.caption || "").trim();
-  const captionReserve = hasCaption ? Math.round(size * 0.16) : Math.round(size * 0.02);
-  // Reserve room for the accent underline + breathing gap below the last quote line.
-  const underlineReserve = Math.round(size * 0.04);
-  const quoteAreaBottom = size - sideMargin - footerH - captionReserve - underlineReserve;
+  // ---- Pre-measure caption panel (so we can reserve space top-down) ----
+  const caption = (opts.caption || "").trim();
+  const hasCaption = !!caption;
+  const panelMargin = Math.round(size * 0.09);
+  const panelW = size - panelMargin * 2;
+  const panelR = Math.round(size * 0.03);
+  const panelPadY = Math.round(size * 0.022);
+
+  let cSize = 0;
+  let cLines: string[] = [];
+  let cLineH = 0;
+  let panelH = 0;
+  if (hasCaption) {
+    cSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
+    ctx.font = `600 ${cSize}px "Space Grotesk", system-ui, sans-serif`;
+    cLines = wrapLines(ctx, caption, panelW - Math.round(size * 0.05));
+    if (cLines.length > 2) {
+      cLines = cLines.slice(0, 2);
+      cLines[1] = cLines[1].replace(/\s+\S*$/, "") + "…";
+    }
+    cLineH = Math.round(cSize * 1.3);
+    panelH = cLines.length * cLineH + panelPadY * 2;
+  }
+
+  // Bottom edge of canvas reserved for footer + small padding.
+  const bottomReserve = footerH + Math.round(size * 0.025);
+  const captionGap = hasCaption ? Math.round(size * 0.04) : 0;
+  const underlineReserve = Math.round(size * 0.035);
+
+  // Quote area: top-anchored, bounded by the start of the caption panel.
+  const captionPanelTopMax = size - bottomReserve - panelH;
+  const quoteAreaBottom = (hasCaption ? captionPanelTopMax : size - bottomReserve) - captionGap - underlineReserve;
   const quoteAreaH = Math.max(0, quoteAreaBottom - quoteTop);
 
-  // Start size scales by length; shrink aggressively until it fits cleanly.
+  // Fit the quote into quoteAreaH by shrinking font size.
   let qSize =
     quote.length > 140 ? 30 :
     quote.length > 110 ? 34 :
@@ -188,7 +215,7 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   let qLines: string[] = [];
   let qLineH = 0;
   const MAX_LINES = 4;
-  for (let attempt = 0; attempt < 16; attempt++) {
+  for (let attempt = 0; attempt < 20; attempt++) {
     ctx.font = `800 ${qSize}px "Syne", system-ui, sans-serif`;
     qLines = wrapLines(ctx, quote, maxTextW);
     qLineH = Math.round(qSize * 1.12);
@@ -196,18 +223,17 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
     const fitsHeight = qLines.length * qLineH <= quoteAreaH;
     if (fitsLines && fitsHeight) break;
     qSize -= 3;
-    if (qSize <= 18) break;
+    if (qSize <= 16) break;
   }
   if (qLines.length > MAX_LINES) {
     qLines = qLines.slice(0, MAX_LINES);
     qLines[MAX_LINES - 1] = qLines[MAX_LINES - 1].replace(/\s+\S*$/, "") + "…”";
   }
 
-  // Vertically center the quote block within the safe quote area
-  // so it's clearly separated from both photo above and caption below.
   const quoteBlockH = qLines.length * qLineH;
   const quoteStartY = quoteTop + Math.max(0, (quoteAreaH - quoteBlockH) / 2);
 
+  ctx.font = `800 ${qSize}px "Syne", system-ui, sans-serif`;
   ctx.fillStyle = ink;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -217,12 +243,10 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
     qy += qLineH;
   }
 
-  // Bright accent underline bar under the quote — adds a designed feel.
-  // Place it BELOW the last quote line (qy already advanced past it by qLineH),
-  // with a small clear gap so it never visually overlaps the text descenders.
+  // Underline directly below the last quote line.
   const underlineW = Math.min(Math.round(size * 0.18), maxTextW * 0.4);
   const underlineH = Math.round(size * 0.012);
-  const lastLineBaselineY = qy - qLineH; // baseline of last drawn line
+  const lastLineBaselineY = qy - qLineH;
   const underlineY = lastLineBaselineY + Math.round(qSize * 0.32);
   drawRoundedRect(ctx, (size - underlineW) / 2, underlineY, underlineW, underlineH, underlineH / 2);
   ctx.fillStyle = palette.accent;
@@ -232,40 +256,28 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   ctx.stroke();
 
   // ============== 6. CAPTION PANEL ==============
-  const caption = (opts.caption || "").trim();
-  if (caption) {
-    const panelMargin = Math.round(size * 0.09);
+  if (hasCaption) {
     const panelX = panelMargin;
-    const panelW = size - panelMargin * 2;
-    let cSize = caption.length > 110 ? 22 : caption.length > 70 ? 26 : 30;
-    ctx.font = `600 ${cSize}px "Space Grotesk", system-ui, sans-serif`;
-    let cLines = wrapLines(ctx, caption, panelW - Math.round(size * 0.05));
-    if (cLines.length > 2) {
-      cLines = cLines.slice(0, 2);
-      cLines[1] = cLines[1].replace(/\s+\S*$/, "") + "…";
-    }
-    const cLineH = Math.round(cSize * 1.3);
-    const panelPadY = Math.round(size * 0.022);
-    const panelH = cLines.length * cLineH + panelPadY * 2;
-    const panelY = size - footerH - panelH - Math.round(size * 0.025);
-    const panelR = Math.round(size * 0.03);
+    const panelY = size - bottomReserve - panelH;
+    // Safety: ensure panel sits below underline + a small gap.
+    const minPanelY = underlineY + underlineH + Math.round(size * 0.025);
+    const finalPanelY = Math.max(panelY, minPanelY);
 
-    // shadow
-    drawRoundedRect(ctx, panelX + 5, panelY + 5, panelW, panelH, panelR);
+    drawRoundedRect(ctx, panelX + 5, finalPanelY + 5, panelW, panelH, panelR);
     ctx.fillStyle = black;
     ctx.fill();
-    // panel body — white for clean separation (or accent2 tinted on dark paper)
-    drawRoundedRect(ctx, panelX, panelY, panelW, panelH, panelR);
-    ctx.fillStyle = isLightOnDark ? "#FFFFFF" : "#FFFFFF";
+    drawRoundedRect(ctx, panelX, finalPanelY, panelW, panelH, panelR);
+    ctx.fillStyle = "#FFFFFF";
     ctx.fill();
     ctx.lineWidth = 4;
     ctx.strokeStyle = black;
     ctx.stroke();
 
+    ctx.font = `600 ${cSize}px "Space Grotesk", system-ui, sans-serif`;
     ctx.fillStyle = "#121212";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    let cy = panelY + panelPadY + cSize;
+    let cy = finalPanelY + panelPadY + cSize;
     for (const line of cLines) {
       ctx.fillText(line, size / 2, cy);
       cy += cLineH;
