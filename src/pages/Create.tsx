@@ -123,9 +123,12 @@ export default function Create() {
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
-      // Reuse the active creationId so the same draft updates in place;
-      // a brand-new draft (after Start over) gets a fresh id.
-      const creationId = activeCreationId ?? newCreationId();
+      // Reuse the active creationId only when we're iterating on an UNSAVED
+      // draft with the SAME inputs. Otherwise mint a fresh id so we never
+      // overwrite a previously-saved gallery item.
+      const reuseId =
+        !!activeCreationId && !activeSavedToGallery && !isOutdated;
+      const creationId = reuseId ? activeCreationId! : newCreationId();
       saveDraft({
         creationId,
         imageDataUrl,
@@ -136,6 +139,10 @@ export default function Create() {
         createdAt: Date.now(),
       });
       setActiveCreationId(creationId);
+      // The new draft has not been saved to the gallery yet.
+      setActiveSavedToGallery(false);
+      // Refresh snapshot so subsequent edits compare against current inputs.
+      setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
       navigate("/result");
     }, 600);
   };
