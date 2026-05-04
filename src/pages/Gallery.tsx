@@ -223,7 +223,9 @@ export default function Gallery() {
 
   const openItem = (item: UIItem) => {
     setActive(item);
-    setActiveVariant(item.variant === "remix" && item.remixUrl ? "remix" : "original");
+    // Default to latest remix variant if any, otherwise original.
+    const latestRemix = [...item.variants].reverse().find((v) => v.kind === "remix");
+    setActiveVariantKey(latestRemix?.key ?? "original");
   };
 
   const handleDownload = async (item: UIItem, variant: Variant, e?: React.MouseEvent) => {
