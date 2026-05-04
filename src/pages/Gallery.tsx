@@ -169,7 +169,7 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true);
   const [isAuthed, setIsAuthed] = useState(false);
   const [active, setActive] = useState<UIItem | null>(null);
-  const [activeVariant, setActiveVariant] = useState<Variant>("original");
+  const [activeVariantKey, setActiveVariantKey] = useState<string>("original");
   const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
