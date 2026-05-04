@@ -25,7 +25,8 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPro] = useState(false); // mocked
+  const { isPro, refresh: refreshEntitlements } = useEntitlements();
+  const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
   useEffect(() => {
     const current = loadDraft();
