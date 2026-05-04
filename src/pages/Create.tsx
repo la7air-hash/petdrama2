@@ -44,6 +44,7 @@ export default function Create() {
       setPetType(d.petType);
       setStyleId(d.styleId);
       setActiveCreationId(d.creationId);
+      setActiveSavedToGallery(!!d.savedToGallery);
       setRestored(true);
       // A draft is only saved once the user has generated, so any restored
       // draft has a result we can continue to.
