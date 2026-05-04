@@ -323,6 +323,7 @@ export default function Create() {
               <p className="text-muted-foreground text-xs">
                 Imaginary pet thoughts · For entertainment only
               </p>
+              <div className="mt-2"><UsageMeter usage={usage} /></div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {(restored || imageDataUrl || petName) && (
