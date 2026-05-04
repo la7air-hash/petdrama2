@@ -4,8 +4,10 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { getGalleryItemId, loadGallery, saveGallery, deleteFromGallery, type DramaDraft } from "@/lib/storage";
-import { getStyle, normalizePetName } from "@/lib/drama";
+import { getStyle, normalizePetName, type DramaStyleId, type PetType } from "@/lib/drama";
 import { downloadDataUrl } from "@/lib/render";
+import { supabase } from "@/integrations/supabase/client";
+import { listMyGallery, deleteGalleryItem, type CloudGalleryItem } from "@/lib/gallery-cloud";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -23,42 +25,111 @@ import { cn } from "@/lib/utils";
 
 type Variant = "original" | "remix";
 
-function fileNameFor(item: DramaDraft, variant: Variant) {
+/** Unified item shape used by the UI. Wraps either a cloud row or a local draft. */
+interface UIItem {
+  key: string;
+  source: "cloud" | "local";
+  petName: string;
+  styleId: DramaStyleId;
+  petType: PetType;
+  quote: string;
+  caption: string | null;
+  hashtags: string[];
+  originalUrl: string;
+  remixUrl?: string;
+  variant: Variant;
+  // Source refs for delete
+  cloud?: CloudGalleryItem;
+  local?: DramaDraft;
+}
+
+function fileNameFor(item: UIItem, variant: Variant) {
   const name = normalizePetName(item.petName).replace(/\s+/g, "-").toLowerCase() || "petdrama";
   const tag = variant === "remix" ? "-remix" : "";
   return `petdrama-${name}${tag}.png`;
 }
 
+function cloudToUI(c: CloudGalleryItem): UIItem {
+  return {
+    key: `cloud-${c.id}`,
+    source: "cloud",
+    petName: c.pet_name,
+    styleId: c.style_id,
+    petType: c.pet_type,
+    quote: c.quote,
+    caption: c.caption,
+    hashtags: c.hashtags,
+    originalUrl: c.originalSignedUrl,
+    remixUrl: c.remixSignedUrl,
+    variant: c.variant,
+    cloud: c,
+  };
+}
+
+function localToUI(d: DramaDraft): UIItem {
+  const original = d.renderedDataUrl || d.imageDataUrl;
+  return {
+    key: `local-${getGalleryItemId(d)}`,
+    source: "local",
+    petName: d.petName,
+    styleId: d.styleId,
+    petType: d.petType,
+    quote: d.drama.quote,
+    caption: d.drama.caption ?? null,
+    hashtags: d.drama.hashtags ?? [],
+    originalUrl: original,
+    remixUrl: d.remixRenderedDataUrl,
+    variant: d.variant === "remix" && d.remixRenderedDataUrl ? "remix" : "original",
+    local: d,
+  };
+}
+
 export default function Gallery() {
-  const [items, setItems] = useState<DramaDraft[]>([]);
-  const [active, setActive] = useState<DramaDraft | null>(null);
+  const [items, setItems] = useState<UIItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [active, setActive] = useState<UIItem | null>(null);
   const [activeVariant, setActiveVariant] = useState<Variant>("original");
-  const [pendingDelete, setPendingDelete] = useState<DramaDraft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
 
-  useEffect(() => {
-    const list = loadGallery();
-    console.info("[PetDrama gallery load]", list.map((it) => ({
-      galleryId: getGalleryItemId(it),
-      creationId: it.creationId,
-      hasOriginal: !!it.renderedDataUrl,
-      hasRemixImage: !!it.remixImageDataUrl,
-      hasRemixRender: !!it.remixRenderedDataUrl,
-      variant: it.variant ?? "original",
-    })));
-    setItems(list);
-  }, []);
-
-  const openItem = (item: DramaDraft) => {
-    setActive(item);
-    setActiveVariant(item.variant === "remix" && item.remixRenderedDataUrl ? "remix" : "original");
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      setIsAuthed(!!user);
+      if (user) {
+        const cloud = await listMyGallery();
+        setItems(cloud.map(cloudToUI));
+      } else {
+        const local = loadGallery();
+        setItems(local.map(localToUI));
+      }
+    } catch (err) {
+      console.error("[PetDrama gallery load]", err);
+      toast.error("Couldn't load your gallery.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDownload = (item: DramaDraft, variant: Variant, e?: React.MouseEvent) => {
+  useEffect(() => {
+    refresh();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      refresh();
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const openItem = (item: UIItem) => {
+    setActive(item);
+    setActiveVariant(item.variant === "remix" && item.remixUrl ? "remix" : "original");
+  };
+
+  const handleDownload = (item: UIItem, variant: Variant, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const url =
-      variant === "remix"
-        ? item.remixRenderedDataUrl
-        : item.renderedDataUrl || item.imageDataUrl;
+    const url = variant === "remix" ? item.remixUrl : item.originalUrl;
     if (!url) {
       toast.error("This version isn't saved.");
       return;
@@ -67,28 +138,41 @@ export default function Gallery() {
     toast.success("Downloaded!");
   };
 
-  const requestDelete = (item: DramaDraft, e?: React.MouseEvent) => {
+  const requestDelete = (item: UIItem, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setPendingDelete(item);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!pendingDelete) return;
-    const snapshot = loadGallery();
-    const pendingId = getGalleryItemId(pendingDelete);
-    const next = deleteFromGallery(pendingId);
-    setItems(next);
-    if (active && getGalleryItemId(active) === pendingId) setActive(null);
+    const target = pendingDelete;
     setPendingDelete(null);
-    toast.success("Creation deleted", {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          saveGallery(snapshot);
-          setItems(snapshot);
+
+    if (target.source === "cloud" && target.cloud) {
+      try {
+        await deleteGalleryItem(target.cloud);
+        setItems((prev) => prev.filter((it) => it.key !== target.key));
+        if (active?.key === target.key) setActive(null);
+        toast.success("Creation deleted");
+      } catch (err: any) {
+        console.error("[PetDrama gallery delete]", err);
+        toast.error(err?.message || "Couldn't delete — please try again.");
+      }
+    } else if (target.source === "local" && target.local) {
+      const snapshot = loadGallery();
+      const next = deleteFromGallery(getGalleryItemId(target.local));
+      setItems(next.map(localToUI));
+      if (active?.key === target.key) setActive(null);
+      toast.success("Creation deleted", {
+        action: {
+          label: "Undo",
+          onClick: () => {
+            saveGallery(snapshot);
+            setItems(snapshot.map(localToUI));
+          },
         },
-      },
-    });
+      });
+    }
   };
 
   return (
@@ -101,7 +185,9 @@ export default function Gallery() {
               Your dramatic collection.
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Saved on this device. Tap any card to view, download or delete.
+              {isAuthed
+                ? "Saved to your account. Available on any device."
+                : "Saved on this device. Tap any card to view, download or delete."}
             </p>
           </div>
           <Link to="/create">
@@ -109,7 +195,24 @@ export default function Gallery() {
           </Link>
         </div>
 
-        {items.length === 0 ? (
+        {!isAuthed && !loading && (
+          <StickerCard className="p-4 mb-8 bg-highlight">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm font-bold">
+                Saved on this device only. Sign in to save permanently across devices.
+              </p>
+              <Link to="/login">
+                <StickerButton variant="dark">Sign in</StickerButton>
+              </Link>
+            </div>
+          </StickerCard>
+        )}
+
+        {loading ? (
+          <div className="text-center text-sm font-bold uppercase tracking-widest text-muted-foreground py-12">
+            Loading your gallery…
+          </div>
+        ) : items.length === 0 ? (
           <StickerCard className="p-12 text-center bg-background">
             <div className="text-5xl mb-3">🎭</div>
             <h2 className="font-display text-2xl font-extrabold">No drama yet.</h2>
@@ -123,15 +226,12 @@ export default function Gallery() {
             {items.map((item, i) => {
               const s = getStyle(item.styleId);
               const tilt = [-3, 2, -1.5, 3, -2.5, 1.5][i % 6];
-              const hasFinal = !!item.renderedDataUrl;
-              const hasRemix = !!item.remixRenderedDataUrl;
-              const preview = item.variant === "remix" && hasRemix
-                ? item.remixRenderedDataUrl!
-                : item.renderedDataUrl || item.imageDataUrl;
+              const hasRemix = !!item.remixUrl;
+              const preview = item.variant === "remix" && hasRemix ? item.remixUrl! : item.originalUrl;
               return (
                 <StickerCard
-                  key={getGalleryItemId(item)}
-                  color={hasFinal ? "card" : s.color}
+                  key={item.key}
+                  color="card"
                   rotate={tilt}
                   shadow="lg"
                   className="p-3 hover:rotate-0 transition-transform cursor-pointer group relative"
@@ -172,9 +272,9 @@ export default function Gallery() {
                       type="button"
                       onClick={(e) => handleDownload(item, "original", e)}
                       className="inline-flex items-center gap-1 rounded-full border-2 border-foreground bg-primary text-primary-foreground px-2.5 py-1 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform shrink-0"
-                      aria-label="Download PNG"
+                      aria-label="Download"
                     >
-                      <Download className="size-3" /> PNG
+                      <Download className="size-3" /> {item.source === "cloud" ? "WEBP" : "PNG"}
                     </button>
                   </div>
                 </StickerCard>
@@ -187,11 +287,9 @@ export default function Gallery() {
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent className="max-w-lg p-4 md:p-6">
           {active && (() => {
-            const itemHasRemix = !!active.remixRenderedDataUrl;
+            const itemHasRemix = !!active.remixUrl;
             const showRemix = activeVariant === "remix" && itemHasRemix;
-            const previewUrl = showRemix
-              ? active.remixRenderedDataUrl!
-              : active.renderedDataUrl || active.imageDataUrl;
+            const previewUrl = showRemix ? active.remixUrl! : active.originalUrl;
             return (
               <>
                 <DialogTitle className="font-display text-xl font-extrabold">
@@ -232,9 +330,9 @@ export default function Gallery() {
                     className="w-full h-auto block"
                   />
                 </div>
-                {active.drama?.quote && (
+                {active.quote && (
                   <p className="mt-3 font-display font-extrabold text-base leading-snug">
-                    "{active.drama.quote}"
+                    "{active.quote}"
                   </p>
                 )}
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
@@ -242,7 +340,7 @@ export default function Gallery() {
                     variant="primary"
                     onClick={() => handleDownload(active, showRemix ? "remix" : "original")}
                   >
-                    ⬇ Download {showRemix ? "Remix" : "PNG"}
+                    ⬇ Download {showRemix ? "Remix" : ""}
                   </StickerButton>
                   <StickerButton
                     variant="ghost"
@@ -266,7 +364,8 @@ export default function Gallery() {
               {pendingDelete && (
                 <>
                   This will remove <strong>{normalizePetName(pendingDelete.petName)} —{" "}
-                  {getStyle(pendingDelete.styleId).name}</strong> from your gallery. You can undo right after.
+                  {getStyle(pendingDelete.styleId).name}</strong> from your gallery.
+                  {pendingDelete.source === "local" && " You can undo right after."}
                 </>
               )}
             </AlertDialogDescription>
