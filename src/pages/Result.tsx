@@ -129,7 +129,7 @@ export default function Result() {
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
-      watermark: !isPro,
+      watermark: watermarkEnabled,
       size: 1080,
     })
       .then((url) => {
@@ -163,7 +163,7 @@ export default function Result() {
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
-      watermark: !isPro,
+      watermark: watermarkEnabled,
       size: 1080,
     })
       .then((url) => {
@@ -387,7 +387,7 @@ export default function Result() {
           styleId: draft.styleId,
           quote: draft.drama.quote,
           caption: draft.drama.caption,
-          watermark: !isPro,
+          watermark: watermarkEnabled,
           size: 1080,
         });
       } catch {
@@ -428,7 +428,7 @@ export default function Result() {
         styleId: liveDraft.styleId,
         quote: liveDraft.drama.quote,
         caption: liveDraft.drama.caption,
-        watermark: !isPro,
+        watermark: watermarkEnabled,
         size: 1080 as const,
       };
       // Always ensure the original render exists.
