@@ -20,6 +20,10 @@ export default function Create() {
   // Track the active draft so re-saving with the same inputs reuses creationId
   // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
   const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
+  // True if the restored draft was already saved to the gallery — in that case
+  // any new Generate must mint a fresh creationId so we never overwrite the
+  // gallery item the user already saved.
+  const [activeSavedToGallery, setActiveSavedToGallery] = useState(false);
   const [restored, setRestored] = useState(false);
   // True when the restored draft already contains a generated result that the
   // user can jump back into without regenerating.
@@ -40,6 +44,7 @@ export default function Create() {
       setPetType(d.petType);
       setStyleId(d.styleId);
       setActiveCreationId(d.creationId);
+      setActiveSavedToGallery(!!d.savedToGallery);
       setRestored(true);
       // A draft is only saved once the user has generated, so any restored
       // draft has a result we can continue to.
@@ -97,6 +102,7 @@ export default function Create() {
     setPetType("dog");
     setStyleId("drama-queen");
     setActiveCreationId(null);
+    setActiveSavedToGallery(false);
     setRestored(false);
     setHasGeneratedResult(false);
     setRestoredSnapshot(null);
@@ -117,9 +123,12 @@ export default function Create() {
     setGenerating(true);
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
-      // Reuse the active creationId so the same draft updates in place;
-      // a brand-new draft (after Start over) gets a fresh id.
-      const creationId = activeCreationId ?? newCreationId();
+      // Reuse the active creationId only when we're iterating on an UNSAVED
+      // draft with the SAME inputs. Otherwise mint a fresh id so we never
+      // overwrite a previously-saved gallery item.
+      const reuseId =
+        !!activeCreationId && !activeSavedToGallery && !isOutdated;
+      const creationId = reuseId ? activeCreationId! : newCreationId();
       saveDraft({
         creationId,
         imageDataUrl,
@@ -130,6 +139,10 @@ export default function Create() {
         createdAt: Date.now(),
       });
       setActiveCreationId(creationId);
+      // The new draft has not been saved to the gallery yet.
+      setActiveSavedToGallery(false);
+      // Refresh snapshot so subsequent edits compare against current inputs.
+      setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
       navigate("/result");
     }, 600);
   };
