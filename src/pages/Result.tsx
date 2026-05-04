@@ -273,7 +273,7 @@ export default function Result() {
   const onCopyCaption = async () => {
     const text = `${draft.drama.caption}\n\n${draft.drama.hashtags.join(" ")}`;
     await navigator.clipboard.writeText(text);
-    toast.success("Caption copied to clipboard.");
+    toast.success("Caption + hashtags copied to clipboard.");
   };
 
   const onRegenerate = async () => {
