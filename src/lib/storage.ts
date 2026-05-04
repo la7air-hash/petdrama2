@@ -25,8 +25,12 @@ export interface DramaDraft {
   savedToGallery?: boolean;
 }
 
-const KEY = "petdrama:current";
-const GALLERY = "petdrama:gallery";
+import { ownerKeySuffix } from "./draft-owner";
+
+const LEGACY_KEY = "petdrama:current";
+const LEGACY_GALLERY = "petdrama:gallery";
+const draftKey = () => `petdrama:current:${ownerKeySuffix()}`;
+const galleryKey = () => `petdrama:gallery:${ownerKeySuffix()}`;
 
 /** Generate a stable, collision-resistant id for a new creation. */
 export function newCreationId(): string {
