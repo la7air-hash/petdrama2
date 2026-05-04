@@ -5,6 +5,7 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { UpgradeModal, type UpgradeReason } from "@/components/UpgradeModal";
 import { ProBadge } from "@/components/ProBadge";
+import { UsageMeter } from "@/components/UsageMeter";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { checkUsage } from "@/lib/usage";
 import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
@@ -25,7 +26,7 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isPro, refresh: refreshEntitlements } = useEntitlements();
+  const { isPro, usage, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
   useEffect(() => {
