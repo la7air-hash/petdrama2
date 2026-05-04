@@ -9,6 +9,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { checkUsage } from "@/lib/usage";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
 import { saveDraft, loadDraft, clearDraft, newCreationId } from "@/lib/storage";
+import { OWNER_CHANGED_EVENT } from "@/lib/draft-owner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
