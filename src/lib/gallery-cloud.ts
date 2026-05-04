@@ -8,6 +8,7 @@ import type { DramaDraft } from "./storage";
 export interface CloudGalleryItem {
   id: string;
   user_id: string;
+  creation_id: string;
   pet_name: string;
   pet_type: PetType;
   style_id: DramaStyleId;
