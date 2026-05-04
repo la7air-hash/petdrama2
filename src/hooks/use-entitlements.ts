@@ -39,9 +39,9 @@ const ANON_USAGE: UsageSummary = {
 const FREE_FALLBACK: UsageSummary = {
   plan: "free",
   standard_used: 0,
-  standard_limit: 15,
+  standard_limit: 10,
   remix_used: 0,
-  remix_limit: 5,
+  remix_limit: 3,
   is_admin: false,
 };
 
