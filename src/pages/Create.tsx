@@ -365,6 +365,7 @@ export default function Create() {
           </StickerCard>
         </div>
       </section>
+      <UpgradeModal open={!!upgradeReason} reason={upgradeReason} onClose={() => setUpgradeReason(null)} />
     </PageShell>
   );
 }
