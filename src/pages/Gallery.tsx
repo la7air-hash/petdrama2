@@ -482,14 +482,7 @@ export default function Gallery() {
                             </button>
                           </div>
 
-                          <div className="mt-3 grid grid-cols-3 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleNativeShare(active, st.slug!)}
-                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                            >
-                              <Share2 className="size-3" /> Share
-                            </button>
+                          <div className={cn("mt-3 grid gap-2", canNativeShare ? "grid-cols-3" : "grid-cols-2")}>
                             <a
                               href={whatsappShareUrl(shareUrl, `${normalizePetName(active.petName)} the ${getStyle(active.styleId).name} 🎭`)}
                               target="_blank"
@@ -506,6 +499,15 @@ export default function Gallery() {
                             >
                               <Facebook className="size-3" /> Facebook
                             </a>
+                            {canNativeShare && (
+                              <button
+                                type="button"
+                                onClick={() => handleNativeShare(active, st.slug!)}
+                                className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                              >
+                                <Share2 className="size-3" /> Share
+                              </button>
+                            )}
                           </div>
                         </>
                       )}
