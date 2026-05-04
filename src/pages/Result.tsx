@@ -346,23 +346,28 @@ export default function Result() {
       try { body = await res.json(); } catch { /* ignore */ }
       const serverStatus = res.status;
       const serverError: string | undefined = body?.error;
+      const serverCode: string | undefined = body?.code ?? serverError;
       const remixUrl: string | undefined = body?.imageDataUrl;
 
-      if (!res.ok || !remixUrl) {
-        if (serverStatus === 403 && serverError === "pro_only") {
+      if (body?.ok === false || !res.ok || !remixUrl) {
+        if (serverCode === "pro_only") {
           setUpgradeReason("pro_only");
           return;
         }
-        if (serverStatus === 402 && serverError === "monthly_limit_reached") {
+        if (serverCode === "monthly_limit_reached") {
           setUpgradeReason("monthly_limit_reached");
           return;
         }
-        if (serverStatus === 402 && serverError === "daily_limit_reached") {
+        if (serverCode === "daily_limit_reached") {
           setUpgradeReason("daily_limit_reached");
           return;
         }
-        if (serverStatus === 402 && serverError === "anon_limit") {
+        if (serverCode === "anon_limit") {
           setUpgradeReason("anon_limit");
+          return;
+        }
+        if (serverCode === "ai_unavailable") {
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
           return;
         }
         const msg =
