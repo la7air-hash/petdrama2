@@ -227,6 +227,7 @@ serve(async (req) => {
       if (embedded) {
         console.warn("Embedded provider error:", embedded);
         if (embedded.code === 429) {
+          await refund();
           return new Response(
             JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
