@@ -26,7 +26,7 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { isPro, usage, refresh: refreshEntitlements } = useEntitlements();
+  const { isPro, isPaid, isAdmin, watermarkEnabled, usage, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
   useEffect(() => {
@@ -129,7 +129,7 @@ export default function Result() {
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
-      watermark: !isPro,
+      watermark: watermarkEnabled,
       size: 1080,
     })
       .then((url) => {
@@ -163,7 +163,7 @@ export default function Result() {
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
-      watermark: !isPro,
+      watermark: watermarkEnabled,
       size: 1080,
     })
       .then((url) => {
@@ -282,7 +282,14 @@ export default function Result() {
       const gate = await checkUsage("regenerate");
       if (!gate.ok) {
         const err = gate.error;
-        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        if (
+          err === "anon_limit" ||
+          err === "daily_limit_reached" ||
+          err === "monthly_limit_reached" ||
+          err === "monthly_standard_limit_reached" ||
+          err === "monthly_remix_limit_reached" ||
+          err === "pro_only"
+        ) {
           setUpgradeReason(err);
         } else if (err === "auth_required") {
           setUpgradeReason("anon_limit");
@@ -312,19 +319,22 @@ export default function Result() {
 
   const onDramaRemix = async () => {
     if (isRemixing) return;
-    if (!isPro) { setUpgradeReason("pro_only"); return; }
+    // Anonymous users must sign in first; signed-in Free/Standard/Pro/Admin
+    // all hit the server which enforces the per-plan remix quota.
     setIsRemixing(true);
     try {
-      // Use raw fetch and controlled JSON states so handled usage/AI failures
-      // never throw into the global error overlay.
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
+      if (!token) {
+        setUpgradeReason("anon_limit");
+        return;
+      }
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/drama-remix`;
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${token}`,
       };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
       let res: Response;
       try {
         res = await fetch(url, {
@@ -350,20 +360,15 @@ export default function Result() {
       const remixUrl: string | undefined = body?.imageDataUrl;
 
       if (body?.ok === false || !res.ok || !remixUrl) {
-        if (serverCode === "pro_only") {
-          setUpgradeReason("pro_only");
-          return;
-        }
-        if (serverCode === "monthly_limit_reached") {
-          setUpgradeReason("monthly_limit_reached");
-          return;
-        }
-        if (serverCode === "daily_limit_reached") {
-          setUpgradeReason("daily_limit_reached");
-          return;
-        }
-        if (serverCode === "anon_limit") {
-          setUpgradeReason("anon_limit");
+        if (
+          serverCode === "pro_only" ||
+          serverCode === "monthly_remix_limit_reached" ||
+          serverCode === "monthly_standard_limit_reached" ||
+          serverCode === "monthly_limit_reached" ||
+          serverCode === "daily_limit_reached" ||
+          serverCode === "anon_limit"
+        ) {
+          setUpgradeReason(serverCode as UpgradeReason);
           return;
         }
         if (serverCode === "ai_unavailable") {
@@ -387,7 +392,7 @@ export default function Result() {
           styleId: draft.styleId,
           quote: draft.drama.quote,
           caption: draft.drama.caption,
-          watermark: !isPro,
+          watermark: watermarkEnabled,
           size: 1080,
         });
       } catch {
@@ -428,7 +433,7 @@ export default function Result() {
         styleId: liveDraft.styleId,
         quote: liveDraft.drama.quote,
         caption: liveDraft.drama.caption,
-        watermark: !isPro,
+        watermark: watermarkEnabled,
         size: 1080 as const,
       };
       // Always ensure the original render exists.
@@ -607,21 +612,20 @@ export default function Result() {
             {!hasRemix && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="font-display font-extrabold text-base flex items-center gap-2">
-                    ✨ Drama Remix {!isPro && <ProBadge />}
+                  <p className="font-display font-extrabold text-base">
+                    ✨ Drama Remix
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {isPro
-                      ? `Stylize the photo to match ${style.name}. Same pet, new vibe.`
-                      : "Pro feature — stylize the photo to match the drama style."}
+                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                    {!isPaid && !isAdmin && " Free plan includes 5 remixes/month."}
                   </p>
                 </div>
                 <StickerButton
                   variant="primary"
-                  onClick={isPro ? onDramaRemix : () => setUpgradeReason("pro_only")}
+                  onClick={onDramaRemix}
                   disabled={isRemixing}
                 >
-                  {isRemixing ? "Remixing…" : isPro ? "✨ Drama Remix" : "🔒 Upgrade to Remix"}
+                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
                 </StickerButton>
               </div>
             )}
@@ -736,10 +740,10 @@ export default function Result() {
               </StickerButton>
             </div>
 
-            {!isPro && (
+            {!isPaid && !isAdmin && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 text-sm">
                 <p>
-                  <span className="font-bold">Free plan:</span> includes a small "Made with PetDrama" watermark.{" "}
+                  <span className="font-bold">Free plan:</span> includes a "Made with PetDrama" watermark.{" "}
                   <Link to="/pricing" className="font-bold underline decoration-primary decoration-4 underline-offset-2">
                     Upgrade to remove it
                   </Link>

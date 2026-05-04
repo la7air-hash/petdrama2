@@ -303,10 +303,13 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   ctx.fillText("PETDRAMA", sideMargin + 24, footerY);
 
   if (opts.watermark) {
-    ctx.font = `500 13px "Space Grotesk", system-ui, sans-serif`;
+    // Larger, readable but elegant watermark in the footer-right area.
+    const wmFontSize = Math.max(18, Math.round(size * 0.022));
+    ctx.font = `700 ${wmFontSize}px "Space Grotesk", system-ui, sans-serif`;
     ctx.fillStyle = inkSoft;
     ctx.textAlign = "right";
-    ctx.fillText("Made with PetDrama · petdrama.app", size - sideMargin, footerY);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Made with PetDrama · petdrama.online", size - sideMargin, footerY);
   }
 
   return canvas.toDataURL("image/png");
