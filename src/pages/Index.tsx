@@ -84,8 +84,41 @@ export default function Home() {
       </div>
 
       {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 dot-grid opacity-60 pointer-events-none" aria-hidden />
+      <section className="relative overflow-hidden text-background border-b-2 border-foreground">
+        {/* Cinematic gradient background */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(120% 80% at 90% 50%, hsl(320 100% 55% / 0.95) 0%, hsl(320 100% 45% / 0.7) 25%, transparent 60%), radial-gradient(90% 70% at 10% 30%, hsl(250 100% 35% / 0.9) 0%, transparent 60%), linear-gradient(135deg, hsl(240 60% 10%) 0%, hsl(260 70% 18%) 45%, hsl(320 90% 35%) 100%)",
+          }}
+        />
+        {/* Subtle line accents */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.18] mix-blend-screen"
+          aria-hidden
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(115deg, hsl(0 0% 100% / 0.6) 0 1px, transparent 1px 90px), repeating-linear-gradient(115deg, hsl(0 0% 100% / 0.35) 0 1px, transparent 1px 30px)",
+            backgroundSize: "auto, auto",
+            maskImage:
+              "linear-gradient(115deg, transparent 0%, black 20%, black 80%, transparent 100%)",
+          }}
+        />
+        {/* Dotted rounded frame accents */}
+        <div className="pointer-events-none absolute inset-6 md:inset-10 rounded-[3rem] border border-dashed border-background/20" aria-hidden />
+        <div className="pointer-events-none absolute inset-10 md:inset-16 rounded-[2.5rem] border border-dashed border-background/10" aria-hidden />
+        {/* Soft dot grid overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-30"
+          aria-hidden
+          style={{
+            backgroundImage:
+              "radial-gradient(hsl(0 0% 100% / 0.25) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
         <div className="container relative grid gap-12 py-12 md:py-20 lg:grid-cols-12 lg:gap-8 items-center">
           <div className="lg:col-span-6 z-10">
             <div className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-accent px-4 py-1.5 sticker-shadow-sm -rotate-2 mb-6">
@@ -97,7 +130,7 @@ export default function Home() {
               <br />
               Their <span className="text-primary">drama.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-muted-foreground leading-relaxed text-pretty">
+            <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty">
               Upload a photo and turn your pet into a funny dramatic character in seconds. Get a meme, a caption, hashtags — ready to share.
             </p>
 
@@ -125,10 +158,10 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight">
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight text-background">
                 12,842 pets exposed
                 <br />
-                <span className="font-medium text-muted-foreground normal-case tracking-normal">
+                <span className="font-medium text-background/70 normal-case tracking-normal">
                   this week alone — entertainment only ✨
                 </span>
               </p>
