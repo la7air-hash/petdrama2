@@ -107,7 +107,7 @@ export default function Home() {
                   Create Pet Drama →
                 </StickerButton>
               </Link>
-              <Link to="/gallery">
+              <Link to="/examples">
                 <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto">
                   See examples
                 </StickerButton>
