@@ -276,7 +276,17 @@ export default function Result() {
     toast.success("Caption copied to clipboard.");
   };
 
-  const onRegenerate = () => {
+  const onRegenerate = async () => {
+    const gate = await checkUsage("regenerate");
+    if (!gate.ok) {
+      const err = gate.error;
+      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        setUpgradeReason(err);
+      } else {
+        toast.error("Could not regenerate. Please try again.");
+      }
+      return;
+    }
     const next = generateDrama(draft.styleId, draft.petName, draft.petType);
     const updated: DramaDraft = {
       ...draft,
@@ -289,6 +299,7 @@ export default function Result() {
     setDraft(updated);
     setRenderUrl(null);
     setRemixRenderUrl(null);
+    refreshEntitlements();
   };
 
   const onDramaRemix = async () => {
