@@ -7,9 +7,14 @@ export type UsageKind = "generate" | "regenerate" | "remix";
 
 export interface UsageCheckResult {
   ok: boolean;
-  plan?: "anon" | "free" | "pro";
-  remaining?: number;
   plan?: "anon" | "free" | "standard" | "pro" | "admin";
+  remaining?: number;
+  error?:
+    | "anon_limit"
+    | "daily_limit_reached"
+    | "monthly_limit_reached"
+    | "monthly_standard_limit_reached"
+    | "monthly_remix_limit_reached"
     | "pro_only"
     | "auth_required"
     | "ai_unavailable"
