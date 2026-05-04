@@ -578,13 +578,21 @@ export default function Result() {
             {!hasRemix && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="font-display font-extrabold text-base">✨ Drama Remix</p>
+                  <p className="font-display font-extrabold text-base flex items-center gap-2">
+                    ✨ Drama Remix {!isPro && <ProBadge />}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                    {isPro
+                      ? `Stylize the photo to match ${style.name}. Same pet, new vibe.`
+                      : "Pro feature — stylize the photo to match the drama style."}
                   </p>
                 </div>
-                <StickerButton variant="primary" onClick={onDramaRemix} disabled={isRemixing}>
-                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
+                <StickerButton
+                  variant="primary"
+                  onClick={isPro ? onDramaRemix : () => setUpgradeReason("pro_only")}
+                  disabled={isRemixing}
+                >
+                  {isRemixing ? "Remixing…" : isPro ? "✨ Drama Remix" : "🔒 Upgrade to Remix"}
                 </StickerButton>
               </div>
             )}
