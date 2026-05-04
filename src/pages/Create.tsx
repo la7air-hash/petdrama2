@@ -117,7 +117,7 @@ export default function Create() {
 
   const onContinueToResult = () => navigate("/result");
 
-  const onGenerate = () => {
+  const onGenerate = async () => {
     if (!canGenerate || !imageDataUrl) return;
     // Outdated → confirm before discarding the existing result.
     if (isOutdated) {
@@ -127,11 +127,21 @@ export default function Create() {
       if (!ok) return;
     }
     setGenerating(true);
+    // Server-side gate: counts as 1 creation. Counts regenerate when input is unchanged.
+    const kind = isOutdated || !activeCreationId ? "generate" : "regenerate";
+    const gate = await checkUsage(kind);
+    if (!gate.ok) {
+      setGenerating(false);
+      const err = gate.error;
+      if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        setUpgradeReason(err);
+      } else {
+        toast.error("Could not start a new drama. Please try again.");
+      }
+      return;
+    }
     setTimeout(() => {
       const drama = generateDrama(styleId, petName, petType);
-      // Reuse the active creationId only when we're iterating on an UNSAVED
-      // draft with the SAME inputs. Otherwise mint a fresh id so we never
-      // overwrite a previously-saved gallery item.
       const reuseId =
         !!activeCreationId && !activeSavedToGallery && !isOutdated;
       const creationId = reuseId ? activeCreationId! : newCreationId();
@@ -145,10 +155,9 @@ export default function Create() {
         createdAt: Date.now(),
       });
       setActiveCreationId(creationId);
-      // The new draft has not been saved to the gallery yet.
       setActiveSavedToGallery(false);
-      // Refresh snapshot so subsequent edits compare against current inputs.
       setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
+      refreshEntitlements();
       navigate("/result");
     }, 600);
   };
