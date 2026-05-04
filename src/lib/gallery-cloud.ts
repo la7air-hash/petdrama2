@@ -5,6 +5,17 @@ import { dataUrlToWebpBlob, uploadToGallery } from "./upload";
 import { getStyle, type DramaStyleId, type PetType } from "./drama";
 import type { DramaDraft } from "./storage";
 
+export interface RemixVariant {
+  id: string;
+  gallery_item_id: string;
+  image_path: string;
+  caption: string | null;
+  quote: string;
+  hashtags: string[];
+  created_at: string;
+  signedUrl: string;
+}
+
 export interface CloudGalleryItem {
   id: string;
   user_id: string;
@@ -26,6 +37,8 @@ export interface CloudGalleryItem {
   /** Signed URLs computed at load time. */
   originalSignedUrl: string;
   remixSignedUrl?: string;
+  /** All remix variants for this item, oldest → newest. Empty if none. */
+  remixes: RemixVariant[];
 }
 
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
