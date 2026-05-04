@@ -81,10 +81,12 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   drawStar(ctx, size * 0.9, size * 0.12, size * 0.045, 5, palette.accent2, black);
 
   // ============== 3. POLAROID PHOTO FRAME (tilted, offset shadow) ==============
-  const frameW = Math.round(size * 0.78);
-  const frameH = Math.round(size * 0.66);
+  // NOTE: frame height reduced to 0.56 (from 0.66) to guarantee vertical
+  // headroom for a non-overlapping quote area + caption panel below.
+  const frameW = Math.round(size * 0.74);
+  const frameH = Math.round(size * 0.56);
   const frameX = Math.round((size - frameW) / 2);
-  const frameY = Math.round(size * 0.13);
+  const frameY = Math.round(size * 0.1);
   const frameR = Math.round(size * 0.035);
   const tilt = -0.025; // very subtle tilt
 
