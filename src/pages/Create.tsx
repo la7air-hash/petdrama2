@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 export default function Create() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { usage, refresh: refreshEntitlements } = useEntitlements();
+  const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
   const [petType, setPetType] = useState<PetType>("dog");
