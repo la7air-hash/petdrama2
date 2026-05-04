@@ -9,10 +9,7 @@ export interface UsageCheckResult {
   ok: boolean;
   plan?: "anon" | "free" | "pro";
   remaining?: number;
-  error?:
-    | "anon_limit"
-    | "daily_limit_reached"
-    | "monthly_limit_reached"
+  plan?: "anon" | "free" | "standard" | "pro" | "admin";
     | "pro_only"
     | "auth_required"
     | "ai_unavailable"

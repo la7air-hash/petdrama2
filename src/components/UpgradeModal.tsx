@@ -8,31 +8,45 @@ export type UpgradeReason =
   | "anon_limit"
   | "daily_limit_reached"
   | "monthly_limit_reached"
+  | "monthly_standard_limit_reached"
+  | "monthly_remix_limit_reached"
   | "pro_only";
 
 const COPY: Record<UpgradeReason, { title: string; body: string; primary: string; primaryTo: string }> = {
   anon_limit: {
     title: "Create a free account to keep going",
-    body: "Create a free account to generate more PetDramas. Free accounts get 5 creations per day.",
+    body: "Free accounts get 15 creations and 5 Drama Remix per month. Sign in to continue.",
     primary: "Sign in — free",
     primaryTo: "/login",
   },
   daily_limit_reached: {
-    title: "Daily limit reached",
-    body: "You've used your 5 free creations for today. Upgrade to Pro or come back tomorrow.",
-    primary: "Upgrade to Pro",
+    title: "Limit reached",
+    body: "You've used your monthly creations. Upgrade to Standard or Pro for more.",
+    primary: "View plans",
     primaryTo: "/pricing",
   },
   monthly_limit_reached: {
     title: "Monthly limit reached",
-    body: "You've used all 150 Pro creations this month. Your quota resets on a rolling 30-day window.",
+    body: "Your quota resets on a rolling 30-day window. Upgrade for a higher monthly cap.",
+    primary: "View plans",
+    primaryTo: "/pricing",
+  },
+  monthly_standard_limit_reached: {
+    title: "Monthly creation limit reached",
+    body: "You've used all your standard creations for this 30-day window. Upgrade for more.",
+    primary: "View plans",
+    primaryTo: "/pricing",
+  },
+  monthly_remix_limit_reached: {
+    title: "Monthly Drama Remix limit reached",
+    body: "You've used all your Drama Remix for this 30-day window. Upgrade to Standard or Pro for more.",
     primary: "View plans",
     primaryTo: "/pricing",
   },
   pro_only: {
-    title: "Drama Remix is a Pro feature",
-    body: "Upgrade to Pro to stylize photos with Drama Remix, unlock all styles, remove watermarks and download in HD.",
-    primary: "Upgrade to Pro",
+    title: "Upgrade for more Drama Remix",
+    body: "Standard includes 10 remixes per month, Pro includes 20.",
+    primary: "View plans",
     primaryTo: "/pricing",
   },
 };
