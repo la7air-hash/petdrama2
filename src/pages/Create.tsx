@@ -102,6 +102,7 @@ export default function Create() {
     setPetType("dog");
     setStyleId("drama-queen");
     setActiveCreationId(null);
+    setActiveSavedToGallery(false);
     setRestored(false);
     setHasGeneratedResult(false);
     setRestoredSnapshot(null);
