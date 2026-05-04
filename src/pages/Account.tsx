@@ -97,7 +97,7 @@ export default function Account() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <StickerButton onClick={() => navigate("/gallery")}>My Gallery</StickerButton>
-          <StickerButton variant="outline" onClick={handleSignOut}>
+          <StickerButton variant="ghost" onClick={handleSignOut}>
             Sign out
           </StickerButton>
         </div>
