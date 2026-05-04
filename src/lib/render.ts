@@ -174,7 +174,9 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   // Reserve space for caption panel below the quote (panel + clear gap)
   const hasCaption = !!(opts.caption || "").trim();
   const captionReserve = hasCaption ? Math.round(size * 0.16) : Math.round(size * 0.02);
-  const quoteAreaBottom = size - sideMargin - footerH - captionReserve;
+  // Reserve room for the accent underline + breathing gap below the last quote line.
+  const underlineReserve = Math.round(size * 0.04);
+  const quoteAreaBottom = size - sideMargin - footerH - captionReserve - underlineReserve;
   const quoteAreaH = Math.max(0, quoteAreaBottom - quoteTop);
 
   // Start size scales by length; shrink aggressively until it fits cleanly.
@@ -215,10 +217,13 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
     qy += qLineH;
   }
 
-  // Bright accent underline bar under the quote — adds a designed feel
+  // Bright accent underline bar under the quote — adds a designed feel.
+  // Place it BELOW the last quote line (qy already advanced past it by qLineH),
+  // with a small clear gap so it never visually overlaps the text descenders.
   const underlineW = Math.min(Math.round(size * 0.18), maxTextW * 0.4);
   const underlineH = Math.round(size * 0.012);
-  const underlineY = qy - qLineH + Math.round(size * 0.018);
+  const lastLineBaselineY = qy - qLineH; // baseline of last drawn line
+  const underlineY = lastLineBaselineY + Math.round(qSize * 0.32);
   drawRoundedRect(ctx, (size - underlineW) / 2, underlineY, underlineW, underlineH, underlineH / 2);
   ctx.fillStyle = palette.accent;
   ctx.fill();
@@ -411,4 +416,35 @@ export function downloadDataUrl(dataUrl: string, filename: string) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+/**
+ * Download any URL (data:, blob:, http(s):) as a real file without navigating
+ * away. For cross-origin URLs (e.g. Supabase signed URLs) the browser ignores
+ * the anchor `download` attribute and would otherwise navigate to the image —
+ * so we fetch into a Blob first and download from a blob: URL.
+ */
+export async function downloadUrlAsFile(url: string, filename: string) {
+  // Fast path: data: URLs work directly with the anchor download attribute.
+  if (url.startsWith("data:")) {
+    downloadDataUrl(url, filename);
+    return;
+  }
+  try {
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (err) {
+    console.error("[PetDrama download fallback]", err);
+    // Last resort: open in new tab so we never replace the current page.
+    window.open(url, "_blank", "noopener");
+  }
 }

@@ -5,7 +5,7 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { getGalleryItemId, loadGallery, saveGallery, deleteFromGallery, type DramaDraft } from "@/lib/storage";
 import { getStyle, normalizePetName, type DramaStyleId, type PetType } from "@/lib/drama";
-import { downloadDataUrl } from "@/lib/render";
+import { downloadUrlAsFile } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyGallery, deleteGalleryItem, type CloudGalleryItem } from "@/lib/gallery-cloud";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -127,15 +127,19 @@ export default function Gallery() {
     setActiveVariant(item.variant === "remix" && item.remixUrl ? "remix" : "original");
   };
 
-  const handleDownload = (item: UIItem, variant: Variant, e?: React.MouseEvent) => {
+  const handleDownload = async (item: UIItem, variant: Variant, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const url = variant === "remix" ? item.remixUrl : item.originalUrl;
     if (!url) {
       toast.error("This version isn't saved.");
       return;
     }
-    downloadDataUrl(url, fileNameFor(item, variant));
-    toast.success("Downloaded!");
+    try {
+      await downloadUrlAsFile(url, fileNameFor(item, variant));
+      toast.success("Downloaded!");
+    } catch {
+      toast.error("Couldn't download — please try again.");
+    }
   };
 
   const requestDelete = (item: UIItem, e?: React.MouseEvent) => {
