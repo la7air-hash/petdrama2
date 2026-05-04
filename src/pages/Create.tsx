@@ -170,11 +170,6 @@ export default function Create() {
               </p>
             )}
           </div>
-          {(restored || imageDataUrl || petName) && (
-            <StickerButton variant="ghost" onClick={onStartOver}>
-              ↺ Start over
-            </StickerButton>
-          )}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-12">
@@ -315,6 +310,16 @@ export default function Create() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              {(restored || imageDataUrl || petName) && (
+                <StickerButton
+                  variant="ghost"
+                  size="lg"
+                  onClick={onStartOver}
+                  className="w-full sm:w-auto"
+                >
+                  ↺ Start over
+                </StickerButton>
+              )}
               {hasGeneratedResult && (
                 <StickerButton
                   variant={isOutdated ? "ghost" : "primary"}
