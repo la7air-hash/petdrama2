@@ -612,21 +612,20 @@ export default function Result() {
             {!hasRemix && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="font-display font-extrabold text-base flex items-center gap-2">
-                    ✨ Drama Remix {!isPro && <ProBadge />}
+                  <p className="font-display font-extrabold text-base">
+                    ✨ Drama Remix
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {isPro
-                      ? `Stylize the photo to match ${style.name}. Same pet, new vibe.`
-                      : "Pro feature — stylize the photo to match the drama style."}
+                    Stylize the photo to match {style.name}. Same pet, new vibe.
+                    {!isPaid && !isAdmin && " Free plan includes 5 remixes/month."}
                   </p>
                 </div>
                 <StickerButton
                   variant="primary"
-                  onClick={isPro ? onDramaRemix : () => setUpgradeReason("pro_only")}
+                  onClick={onDramaRemix}
                   disabled={isRemixing}
                 >
-                  {isRemixing ? "Remixing…" : isPro ? "✨ Drama Remix" : "🔒 Upgrade to Remix"}
+                  {isRemixing ? "Remixing…" : "✨ Drama Remix"}
                 </StickerButton>
               </div>
             )}
@@ -741,10 +740,10 @@ export default function Result() {
               </StickerButton>
             </div>
 
-            {!isPro && (
+            {!isPaid && !isAdmin && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 text-sm">
                 <p>
-                  <span className="font-bold">Free plan:</span> includes a small "Made with PetDrama" watermark.{" "}
+                  <span className="font-bold">Free plan:</span> includes a "Made with PetDrama" watermark.{" "}
                   <Link to="/pricing" className="font-bold underline decoration-primary decoration-4 underline-offset-2">
                     Upgrade to remove it
                   </Link>

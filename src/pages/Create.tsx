@@ -134,7 +134,14 @@ export default function Create() {
       if (!gate.ok) {
         setGenerating(false);
         const err = gate.error;
-        if (err === "anon_limit" || err === "daily_limit_reached" || err === "monthly_limit_reached" || err === "pro_only") {
+        if (
+          err === "anon_limit" ||
+          err === "daily_limit_reached" ||
+          err === "monthly_limit_reached" ||
+          err === "monthly_standard_limit_reached" ||
+          err === "monthly_remix_limit_reached" ||
+          err === "pro_only"
+        ) {
           setUpgradeReason(err);
         } else if (err === "auth_required") {
           setUpgradeReason("anon_limit");
