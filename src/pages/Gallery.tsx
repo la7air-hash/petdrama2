@@ -131,6 +131,16 @@ export default function Gallery() {
   };
 
   useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    const hasShare = typeof (navigator as any).share === "function";
+    const isTouch =
+      typeof window !== "undefined" &&
+      (window.matchMedia?.("(pointer: coarse)").matches ||
+        /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+    setCanNativeShare(hasShare && isTouch);
+  }, []);
+
+  useEffect(() => {
     refresh();
     const { data: sub } = supabase.auth.onAuthStateChange(() => {
       refresh();
