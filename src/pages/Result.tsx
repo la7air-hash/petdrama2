@@ -689,7 +689,7 @@ export default function Result() {
                 ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
-                📋 Copy caption
+                📋 Copy caption + hashtags
               </StickerButton>
               {hasRemix ? (
                 <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
