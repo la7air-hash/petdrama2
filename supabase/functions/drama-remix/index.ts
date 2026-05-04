@@ -149,11 +149,7 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-      return new Response(
-        JSON.stringify({ error: "AI not configured. Please try again later." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+
 
     const styleMood = STYLE_PROMPTS[styleId] ?? "stylized cinematic pet portrait, vibrant mood";
     const subject = petType && petType !== "other" ? `the same ${petType}` : "the same pet";
