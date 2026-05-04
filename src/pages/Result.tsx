@@ -424,14 +424,19 @@ export default function Result() {
       }
 
       saveDraft(persisted);
-      const stored = saveToGallery(persisted);
-      setDraft(persisted);
-      auditCreationAssets("result-save-to-gallery", persisted, stored ? [stored] : []);
-      toast.success(
-        persisted.remixRenderedDataUrl
-          ? "Saved Original + Remix to your gallery."
-          : "Saved to your gallery.",
-      );
+      try {
+        const stored = saveToGallery(persisted);
+        setDraft(persisted);
+        auditCreationAssets("result-save-to-gallery", persisted, [stored]);
+        toast.success(
+          persisted.remixRenderedDataUrl
+            ? "Original + Remix saved to your gallery."
+            : "Original saved to your gallery.",
+        );
+      } catch (saveErr: any) {
+        console.error("[PetDrama save error]", saveErr);
+        toast.error(saveErr?.message || "Couldn't save to gallery — please try again.");
+      }
     } catch (e) {
       console.error("[PetDrama save error]", e);
       toast.error("Couldn't save — please try again.");
