@@ -158,7 +158,58 @@ export default function Gallery() {
     }
   };
 
-  const requestDelete = (item: UIItem, e?: React.MouseEvent) => {
+  const handleToggleShare = async (item: UIItem, enable: boolean) => {
+    if (item.source !== "cloud" || !item.cloud) {
+      toast.error("Sign in to share creations.");
+      return;
+    }
+    setShareBusy(true);
+    try {
+      const res = await setShareEnabled(item.cloud.id, enable);
+      setShareState((prev) => ({
+        ...prev,
+        [item.cloud!.id]: { enabled: res.share_enabled, slug: res.slug },
+      }));
+      if (enable && res.slug) {
+        try {
+          await copyToClipboard(getShareUrl(res.slug));
+          toast.success("Public link created and copied!");
+        } catch {
+          toast.success("Public link created.");
+        }
+      } else {
+        toast.success("Sharing disabled.");
+      }
+    } catch (err: any) {
+      console.error("[PetDrama share toggle]", err);
+      toast.error(err?.message || "Couldn't update sharing.");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleCopyShare = async (slug: string) => {
+    try {
+      await copyToClipboard(getShareUrl(slug));
+      toast.success("Link copied!");
+    } catch {
+      toast.error("Couldn't copy.");
+    }
+  };
+
+  const handleNativeShare = async (item: UIItem, slug: string) => {
+    const url = getShareUrl(slug);
+    const fileUrl = item.variant === "remix" && item.remixUrl ? item.remixUrl : item.originalUrl;
+    const ok = await nativeShare({
+      url,
+      title: `${normalizePetName(item.petName)} — PetDrama`,
+      text: item.quote,
+      fileUrl,
+      fileName: fileNameFor(item, item.variant).replace(/\.png$/, ".webp"),
+    });
+    if (!ok) handleCopyShare(slug);
+  };
+
     e?.stopPropagation();
     setPendingDelete(item);
   };
