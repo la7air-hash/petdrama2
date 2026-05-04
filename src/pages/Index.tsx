@@ -158,10 +158,10 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight">
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight text-background">
                 12,842 pets exposed
                 <br />
-                <span className="font-medium text-muted-foreground normal-case tracking-normal">
+                <span className="font-medium text-background/70 normal-case tracking-normal">
                   this week alone — entertainment only ✨
                 </span>
               </p>
