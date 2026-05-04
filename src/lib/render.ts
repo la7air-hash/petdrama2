@@ -215,10 +215,13 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
     qy += qLineH;
   }
 
-  // Bright accent underline bar under the quote — adds a designed feel
+  // Bright accent underline bar under the quote — adds a designed feel.
+  // Place it BELOW the last quote line (qy already advanced past it by qLineH),
+  // with a small clear gap so it never visually overlaps the text descenders.
   const underlineW = Math.min(Math.round(size * 0.18), maxTextW * 0.4);
   const underlineH = Math.round(size * 0.012);
-  const underlineY = qy - qLineH + Math.round(size * 0.018);
+  const lastLineBaselineY = qy - qLineH; // baseline of last drawn line
+  const underlineY = lastLineBaselineY + Math.round(qSize * 0.32);
   drawRoundedRect(ctx, (size - underlineW) / 2, underlineY, underlineW, underlineH, underlineH / 2);
   ctx.fillStyle = palette.accent;
   ctx.fill();
