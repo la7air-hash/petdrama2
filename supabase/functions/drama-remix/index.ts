@@ -143,12 +143,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.warn("LOVABLE_API_KEY not configured");
       await refund();
-      return new Response(
-        JSON.stringify({ error: "AI not configured. Please try again later." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return handled({ error: "ai_unavailable", code: "ai_unavailable" });
     }
 
 
@@ -187,21 +184,15 @@ serve(async (req) => {
 
       if (!response.ok) {
         const t = await response.text().catch(() => "");
-        console.error("AI gateway HTTP error:", response.status, t.slice(0, 400));
+        console.warn("AI gateway HTTP error:", response.status, t.slice(0, 400));
 
         if (response.status === 429) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
         if (response.status === 402) {
           await refund();
-          return new Response(
-            JSON.stringify({ error: "AI credits exhausted. Add credits in Lovable Cloud workspace." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
+          return handled({ error: "ai_unavailable", code: "ai_unavailable" });
         }
 
         lastReason = `HTTP ${response.status}`;
