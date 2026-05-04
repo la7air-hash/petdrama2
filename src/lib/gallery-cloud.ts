@@ -20,6 +20,9 @@ export interface CloudGalleryItem {
   remix_image_path: string | null;
   variant: "original" | "remix";
   created_at: string;
+  public_share_slug: string | null;
+  share_enabled: boolean;
+  shared_at: string | null;
   /** Signed URLs computed at load time. */
   originalSignedUrl: string;
   remixSignedUrl?: string;
@@ -84,7 +87,7 @@ export async function saveGalleryItem(args: SaveCloudArgs): Promise<CloudGallery
     .eq("creation_id", creationId)
     .limit(1);
   if (lookupErr) throw lookupErr;
-  const existing = existingRows?.[0] as CloudGalleryItem | undefined;
+  const existing = existingRows?.[0] as (CloudGalleryItem & Record<string, unknown>) | undefined;
 
   // Reuse the existing row's id (and storage folder) so we overwrite the same files.
   const id = existing?.id ?? crypto.randomUUID();
