@@ -144,24 +144,30 @@ export default function Create() {
         return;
       }
       setTimeout(() => {
-        const drama = generateDrama(styleId, petName, petType);
-        const reuseId =
-          !!activeCreationId && !activeSavedToGallery && !isOutdated;
-        const creationId = reuseId ? activeCreationId! : newCreationId();
-        saveDraft({
-          creationId,
-          imageDataUrl,
-          petName: petName.trim(),
-          petType,
-          styleId,
-          drama,
-          createdAt: Date.now(),
-        });
-        setActiveCreationId(creationId);
-        setActiveSavedToGallery(false);
-        setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
-        refreshEntitlements();
-        navigate("/result");
+        try {
+          const drama = generateDrama(styleId, petName, petType);
+          const reuseId =
+            !!activeCreationId && !activeSavedToGallery && !isOutdated;
+          const creationId = reuseId ? activeCreationId! : newCreationId();
+          saveDraft({
+            creationId,
+            imageDataUrl,
+            petName: petName.trim(),
+            petType,
+            styleId,
+            drama,
+            createdAt: Date.now(),
+          });
+          setActiveCreationId(creationId);
+          setActiveSavedToGallery(false);
+          setRestoredSnapshot({ imageDataUrl, petName: petName.trim(), petType, styleId });
+          refreshEntitlements();
+          navigate("/result");
+        } catch (e) {
+          console.warn("[PetDrama generate unavailable]", e);
+          setGenerating(false);
+          toast.error("AI generation is temporarily unavailable. Please try again later.");
+        }
       }, 600);
     } catch (e) {
       console.warn("[PetDrama generate unavailable]", e);
