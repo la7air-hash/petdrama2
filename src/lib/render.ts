@@ -174,7 +174,9 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   // Reserve space for caption panel below the quote (panel + clear gap)
   const hasCaption = !!(opts.caption || "").trim();
   const captionReserve = hasCaption ? Math.round(size * 0.16) : Math.round(size * 0.02);
-  const quoteAreaBottom = size - sideMargin - footerH - captionReserve;
+  // Reserve room for the accent underline + breathing gap below the last quote line.
+  const underlineReserve = Math.round(size * 0.04);
+  const quoteAreaBottom = size - sideMargin - footerH - captionReserve - underlineReserve;
   const quoteAreaH = Math.max(0, quoteAreaBottom - quoteTop);
 
   // Start size scales by length; shrink aggressively until it fits cleanly.
