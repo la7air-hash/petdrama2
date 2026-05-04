@@ -4,6 +4,8 @@ import type { DramaStyleId, PetType, GeneratedDrama } from "./drama";
 export interface DramaDraft {
   /** Stable unique identifier for this creation. Source of truth for upsert/delete. */
   creationId: string;
+  /** Unique identifier for a saved gallery card. Generated at save time. */
+  galleryId?: string;
   imageDataUrl: string;
   petName: string;
   petType: PetType;
@@ -43,6 +45,17 @@ function ensureId<T extends { creationId?: string; createdAt?: number }>(d: T): 
   if (d.creationId && typeof d.creationId === "string") return d as T & { creationId: string };
   const fallback = `legacy_${d.createdAt ?? Date.now()}`;
   return { ...d, creationId: fallback };
+}
+
+function ensureGalleryId<T extends { galleryId?: string; creationId?: string; createdAt?: number }>(d: T): T & { galleryId: string } {
+  if (d.galleryId && typeof d.galleryId === "string") return d as T & { galleryId: string };
+  // Legacy gallery records did not have a galleryId; make delete/key behavior stable.
+  const fallback = d.creationId ? `legacy_gallery_${d.creationId}` : `legacy_gallery_${d.createdAt ?? Date.now()}`;
+  return { ...d, galleryId: fallback };
+}
+
+export function getGalleryItemId(d: Pick<DramaDraft, "galleryId" | "creationId" | "createdAt">): string {
+  return d.galleryId ?? `legacy_gallery_${d.creationId ?? d.createdAt}`;
 }
 
 export function saveDraft(draft: DramaDraft) {
@@ -133,61 +146,33 @@ function isQuotaError(err: unknown): boolean {
 
 export function saveToGallery(draft: DramaDraft): DramaDraft {
   const list = loadGallery();
-  const incoming = slimForGallery(ensureId(draft));
-  // Upsert by creationId so re-saving the same creation never duplicates.
-  const idx = list.findIndex((d) => d.creationId === incoming.creationId);
-  if (idx >= 0) {
-    const existing = list[idx];
-    list[idx] = {
-      ...existing,
-      ...incoming,
-      renderedDataUrl: incoming.renderedDataUrl ?? existing.renderedDataUrl,
-      remixImageDataUrl: incoming.remixImageDataUrl ?? existing.remixImageDataUrl,
-      remixRenderedDataUrl: incoming.remixRenderedDataUrl ?? existing.remixRenderedDataUrl,
-      variant: incoming.variant ?? existing.variant,
-    };
-  } else {
-    list.unshift(incoming);
-  }
+  const incoming = slimForGallery({ ...ensureId(draft), galleryId: newCreationId() });
+  const next = [incoming, ...list];
 
-  // Try to write; if quota exceeded, evict oldest items one by one until it fits.
-  let attempt = list.slice(0, 24);
-  while (attempt.length > 0) {
-    try {
-      localStorage.setItem(GALLERY, JSON.stringify(attempt));
-      auditCreationAssets("save-to-gallery-storage", incoming, attempt);
-      console.info("[PetDrama gallery write]", {
-        creationId: incoming.creationId,
-        items: attempt.length,
-        hasOriginal: !!incoming.renderedDataUrl,
-        hasRemixRender: !!incoming.remixRenderedDataUrl,
-        bytes: JSON.stringify(attempt).length,
-      });
-      return incoming;
-    } catch (err) {
-      if (!isQuotaError(err)) {
-        console.error("[PetDrama gallery write error]", err);
-        throw err;
-      }
-      // Drop the oldest item that ISN'T the one we're trying to save.
-      const dropIdx = [...attempt].reverse().findIndex((d) => d.creationId !== incoming.creationId);
-      if (dropIdx === -1) {
-        // Only the incoming item is left and it still doesn't fit.
-        throw new GalleryQuotaError();
-      }
-      const realIdx = attempt.length - 1 - dropIdx;
-      console.warn("[PetDrama gallery quota: evicting oldest]", attempt[realIdx]?.creationId);
-      attempt.splice(realIdx, 1);
-    }
+  try {
+    localStorage.setItem(GALLERY, JSON.stringify(next));
+    auditCreationAssets("save-to-gallery-storage", incoming, next);
+    console.info("[PetDrama gallery write]", {
+      galleryId: incoming.galleryId,
+      creationId: incoming.creationId,
+      items: next.length,
+      hasOriginal: !!incoming.renderedDataUrl,
+      hasRemixRender: !!incoming.remixRenderedDataUrl,
+      bytes: JSON.stringify(next).length,
+    });
+    return incoming;
+  } catch (err) {
+    if (isQuotaError(err)) throw new GalleryQuotaError();
+    console.error("[PetDrama gallery write error]", err);
+    throw err;
   }
-  throw new GalleryQuotaError();
 }
 
 export function loadGallery(): DramaDraft[] {
   try {
     const raw = localStorage.getItem(GALLERY);
     if (!raw) return [];
-    const list = (JSON.parse(raw) as DramaDraft[]).map(ensureId);
+    const list = (JSON.parse(raw) as DramaDraft[]).map((item) => ensureGalleryId(ensureId(item)));
     return list;
   } catch {
     return [];
@@ -196,14 +181,15 @@ export function loadGallery(): DramaDraft[] {
 
 export function saveGallery(list: DramaDraft[]) {
   try {
-    localStorage.setItem(GALLERY, JSON.stringify(list.map(ensureId).slice(0, 24)));
-  } catch {
-    /* noop */
+    localStorage.setItem(GALLERY, JSON.stringify(list.map((item) => ensureGalleryId(ensureId(item)))));
+  } catch (err) {
+    if (isQuotaError(err)) throw new GalleryQuotaError();
+    throw err;
   }
 }
 
-export function deleteFromGallery(creationId: string): DramaDraft[] {
-  const list = loadGallery().filter((d) => d.creationId !== creationId);
+export function deleteFromGallery(galleryId: string): DramaDraft[] {
+  const list = loadGallery().filter((d) => getGalleryItemId(d) !== galleryId);
   saveGallery(list);
   return list;
 }

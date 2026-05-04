@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
-import { loadGallery, saveGallery, deleteFromGallery, type DramaDraft } from "@/lib/storage";
+import { getGalleryItemId, loadGallery, saveGallery, deleteFromGallery, type DramaDraft } from "@/lib/storage";
 import { getStyle, normalizePetName } from "@/lib/drama";
 import { downloadDataUrl } from "@/lib/render";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -38,6 +38,7 @@ export default function Gallery() {
   useEffect(() => {
     const list = loadGallery();
     console.info("[PetDrama gallery load]", list.map((it) => ({
+      galleryId: getGalleryItemId(it),
       creationId: it.creationId,
       hasOriginal: !!it.renderedDataUrl,
       hasRemixImage: !!it.remixImageDataUrl,
@@ -74,9 +75,10 @@ export default function Gallery() {
   const confirmDelete = () => {
     if (!pendingDelete) return;
     const snapshot = loadGallery();
-    const next = deleteFromGallery(pendingDelete.creationId);
+    const pendingId = getGalleryItemId(pendingDelete);
+    const next = deleteFromGallery(pendingId);
     setItems(next);
-    if (active && active.creationId === pendingDelete.creationId) setActive(null);
+    if (active && getGalleryItemId(active) === pendingId) setActive(null);
     setPendingDelete(null);
     toast.success("Creation deleted", {
       action: {
@@ -128,7 +130,7 @@ export default function Gallery() {
                 : item.renderedDataUrl || item.imageDataUrl;
               return (
                 <StickerCard
-                  key={item.creationId ?? item.createdAt ?? i}
+                  key={getGalleryItemId(item)}
                   color={hasFinal ? "card" : s.color}
                   rotate={tilt}
                   shadow="lg"
