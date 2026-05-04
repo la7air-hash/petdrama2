@@ -412,3 +412,34 @@ export function downloadDataUrl(dataUrl: string, filename: string) {
   a.click();
   a.remove();
 }
+
+/**
+ * Download any URL (data:, blob:, http(s):) as a real file without navigating
+ * away. For cross-origin URLs (e.g. Supabase signed URLs) the browser ignores
+ * the anchor `download` attribute and would otherwise navigate to the image —
+ * so we fetch into a Blob first and download from a blob: URL.
+ */
+export async function downloadUrlAsFile(url: string, filename: string) {
+  // Fast path: data: URLs work directly with the anchor download attribute.
+  if (url.startsWith("data:")) {
+    downloadDataUrl(url, filename);
+    return;
+  }
+  try {
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch (err) {
+    console.error("[PetDrama download fallback]", err);
+    // Last resort: open in new tab so we never replace the current page.
+    window.open(url, "_blank", "noopener");
+  }
+}
