@@ -74,6 +74,47 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery_remixes: {
+        Row: {
+          caption: string | null
+          created_at: string
+          gallery_item_id: string
+          hashtags: string[]
+          id: string
+          image_path: string
+          quote: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          gallery_item_id: string
+          hashtags?: string[]
+          id?: string
+          image_path: string
+          quote: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          gallery_item_id?: string
+          hashtags?: string[]
+          id?: string
+          image_path?: string
+          quote?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_remixes_gallery_item_id_fkey"
+            columns: ["gallery_item_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
