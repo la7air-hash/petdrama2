@@ -6,27 +6,37 @@ import { StickerCard } from "@/components/StickerCard";
 import { toast } from "sonner";
 
 const FREE = [
-  "5 creations per day",
+  "15 standard creations / month",
+  "5 Drama Remix / month",
   "Basic drama styles",
   "Personal gallery",
   "Standard download + share links",
-  'Small "Made with PetDrama" watermark',
+  '"Made with PetDrama" watermark',
+];
+const STANDARD = [
+  "25 standard creations / month",
+  "10 Drama Remix / month",
+  "All drama styles unlocked",
+  "No watermark · HD downloads",
+  "Cloud gallery + share links",
 ];
 const PRO = [
-  "150 creations per month",
-  "Drama Remix unlocked (AI photo restyle)",
-  "All drama styles",
+  "50 standard creations / month",
+  "20 Drama Remix / month",
+  "All drama styles unlocked",
   "No watermark · HD downloads",
-  "Personal cloud gallery + share links",
+  "Cloud gallery + share links",
 ];
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false);
-  const price = annual ? "$79" : "$9.99";
-  const period = annual ? "/year" : "/month";
+  const stdPrice = annual ? "$39" : "$4.99";
+  const stdPeriod = annual ? "/year" : "/month";
+  const proPrice = annual ? "$79" : "$9.99";
+  const proPeriod = annual ? "/year" : "/month";
 
   const onUpgradeClick = () => {
-    toast("Pro checkout is coming soon — we're finalizing payments.");
+    toast("Checkout is coming soon — we're finalizing payments.");
   };
 
   return (
@@ -37,7 +47,7 @@ export default function Pricing() {
           Simple, dramatic pricing.
         </h1>
         <p className="mt-4 max-w-xl mx-auto text-muted-foreground text-lg">
-          Start free. Go Pro when your pet's fame demands it.
+          Start free. Upgrade when your pet's fame demands it.
         </p>
 
         <div className="mt-8 inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
@@ -63,7 +73,8 @@ export default function Pricing() {
       </section>
 
       <section className="container pb-24">
-        <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+        <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
+          {/* FREE */}
           <StickerCard className="p-8 bg-background">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Free</p>
             <p className="mt-2 font-display text-6xl font-extrabold">$0</p>
@@ -75,16 +86,38 @@ export default function Pricing() {
                   <span>{f}</span>
                 </li>
               ))}
-              <li className="flex gap-3 text-muted-foreground">
-                <span className="font-bold">·</span>
-                <span>No Drama Remix · No HD download</span>
-              </li>
             </ul>
             <Link to="/create" className="block mt-8">
               <StickerButton variant="ghost" className="w-full">Start free</StickerButton>
             </Link>
           </StickerCard>
 
+          {/* STANDARD */}
+          <StickerCard className="p-8 bg-secondary text-secondary-foreground">
+            <p className="text-xs font-bold uppercase tracking-widest">Standard</p>
+            <p className="mt-2 font-display text-6xl font-extrabold">
+              {stdPrice}<span className="text-2xl font-bold">{stdPeriod}</span>
+            </p>
+            <p className="text-sm opacity-80">
+              {annual ? "≈ $3.25/month · billed yearly" : "Cancel anytime."}
+            </p>
+            <ul className="mt-6 space-y-3 text-base">
+              {STANDARD.map((f) => (
+                <li key={f} className="flex gap-3">
+                  <span className="font-bold">✓</span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <StickerButton variant="dark" className="w-full mt-8" onClick={onUpgradeClick}>
+              Coming soon
+            </StickerButton>
+            <p className="mt-3 text-xs opacity-80">
+              Checkout is coming soon — we're finalizing payments.
+            </p>
+          </StickerCard>
+
+          {/* PRO */}
           <StickerCard className="p-8 bg-primary text-primary-foreground" shadow="lg">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-widest">Pro</p>
@@ -93,7 +126,7 @@ export default function Pricing() {
               </span>
             </div>
             <p className="mt-2 font-display text-6xl font-extrabold">
-              {price}<span className="text-2xl font-bold">{period}</span>
+              {proPrice}<span className="text-2xl font-bold">{proPeriod}</span>
             </p>
             <p className="text-sm opacity-80">
               {annual ? "≈ $6.58/month · billed yearly" : "Cancel anytime."}
@@ -107,17 +140,18 @@ export default function Pricing() {
               ))}
             </ul>
             <StickerButton variant="dark" className="w-full mt-8" onClick={onUpgradeClick}>
-              Upgrade to Pro
+              Coming soon
             </StickerButton>
             <p className="mt-3 text-xs opacity-80">
-              Pro checkout is coming soon — we're finalizing payments.
+              Checkout is coming soon — we're finalizing payments.
             </p>
           </StickerCard>
         </div>
 
         <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
-          Need more? One-time credit packs coming soon. PetDrama is for entertainment only —
-          generated quotes are imaginary pet thoughts and do not represent real animal communication.
+          Quotas reset on a rolling 30-day window. One-time extra Drama Remix packs coming soon.
+          PetDrama is for entertainment only — generated quotes are imaginary pet thoughts and do not
+          represent real animal communication.
         </p>
       </section>
     </PageShell>
