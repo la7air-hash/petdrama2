@@ -27,8 +27,6 @@ export interface DramaDraft {
 
 import { ownerKeySuffix } from "./draft-owner";
 
-const LEGACY_KEY = "petdrama:current";
-const LEGACY_GALLERY = "petdrama:gallery";
 const draftKey = () => `petdrama:current:${ownerKeySuffix()}`;
 const galleryKey = () => `petdrama:gallery:${ownerKeySuffix()}`;
 
