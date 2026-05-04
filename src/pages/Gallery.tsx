@@ -100,6 +100,7 @@ export default function Gallery() {
   const [activeVariant, setActiveVariant] = useState<Variant>("original");
   const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
+  const [canNativeShare, setCanNativeShare] = useState(false);
   // Per-cloud-item share state, keyed by cloud row id. Mirrors DB after toggle.
   const [shareState, setShareState] = useState<Record<string, { enabled: boolean; slug: string | null }>>({});
 
