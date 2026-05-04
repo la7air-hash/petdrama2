@@ -102,9 +102,53 @@ serve(async (req) => {
       );
     }
 
+    // ---- Pro guard + usage consumption ----
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "auth_required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, SB_ANON);
+    const { data: userData } = await userClient.auth.getUser(authHeader.slice("Bearer ".length));
+    const userId = userData?.user?.id ?? null;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "auth_required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: consume, error: consumeErr } = await admin.rpc("consume_usage", {
+      _user_id: userId, _anon_key: null, _kind: "remix",
+    });
+    if (consumeErr) {
+      console.error("consume_usage error:", consumeErr);
+      return new Response(JSON.stringify({ error: "server_error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const consumeRes = consume as Record<string, unknown>;
+    if (!consumeRes?.ok) {
+      const code = consumeRes?.error as string;
+      const status = code === "pro_only" ? 403 : 402;
+      return new Response(JSON.stringify({ error: code, code }), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const eventId = consumeRes.event_id as string | undefined;
+    const refund = async () => {
+      if (eventId) await admin.rpc("refund_usage", { _event_id: eventId });
+    };
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY not configured");
+      await refund();
+      return new Response(
+        JSON.stringify({ error: "AI not configured. Please try again later." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
       return new Response(
         JSON.stringify({ error: "AI not configured. Please try again later." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
