@@ -723,6 +723,7 @@ export default function Result() {
           </div>
         </div>
       </section>
+      <UpgradeModal open={!!upgradeReason} reason={upgradeReason} onClose={() => setUpgradeReason(null)} />
     </PageShell>
   );
 }
