@@ -25,8 +25,11 @@ export type Database = {
           pet_name: string
           pet_role: string
           pet_type: string
+          public_share_slug: string | null
           quote: string
           remix_image_path: string | null
+          share_enabled: boolean
+          shared_at: string | null
           style_id: string
           user_id: string
           variant: string
@@ -41,8 +44,11 @@ export type Database = {
           pet_name: string
           pet_role: string
           pet_type: string
+          public_share_slug?: string | null
           quote: string
           remix_image_path?: string | null
+          share_enabled?: boolean
+          shared_at?: string | null
           style_id: string
           user_id: string
           variant?: string
@@ -57,8 +63,11 @@ export type Database = {
           pet_name?: string
           pet_role?: string
           pet_type?: string
+          public_share_slug?: string | null
           quote?: string
           remix_image_path?: string | null
+          share_enabled?: boolean
+          shared_at?: string | null
           style_id?: string
           user_id?: string
           variant?: string
@@ -70,7 +79,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_public_share: {
+        Args: { _slug: string }
+        Returns: {
+          caption: string
+          hashtags: string[]
+          original_image_path: string
+          pet_name: string
+          pet_role: string
+          pet_type: string
+          quote: string
+          remix_image_path: string
+          style_id: string
+          variant: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

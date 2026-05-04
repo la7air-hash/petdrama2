@@ -20,8 +20,16 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download, Trash2 } from "lucide-react";
+import { Copy, Download, Facebook, Share2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  copyToClipboard,
+  facebookShareUrl,
+  getShareUrl,
+  nativeShare,
+  setShareEnabled,
+  whatsappShareUrl,
+} from "@/lib/share";
 
 type Variant = "original" | "remix";
 
@@ -91,6 +99,9 @@ export default function Gallery() {
   const [active, setActive] = useState<UIItem | null>(null);
   const [activeVariant, setActiveVariant] = useState<Variant>("original");
   const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  // Per-cloud-item share state, keyed by cloud row id. Mirrors DB after toggle.
+  const [shareState, setShareState] = useState<Record<string, { enabled: boolean; slug: string | null }>>({});
 
   const refresh = async () => {
     setLoading(true);
@@ -101,6 +112,11 @@ export default function Gallery() {
       if (user) {
         const cloud = await listMyGallery();
         setItems(cloud.map(cloudToUI));
+        const s: Record<string, { enabled: boolean; slug: string | null }> = {};
+        for (const c of cloud) {
+          s[c.id] = { enabled: !!c.share_enabled, slug: c.public_share_slug ?? null };
+        }
+        setShareState(s);
       } else {
         const local = loadGallery();
         setItems(local.map(localToUI));
@@ -142,6 +158,57 @@ export default function Gallery() {
     }
   };
 
+  const handleToggleShare = async (item: UIItem, enable: boolean) => {
+    if (item.source !== "cloud" || !item.cloud) {
+      toast.error("Sign in to share creations.");
+      return;
+    }
+    setShareBusy(true);
+    try {
+      const res = await setShareEnabled(item.cloud.id, enable);
+      setShareState((prev) => ({
+        ...prev,
+        [item.cloud!.id]: { enabled: res.share_enabled, slug: res.slug },
+      }));
+      if (enable && res.slug) {
+        try {
+          await copyToClipboard(getShareUrl(res.slug));
+          toast.success("Public link created and copied!");
+        } catch {
+          toast.success("Public link created.");
+        }
+      } else {
+        toast.success("Sharing disabled.");
+      }
+    } catch (err: any) {
+      console.error("[PetDrama share toggle]", err);
+      toast.error(err?.message || "Couldn't update sharing.");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleCopyShare = async (slug: string) => {
+    try {
+      await copyToClipboard(getShareUrl(slug));
+      toast.success("Link copied!");
+    } catch {
+      toast.error("Couldn't copy.");
+    }
+  };
+
+  const handleNativeShare = async (item: UIItem, slug: string) => {
+    const url = getShareUrl(slug);
+    const fileUrl = item.variant === "remix" && item.remixUrl ? item.remixUrl : item.originalUrl;
+    const ok = await nativeShare({
+      url,
+      title: `${normalizePetName(item.petName)} — PetDrama`,
+      text: item.quote,
+      fileUrl,
+      fileName: fileNameFor(item, item.variant).replace(/\.png$/, ".webp"),
+    });
+    if (!ok) handleCopyShare(slug);
+  };
   const requestDelete = (item: UIItem, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setPendingDelete(item);
@@ -354,6 +421,86 @@ export default function Gallery() {
                     <Trash2 className="size-4" /> Delete
                   </StickerButton>
                 </div>
+
+                {active.source === "cloud" && active.cloud && (() => {
+                  const st = shareState[active.cloud.id] ?? {
+                    enabled: !!active.cloud.share_enabled,
+                    slug: active.cloud.public_share_slug ?? null,
+                  };
+                  const shareUrl = st.slug ? getShareUrl(st.slug) : "";
+                  return (
+                    <div className="mt-5 pt-4 border-t-2 border-dashed border-foreground/20">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-xs font-extrabold uppercase tracking-wider">Share publicly</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {st.enabled
+                              ? "Anyone with the link can view this drama."
+                              : "Private. Only you can see it."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={shareBusy}
+                          onClick={() => handleToggleShare(active, !st.enabled)}
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-full border-2 border-foreground px-3 py-1.5 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5 disabled:opacity-50",
+                            st.enabled ? "bg-primary text-primary-foreground" : "bg-background",
+                          )}
+                        >
+                          {st.enabled ? "Sharing on" : "Enable share"}
+                        </button>
+                      </div>
+
+                      {st.enabled && st.slug && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <input
+                              readOnly
+                              value={shareUrl}
+                              onFocus={(e) => e.currentTarget.select()}
+                              className="flex-1 min-w-0 rounded-full border-2 border-foreground bg-background px-3 py-1.5 text-xs font-bold sticker-shadow-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleCopyShare(st.slug!)}
+                              className="inline-flex items-center gap-1 rounded-full border-2 border-foreground bg-foreground text-background px-3 py-1.5 text-[11px] font-extrabold sticker-shadow-sm"
+                              aria-label="Copy link"
+                            >
+                              <Copy className="size-3" /> Copy
+                            </button>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleNativeShare(active, st.slug!)}
+                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                            >
+                              <Share2 className="size-3" /> Share
+                            </button>
+                            <a
+                              href={whatsappShareUrl(shareUrl, `${normalizePetName(active.petName)} the ${getStyle(active.styleId).name} 🎭`)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#25D366] text-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                            >
+                              WhatsApp
+                            </a>
+                            <a
+                              href={facebookShareUrl(shareUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] text-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                            >
+                              <Facebook className="size-3" /> Facebook
+                            </a>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
               </>
             );
           })()}
