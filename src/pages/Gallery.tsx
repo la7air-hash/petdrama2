@@ -20,8 +20,16 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download, Trash2 } from "lucide-react";
+import { Copy, Download, Facebook, Share2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  copyToClipboard,
+  facebookShareUrl,
+  getShareUrl,
+  nativeShare,
+  setShareEnabled,
+  whatsappShareUrl,
+} from "@/lib/share";
 
 type Variant = "original" | "remix";
 
