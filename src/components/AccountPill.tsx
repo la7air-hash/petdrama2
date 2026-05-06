@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutAndClear } from "@/lib/auth-cleanup";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,9 +71,9 @@ export function AccountPill() {
   const label = shortLabel(email);
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Could not sign out. Please try again.");
+    const { ok, error } = await signOutAndClear();
+    if (!ok) {
+      toast.error(error ? `Could not sign out: ${error}` : "Could not sign out. Please try again.");
       return;
     }
     toast.success("Signed out");
