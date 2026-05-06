@@ -302,3 +302,63 @@ serve(async (req) => {
     return handled({ error: "ai_unavailable", code: "ai_unavailable" });
   }
 });
+
+// ----- Optional: regenerate fresh quote/caption/hashtags for a remix style -----
+// Currently OFF by default. Edge function only runs this when the client passes
+// `regenerateText: true`. Safe failure: any error is swallowed and the existing
+// quote/caption (passed through by the client) remains in use.
+async function generateRemixText(args: {
+  apiKey: string;
+  petName: string;
+  petType: string;
+  styleId: string;
+  styleMood: string;
+}): Promise<{ quote: string; caption: string; hashtags: string[] }> {
+  const sys =
+    "You write short, witty, family-safe captions for a cute pet meme card called PetDrama. " +
+    "Always return concise, playful, dramatic-but-cute lines from the pet's POV. No emojis in the quote. No profanity. No real human names.";
+  const user =
+    `Pet name: ${args.petName}. Species: ${args.petType}. Drama style: ${args.styleId} (${args.styleMood}). ` +
+    `Return: quote (max 90 chars, in pet's voice), caption (max 120 chars, third person tease), hashtags (3-5 short, no spaces, no #).`;
+
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${args.apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: user },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "petdrama_text",
+          description: "Return remix card text.",
+          parameters: {
+            type: "object",
+            properties: {
+              quote: { type: "string" },
+              caption: { type: "string" },
+              hashtags: { type: "array", items: { type: "string" } },
+            },
+            required: ["quote", "caption", "hashtags"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "petdrama_text" } },
+    }),
+  });
+  if (!res.ok) throw new Error(`text-gen HTTP ${res.status}`);
+  const data = await res.json();
+  const call = data?.choices?.[0]?.message?.tool_calls?.[0];
+  const argsStr = call?.function?.arguments;
+  if (!argsStr) throw new Error("text-gen missing tool_calls");
+  const parsed = JSON.parse(argsStr);
+  return {
+    quote: String(parsed.quote ?? "").slice(0, 200),
+    caption: String(parsed.caption ?? "").slice(0, 240),
+    hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags.map((s: unknown) => String(s).replace(/^#/, "")).slice(0, 5) : [],
+  };
+}
