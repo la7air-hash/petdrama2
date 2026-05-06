@@ -19,27 +19,48 @@ const handled = (body: Record<string, unknown>) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// PetDrama brand mood (per logo): warm cream / soft yellow base, with turquoise,
+// coral and yellow accents. Soft 3D cartoon / glossy toy-like lighting.
+// Family-safe, adorable, never dark or aggressive, never dominant violet/purple.
+const BRAND_BASE =
+  "soft 3D cartoon-illustration feel with glossy toy-like lighting, warm cream and soft pale-yellow background atmosphere, subtle turquoise / coral / yellow / cream color accents only, family-safe and adorable, no dark or aggressive mood, no dominant violet or purple background, premium editorial pet-portrait quality";
+
 const STYLE_PROMPTS: Record<string, string> = {
   "drama-queen":
-    "theatrical spotlight, soft pink and magenta cinematic lighting, glamorous editorial portrait mood, subtle sparkle bokeh, fashion magazine cover vibe",
+    "playful glamour pet star vibe, soft warm coral and yellow stage glow, gentle pink-cream backdrop with sparkle bokeh, cute fashion-cover energy",
   "mafia-boss":
-    "moody cinematic lighting, deep shadows, warm sepia and amber tones, smoky atmosphere, classic 1970s mafia film vibe, powerful boss-like portrait, optional faint pinstripe background",
+    "cute cartoon mini-boss vibe, warm cream and soft amber tones, very gentle pinstripe pattern hint behind, tiny bow-tie energy, friendly powerful look (never scary)",
   "royal-pet":
-    "regal renaissance royal portrait, ornate gold-trim background, deep velvet burgundy and emerald tones, painterly oil-painting feel, soft warm window light, noble dignified mood",
+    "adorable storybook royal portrait, soft cream and pale-yellow background with light gold accents, tiny crown sparkle, painterly storybook feel, noble but cute",
   "tiny-villain":
-    "mischievous comic-book villain energy, dramatic purple and acid-green lighting, soft cartoon shading, lightning sparks bokeh, playful evil-genius mood",
+    "mischievous cartoon mini-genius vibe, soft cream background with playful turquoise and coral accents, tiny lightning sparkles, NO purple or acid green dominance, cute and giggly mood",
   "jealous-pet":
-    "moody cinematic close-up, cool teal and crimson lighting, suspicious side-eye energy, soft film grain, telenovela drama vibe",
+    "soft pastel telenovela mood, warm cream backdrop with subtle teal and coral accents, gentle side-eye expression, cute and dramatic but never dark",
   "depressed-philosopher":
-    "moody black-and-white film portrait with subtle warm highlights, soft window light, melancholic contemplative mood, vintage analog grain",
+    "soft contemplative storybook mood, warm cream background with pale yellow window light, tiny book or glasses hint, gentle melancholic but cozy and cute",
   "luxury-pet":
-    "ultra premium editorial portrait, glossy magazine quality, champagne and gold tones, marble and silk background suggestion, luxury skincare ad aesthetic",
+    "ultra cute premium editorial pet portrait, soft champagne, cream and gold tones with subtle marble suggestion, glossy spa-magazine quality, adorable and pampered",
   "hungry-monster":
-    "playful warm kitchen lighting, golden hour glow, soft food-photography bokeh of crumbs and treats, cute hungry expression mood",
+    "playful warm kitchen vibe, soft cream and golden butter tones, cute crumbs / treats bokeh, big adorable hungry eyes, family-safe goofy mood",
   "office-manager":
-    "soft corporate office lighting, beige and navy tones, subtle blurred whiteboard or desk background, polished LinkedIn-style portrait energy",
+    "cute mini office-manager vibe, soft cream background with pale teal and yellow accents, tiny notebook or pen hint, polished but adorable",
   "venetian-noble":
-    "baroque venetian carnival mood, candlelit warm tones, ornate damask background suggestion, rich burgundy and gold, painterly old-world portrait",
+    "soft storybook carnival vibe, warm cream and pale gold tones with gentle damask hint, tiny mask or feather accent, painterly cute old-world feel",
+};
+
+// Pet-specific cute toy decorations to integrate naturally into the AI scene.
+// These are SUBTLE accents around or near the pet — never covering the pet.
+const PET_TOYS: Partial<Record<string, string>> = {
+  dog:
+    "subtle cute toy-like accents nearby (small soft ball, tiny bone, rope toy, or squeaky toy) — small, integrated naturally, never covering the dog",
+  cat:
+    "subtle cute toy-like accents nearby (yarn ball, small fish toy, or feather toy) — small, integrated naturally, never covering the cat",
+  bird:
+    "subtle cute toy-like accents nearby (tiny bell, small swing, seed toy, or perch toy) — small, integrated naturally, never covering the bird",
+  hamster:
+    "subtle cute toy-like accents nearby (mini exercise wheel, small tunnel, tiny chew toy, or seed accents) — small, integrated naturally, never covering the hamster",
+  rabbit:
+    "subtle cute toy-like accents nearby (small carrot, tiny ball, or chew toy) — small, integrated naturally, never covering the rabbit",
 };
 
 // Defensive image extraction — providers return images in various shapes.
@@ -92,13 +113,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageDataUrl, styleId, petType } = await req.json();
+    const { imageDataUrl, styleId, petType, petName, regenerateText } = await req.json();
 
     console.log("drama-remix request:", {
       hasImage: !!imageDataUrl,
       imageLen: typeof imageDataUrl === "string" ? imageDataUrl.length : 0,
       styleId,
       petType,
+      regenerateText: !!regenerateText,
     });
 
     if (!imageDataUrl || !styleId) {
@@ -149,10 +171,21 @@ serve(async (req) => {
     }
 
 
-    const styleMood = STYLE_PROMPTS[styleId] ?? "stylized cinematic pet portrait, vibrant mood";
-    const subject = petType && petType !== "other" ? `the same ${petType}` : "the same pet";
+    const styleMood = STYLE_PROMPTS[styleId] ?? "cute playful pet portrait, soft cream and yellow vibe";
+    const speciesWord = petType && petType !== "other" ? petType : "pet";
+    const subject = `the same ${speciesWord}`;
+    const toys = (petType && PET_TOYS[petType]) ?? "";
 
-    const prompt = `Restyle this photo of a pet into a stylized portrait. CRITICAL: keep ${subject} clearly recognizable — preserve the exact face, fur color and markings, eye color, breed, ears, and overall cuteness. Do NOT change the species or the individual animal. Only change the lighting, colors, background, and atmosphere to match this mood: ${styleMood}. Keep the pet as the clear focal point, centered, sharp, and adorable. Square 1:1 framing. Return the image.`;
+    const prompt = [
+      `Restyle this photo of a pet into a polished, premium PetDrama-style portrait.`,
+      `CRITICAL IDENTITY: keep ${subject} clearly recognizable — preserve the EXACT same face, fur color and markings, eye color, breed/species, ears, body shape, and overall cuteness. Do NOT change the species or the individual animal. Do NOT add or remove fur color, do not change eye color.`,
+      `Style mood: ${styleMood}.`,
+      `Overall art direction: ${BRAND_BASE}.`,
+      toys ? `Decorations: ${toys}. Keep them small and decorative; the pet must remain the clear focal point.` : `Keep decorations minimal and cute.`,
+      `Composition: pet centered, sharp, adorable, square 1:1 framing, clean background that reads well as a social-media card.`,
+      `Avoid: dark/aggressive mood, dominant violet/purple background, scary elements, text/letters/logos in the image, watermarks, distorted anatomy.`,
+      `Return the image only.`,
+    ].join(" ");
 
     // Try up to 2 times if no image comes back (provider sometimes returns text only).
     const MAX_ATTEMPTS = 2;
@@ -224,7 +257,26 @@ serve(async (req) => {
       const imageUrl = extractImageUrl(data);
       if (imageUrl) {
         console.log("drama-remix success on attempt", attempt);
-        return new Response(JSON.stringify({ imageDataUrl: imageUrl }), {
+
+        // Optional text regeneration — opt-in via `regenerateText: true`.
+        // Frontend is NOT activating this yet; structured here for a future toggle.
+        // Failures are non-fatal: we still return the image.
+        let freshText: { quote?: string; caption?: string; hashtags?: string[] } | undefined;
+        if (regenerateText === true) {
+          try {
+            freshText = await generateRemixText({
+              apiKey: LOVABLE_API_KEY,
+              petName: typeof petName === "string" ? petName : "the pet",
+              petType: speciesWord,
+              styleId,
+              styleMood,
+            });
+          } catch (err) {
+            console.warn("remix text regen failed (non-fatal):", err);
+          }
+        }
+
+        return new Response(JSON.stringify({ imageDataUrl: imageUrl, ...(freshText ? { text: freshText } : {}) }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -250,3 +302,63 @@ serve(async (req) => {
     return handled({ error: "ai_unavailable", code: "ai_unavailable" });
   }
 });
+
+// ----- Optional: regenerate fresh quote/caption/hashtags for a remix style -----
+// Currently OFF by default. Edge function only runs this when the client passes
+// `regenerateText: true`. Safe failure: any error is swallowed and the existing
+// quote/caption (passed through by the client) remains in use.
+async function generateRemixText(args: {
+  apiKey: string;
+  petName: string;
+  petType: string;
+  styleId: string;
+  styleMood: string;
+}): Promise<{ quote: string; caption: string; hashtags: string[] }> {
+  const sys =
+    "You write short, witty, family-safe captions for a cute pet meme card called PetDrama. " +
+    "Always return concise, playful, dramatic-but-cute lines from the pet's POV. No emojis in the quote. No profanity. No real human names.";
+  const user =
+    `Pet name: ${args.petName}. Species: ${args.petType}. Drama style: ${args.styleId} (${args.styleMood}). ` +
+    `Return: quote (max 90 chars, in pet's voice), caption (max 120 chars, third person tease), hashtags (3-5 short, no spaces, no #).`;
+
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${args.apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: user },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "petdrama_text",
+          description: "Return remix card text.",
+          parameters: {
+            type: "object",
+            properties: {
+              quote: { type: "string" },
+              caption: { type: "string" },
+              hashtags: { type: "array", items: { type: "string" } },
+            },
+            required: ["quote", "caption", "hashtags"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "petdrama_text" } },
+    }),
+  });
+  if (!res.ok) throw new Error(`text-gen HTTP ${res.status}`);
+  const data = await res.json();
+  const call = data?.choices?.[0]?.message?.tool_calls?.[0];
+  const argsStr = call?.function?.arguments;
+  if (!argsStr) throw new Error("text-gen missing tool_calls");
+  const parsed = JSON.parse(argsStr);
+  return {
+    quote: String(parsed.quote ?? "").slice(0, 200),
+    caption: String(parsed.caption ?? "").slice(0, 240),
+    hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags.map((s: unknown) => String(s).replace(/^#/, "")).slice(0, 5) : [],
+  };
+}
