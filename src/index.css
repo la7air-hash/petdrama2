@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,36 +8,36 @@
 
 @layer base {
   :root {
-    --background: 60 9% 94%;
-    --foreground: 0 0% 7%;
+    --background: 40 50% 96%;
+    --foreground: 200 30% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 200 30% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 200 30% 18%;
 
-    --primary: 320 100% 50%;
+    --primary: 178 55% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 100% 54%;
+    --secondary: 8 80% 65%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 60 5% 90%;
-    --muted-foreground: 0 0% 35%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 200 15% 40%;
 
-    --accent: 184 100% 50%;
-    --accent-foreground: 0 0% 7%;
+    --accent: 178 55% 88%;
+    --accent-foreground: 200 30% 18%;
 
-    --highlight: 64 100% 50%;
-    --highlight-foreground: 0 0% 7%;
+    --highlight: 45 95% 65%;
+    --highlight-foreground: 200 30% 18%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 7%;
-    --input: 0 0% 90%;
-    --ring: 320 100% 50%;
+    --border: 200 30% 18%;
+    --input: 40 30% 92%;
+    --ring: 178 55% 50%;
 
     --radius: 1.5rem;
 
@@ -82,26 +82,26 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
   }
   h1, h2, h3, h4 {
-    font-family: 'Syne', system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Syne', system-ui, sans-serif;
+    font-family: 'Fredoka', system-ui, sans-serif;
   }
   .sticker-shadow {
-    box-shadow: 6px 6px 0px 0px hsl(var(--foreground));
+    box-shadow: 0 8px 24px -8px hsl(var(--foreground) / 0.25), 0 2px 0 0 hsl(var(--foreground) / 0.08);
   }
   .sticker-shadow-lg {
-    box-shadow: 10px 10px 0px 0px hsl(var(--foreground));
+    box-shadow: 0 16px 40px -10px hsl(var(--foreground) / 0.3), 0 3px 0 0 hsl(var(--foreground) / 0.1);
   }
   .sticker-shadow-sm {
-    box-shadow: 4px 4px 0px 0px hsl(var(--foreground));
+    box-shadow: 0 4px 12px -4px hsl(var(--foreground) / 0.2);
   }
   .glossy {
     background-image: linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%, rgba(255,255,255,0.12) 100%);
