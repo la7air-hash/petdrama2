@@ -434,6 +434,30 @@ function hexToRgba(hex: string, a: number): string {
 
 // ============== Decorative paw + toys ==============
 
+function drawSparkle(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, r: number, color: string, alpha = 1,
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = hexToRgba(color, alpha);
+  // 4-point sparkle (diamond with pinched waist)
+  ctx.beginPath();
+  ctx.moveTo(0, -r);
+  ctx.quadraticCurveTo(r * 0.18, -r * 0.18, r, 0);
+  ctx.quadraticCurveTo(r * 0.18, r * 0.18, 0, r);
+  ctx.quadraticCurveTo(-r * 0.18, r * 0.18, -r, 0);
+  ctx.quadraticCurveTo(-r * 0.18, -r * 0.18, 0, -r);
+  ctx.closePath();
+  ctx.fill();
+  // Tiny center highlight
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = hexToRgba("#FFFFFF", Math.min(1, alpha + 0.2));
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawPaw(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, size: number, color: string, alpha = 1, rotate = 0,
