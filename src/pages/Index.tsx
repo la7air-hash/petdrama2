@@ -125,24 +125,23 @@ export default function Home() {
               <span className="text-base">🎭</span>
               <span className="text-xs font-bold uppercase tracking-widest">Dramatic pet captions</span>
             </div>
-            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[0.9] tracking-tight text-balance">
-              Your pet.
-              <br />
-              Their <span className="text-primary">drama.</span>
+            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[0.95] tracking-tight text-balance">
+              Turn your pet into a
+              <span className="text-primary"> dramatic</span> star.
             </h1>
             <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty">
-              Upload a photo and turn your pet into a funny dramatic character in seconds. Get a meme, a caption, hashtags — ready to share.
+              Turn your pet photos into funny dramatic stories, memes and remixes — in seconds.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <Link to="/create">
                 <StickerButton variant="primary" size="lg" className="w-full sm:w-auto">
-                  Create Pet Drama →
+                  Create your PetDrama →
                 </StickerButton>
               </Link>
               <Link to="/examples">
                 <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto">
-                  See examples
+                  View examples
                 </StickerButton>
               </Link>
             </div>
@@ -320,7 +319,8 @@ export default function Home() {
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Free</p>
             <p className="mt-2 font-display text-5xl font-extrabold">$0</p>
             <ul className="mt-6 space-y-2 text-sm">
-              <li>✓ 3 creations per day</li>
+              <li>✓ 10 creations / month</li>
+              <li>✓ 3 Drama Remix / month</li>
               <li>✓ Basic drama styles</li>
               <li>✓ Small "Made with PetDrama" watermark</li>
             </ul>
@@ -335,15 +335,15 @@ export default function Home() {
                 Most popular
               </span>
             </div>
-            <p className="mt-2 font-display text-5xl font-extrabold">$5<span className="text-2xl font-bold">/mo</span></p>
+            <p className="mt-2 font-display text-5xl font-extrabold">$9.99<span className="text-2xl font-bold">/mo</span></p>
             <ul className="mt-6 space-y-2 text-sm">
-              <li>✓ Unlimited creations</li>
+              <li>✓ 50 creations / month</li>
+              <li>✓ 20 Drama Remix / month</li>
               <li>✓ All drama styles unlocked</li>
               <li>✓ HD downloads, no watermark</li>
-              <li>✓ Personal gallery</li>
             </ul>
             <Link to="/pricing" className="mt-8 block">
-              <StickerButton variant="dark" className="w-full">Go Pro</StickerButton>
+              <StickerButton variant="dark" className="w-full">See plans</StickerButton>
             </Link>
           </StickerCard>
         </div>
@@ -359,7 +359,7 @@ export default function Home() {
             One photo. One style. One unforgettable post. (For entertainment only — we don't actually translate pets.)
           </p>
           <Link to="/create" className="inline-block mt-8">
-            <StickerButton variant="primary" size="lg">Create Pet Drama →</StickerButton>
+            <StickerButton variant="primary" size="lg">Create your PetDrama →</StickerButton>
           </Link>
         </StickerCard>
       </section>

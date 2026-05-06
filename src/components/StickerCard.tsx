@@ -28,7 +28,7 @@ export function StickerCard({
   return (
     <div
       className={cn(
-        "rounded-3xl border-2 border-foreground transition-transform duration-300",
+        "rounded-3xl border border-foreground/10 transition-transform duration-300",
         COLOR_MAP[color],
         shadowClass,
         className,

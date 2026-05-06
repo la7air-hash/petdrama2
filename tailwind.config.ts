@@ -12,8 +12,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Syne", "system-ui", "sans-serif"],
-        sans: ["Space Grotesk", "system-ui", "sans-serif"],
+        display: ["Fredoka", "system-ui", "sans-serif"],
+        sans: ["Nunito", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
