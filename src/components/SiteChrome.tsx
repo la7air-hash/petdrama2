@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { AccountPill } from "./AccountPill";
+import logo from "@/assets/petdrama-logo.png";
 
 const NAV = [
   { to: "/create", label: "Create" },
@@ -10,26 +11,29 @@ const NAV = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-foreground bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="container flex items-center justify-between py-4">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="font-display text-2xl font-extrabold tracking-tight">
-            PET<span className="text-primary">DRAMA</span>
-          </span>
-          <span className="hidden sm:inline-block rounded-full border-2 border-foreground bg-highlight px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
-            Beta
-          </span>
+    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div className="container flex items-center justify-between py-3">
+        <Link to="/" aria-label="PetDrama home" className="flex items-center gap-2 group">
+          <img
+            src={logo}
+            alt="PetDrama"
+            className="h-12 md:h-14 w-auto transition-transform group-hover:-rotate-2"
+            width={120}
+            height={56}
+          />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-2 rounded-full bg-card px-2 py-1.5 sticker-shadow-sm">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "text-sm font-bold uppercase tracking-wide transition-colors hover:text-primary",
-                  isActive && "text-primary underline decoration-4 decoration-highlight underline-offset-4",
+                  "px-4 py-1.5 rounded-full text-sm font-bold transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/80 hover:text-primary",
                 )
               }
             >
