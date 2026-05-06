@@ -40,9 +40,9 @@ export default function Account() {
   }, [navigate]);
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Could not sign out.");
+    const { ok, error } = await signOutAndClear();
+    if (!ok) {
+      toast.error(error ? `Could not sign out: ${error}` : "Could not sign out.");
       return;
     }
     navigate("/", { replace: true });
