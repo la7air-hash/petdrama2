@@ -4,6 +4,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerCard } from "@/components/StickerCard";
 import { StickerButton } from "@/components/StickerButton";
 import { supabase } from "@/integrations/supabase/client";
+import { signOutAndClear } from "@/lib/auth-cleanup";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
