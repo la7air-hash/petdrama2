@@ -171,10 +171,21 @@ serve(async (req) => {
     }
 
 
-    const styleMood = STYLE_PROMPTS[styleId] ?? "stylized cinematic pet portrait, vibrant mood";
-    const subject = petType && petType !== "other" ? `the same ${petType}` : "the same pet";
+    const styleMood = STYLE_PROMPTS[styleId] ?? "cute playful pet portrait, soft cream and yellow vibe";
+    const speciesWord = petType && petType !== "other" ? petType : "pet";
+    const subject = `the same ${speciesWord}`;
+    const toys = (petType && PET_TOYS[petType]) ?? "";
 
-    const prompt = `Restyle this photo of a pet into a stylized portrait. CRITICAL: keep ${subject} clearly recognizable — preserve the exact face, fur color and markings, eye color, breed, ears, and overall cuteness. Do NOT change the species or the individual animal. Only change the lighting, colors, background, and atmosphere to match this mood: ${styleMood}. Keep the pet as the clear focal point, centered, sharp, and adorable. Square 1:1 framing. Return the image.`;
+    const prompt = [
+      `Restyle this photo of a pet into a polished, premium PetDrama-style portrait.`,
+      `CRITICAL IDENTITY: keep ${subject} clearly recognizable — preserve the EXACT same face, fur color and markings, eye color, breed/species, ears, body shape, and overall cuteness. Do NOT change the species or the individual animal. Do NOT add or remove fur color, do not change eye color.`,
+      `Style mood: ${styleMood}.`,
+      `Overall art direction: ${BRAND_BASE}.`,
+      toys ? `Decorations: ${toys}. Keep them small and decorative; the pet must remain the clear focal point.` : `Keep decorations minimal and cute.`,
+      `Composition: pet centered, sharp, adorable, square 1:1 framing, clean background that reads well as a social-media card.`,
+      `Avoid: dark/aggressive mood, dominant violet/purple background, scary elements, text/letters/logos in the image, watermarks, distorted anatomy.`,
+      `Return the image only.`,
+    ].join(" ");
 
     // Try up to 2 times if no image comes back (provider sometimes returns text only).
     const MAX_ATTEMPTS = 2;
