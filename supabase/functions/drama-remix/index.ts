@@ -113,13 +113,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageDataUrl, styleId, petType } = await req.json();
+    const { imageDataUrl, styleId, petType, petName, regenerateText } = await req.json();
 
     console.log("drama-remix request:", {
       hasImage: !!imageDataUrl,
       imageLen: typeof imageDataUrl === "string" ? imageDataUrl.length : 0,
       styleId,
       petType,
+      regenerateText: !!regenerateText,
     });
 
     if (!imageDataUrl || !styleId) {
