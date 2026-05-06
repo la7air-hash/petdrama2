@@ -55,8 +55,8 @@ export function SiteFooter() {
     <footer className="mt-24 border-t-2 border-foreground bg-foreground text-background">
       <div className="container grid gap-12 py-16 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="font-display text-3xl font-extrabold tracking-tight">
-            PET<span className="text-primary">DRAMA</span>
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="PetDrama" className="h-12 w-auto" width={96} height={48} />
           </div>
           <p className="mt-3 max-w-sm text-sm text-background/70">
             Imaginary pet thoughts for entertainment only. We do not actually translate animals — we just make them look unreasonably dramatic.
