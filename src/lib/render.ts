@@ -55,25 +55,42 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   const inkSoft = BRAND.inkSoft;
 
   // ============== 1. CREAM PAPER BACKGROUND with soft warm vignette ==============
-  // Soft diagonal warm gradient (cream → slightly warmer cream)
+  // Base diagonal warm gradient (cream → slightly warmer cream)
   const grad = ctx.createLinearGradient(0, 0, size, size);
   grad.addColorStop(0, accent.paper);
   grad.addColorStop(1, accent.paper2);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, size, size);
 
+  // Soft warm radial glow center (gives premium 3D-toy depth)
+  const glow = ctx.createRadialGradient(size * 0.5, size * 0.42, size * 0.05, size * 0.5, size * 0.5, size * 0.7);
+  glow.addColorStop(0, "rgba(255,255,255,0.55)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, size, size);
+
   // Subtle dotted texture
   drawDotGrid(ctx, size, "rgba(35,57,63,0.05)");
 
-  // Big soft pastel blob top-left (yellow)
-  drawSoftBlob(ctx, size * 0.12, size * 0.18, size * 0.32, BRAND.yellowSoft, 0.55);
-  // Soft teal blob bottom-right
-  drawSoftBlob(ctx, size * 0.92, size * 0.82, size * 0.28, "#CFEFEC", 0.55);
+  // Pastel decorative blobs (cream/yellow/teal/coral hints)
+  drawSoftBlob(ctx, size * 0.10, size * 0.16, size * 0.34, BRAND.yellowSoft, 0.65);
+  drawSoftBlob(ctx, size * 0.94, size * 0.84, size * 0.32, "#CFEFEC", 0.6);
+  drawSoftBlob(ctx, size * 0.88, size * 0.10, size * 0.18, BRAND.pink, 0.45);
+  drawSoftBlob(ctx, size * 0.06, size * 0.92, size * 0.20, BRAND.yellowSoft, 0.5);
 
-  // Decorative paw prints scattered (cream-on-cream, very soft)
-  drawPaw(ctx, size * 0.08, size * 0.78, size * 0.045, BRAND.coral, 0.18, -0.2);
-  drawPaw(ctx, size * 0.92, size * 0.18, size * 0.04, BRAND.teal, 0.22, 0.3);
-  drawPaw(ctx, size * 0.18, size * 0.92, size * 0.035, BRAND.yellow, 0.25, 0.1);
+  // Decorative paw prints scattered (very soft, brand-tinted)
+  drawPaw(ctx, size * 0.06, size * 0.74, size * 0.045, BRAND.coral, 0.20, -0.2);
+  drawPaw(ctx, size * 0.94, size * 0.22, size * 0.04, BRAND.teal, 0.22, 0.3);
+  drawPaw(ctx, size * 0.16, size * 0.94, size * 0.035, BRAND.yellow, 0.28, 0.1);
+  drawPaw(ctx, size * 0.84, size * 0.94, size * 0.03, BRAND.coral, 0.20, -0.4);
+  drawPaw(ctx, size * 0.04, size * 0.06, size * 0.028, BRAND.teal, 0.18, 0.6);
+
+  // Tiny sparkle stars for the toy-like premium feel
+  drawSparkle(ctx, size * 0.20, size * 0.10, size * 0.018, BRAND.yellow, 0.7);
+  drawSparkle(ctx, size * 0.78, size * 0.06, size * 0.014, BRAND.coral, 0.55);
+  drawSparkle(ctx, size * 0.72, size * 0.94, size * 0.016, BRAND.teal, 0.6);
+  drawSparkle(ctx, size * 0.26, size * 0.86, size * 0.013, BRAND.coral, 0.5);
+
 
   // ============== 2. POLAROID PHOTO FRAME (rounded, soft shadow, slight tilt) ==============
   const frameW = Math.round(size * 0.74);
