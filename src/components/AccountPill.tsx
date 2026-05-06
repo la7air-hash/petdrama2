@@ -70,9 +70,9 @@ export function AccountPill() {
   const label = shortLabel(email);
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error("Could not sign out. Please try again.");
+    const { ok, error } = await signOutAndClear();
+    if (!ok) {
+      toast.error(error ? `Could not sign out: ${error}` : "Could not sign out. Please try again.");
       return;
     }
     toast.success("Signed out");
