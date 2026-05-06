@@ -257,7 +257,26 @@ serve(async (req) => {
       const imageUrl = extractImageUrl(data);
       if (imageUrl) {
         console.log("drama-remix success on attempt", attempt);
-        return new Response(JSON.stringify({ imageDataUrl: imageUrl }), {
+
+        // Optional text regeneration — opt-in via `regenerateText: true`.
+        // Frontend is NOT activating this yet; structured here for a future toggle.
+        // Failures are non-fatal: we still return the image.
+        let freshText: { quote?: string; caption?: string; hashtags?: string[] } | undefined;
+        if (regenerateText === true) {
+          try {
+            freshText = await generateRemixText({
+              apiKey: LOVABLE_API_KEY,
+              petName: typeof petName === "string" ? petName : "the pet",
+              petType: speciesWord,
+              styleId,
+              styleMood,
+            });
+          } catch (err) {
+            console.warn("remix text regen failed (non-fatal):", err);
+          }
+        }
+
+        return new Response(JSON.stringify({ imageDataUrl: imageUrl, ...(freshText ? { text: freshText } : {}) }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
