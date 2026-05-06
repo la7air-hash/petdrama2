@@ -126,6 +126,7 @@ export default function Result() {
     renderDramaPng({
       imageDataUrl: draft.imageDataUrl,
       petName: normalizePetName(draft.petName),
+      petType: draft.petType,
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
@@ -160,6 +161,7 @@ export default function Result() {
     renderDramaPng({
       imageDataUrl: draft.remixImageDataUrl,
       petName: normalizePetName(draft.petName),
+      petType: draft.petType,
       styleId: draft.styleId,
       quote: draft.drama.quote,
       caption: draft.drama.caption,
@@ -389,6 +391,7 @@ export default function Result() {
         renderedRemix = await renderDramaPng({
           imageDataUrl: remixUrl,
           petName: normalizePetName(draft.petName),
+      petType: draft.petType,
           styleId: draft.styleId,
           quote: draft.drama.quote,
           caption: draft.drama.caption,
@@ -430,6 +433,7 @@ export default function Result() {
       const liveDraft = getLiveDraft(draft);
       const common = {
         petName: normalizePetName(liveDraft.petName),
+        petType: liveDraft.petType,
         styleId: liveDraft.styleId,
         quote: liveDraft.drama.quote,
         caption: liveDraft.drama.caption,
