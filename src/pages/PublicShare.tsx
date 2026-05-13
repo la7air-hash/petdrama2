@@ -6,6 +6,7 @@ import { StickerCard } from "@/components/StickerCard";
 import { supabase } from "@/integrations/supabase/client";
 import { getStyle, normalizePetName, type DramaStyleId } from "@/lib/drama";
 import { downloadUrlAsFile } from "@/lib/render";
+import { getAnonKey } from "@/lib/anon-id";
 import {
   copyToClipboard,
   facebookShareUrl,
@@ -16,9 +17,20 @@ import {
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Copy, Download, Facebook, Share2 } from "lucide-react";
+import { Copy, Download, Facebook, Share2, Trophy } from "lucide-react";
+
+interface PublicRemixVariant {
+  id: string;
+  key: string;
+  label: string;
+  url: string | null;
+  quote: string;
+  caption: string | null;
+  hashtags: string[];
+}
 
 interface PublicShareData {
+  galleryItemId?: string;
   petName: string;
   petType: string;
   styleId: DramaStyleId;
@@ -29,16 +41,31 @@ interface PublicShareData {
   variant: "original" | "remix";
   originalUrl: string | null;
   remixUrl: string | null;
+  remixes?: PublicRemixVariant[];
+  voteCounts?: Record<string, number>;
+  voteTotal?: number;
 }
 
-type Variant = "original" | "remix";
+interface PublicVariant {
+  key: string;
+  label: string;
+  kind: "original" | "remix";
+  url: string | null;
+  quote: string;
+  caption: string | null;
+  hashtags: string[];
+}
 
 export default function PublicShare() {
   const { slug } = useParams<{ slug: string }>();
   const [data, setData] = useState<PublicShareData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [variant, setVariant] = useState<Variant>("original");
+  const [variantKey, setVariantKey] = useState("original");
+  const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
+  const [voteTotal, setVoteTotal] = useState(0);
+  const [myVote, setMyVote] = useState<string | null>(null);
+  const [voteBusy, setVoteBusy] = useState(false);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -57,8 +84,18 @@ export default function PublicShare() {
         if (error || !res || res.error) {
           setNotFound(true);
         } else {
-          setData(res as PublicShareData);
-          setVariant((res as PublicShareData).variant === "remix" && (res as PublicShareData).remixUrl ? "remix" : "original");
+          const payload = res as PublicShareData;
+          const remixList = payload.remixes ?? [];
+          const preferredRemix = remixList[remixList.length - 1]?.key ?? (payload.remixUrl ? "legacy-remix" : null);
+          setData(payload);
+          setVoteCounts(payload.voteCounts ?? {});
+          setVoteTotal(payload.voteTotal ?? 0);
+          setVariantKey(payload.variant === "remix" && preferredRemix ? preferredRemix : "original");
+          try {
+            setMyVote(localStorage.getItem(`petdrama:vote:${slug}`));
+          } catch {
+            setMyVote(null);
+          }
         }
       } catch {
         if (!cancelled) setNotFound(true);
@@ -72,9 +109,53 @@ export default function PublicShare() {
   }, [slug]);
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const hasRemix = !!data?.remixUrl;
-  const showRemix = variant === "remix" && hasRemix;
-  const previewUrl = data ? (showRemix ? data.remixUrl! : data.originalUrl!) : null;
+  const variants: PublicVariant[] = data
+    ? [
+        {
+          key: "original",
+          label: t("public.original"),
+          kind: "original",
+          url: data.originalUrl,
+          quote: data.quote,
+          caption: data.caption,
+          hashtags: data.hashtags,
+        },
+        ...((data.remixes?.length ?? 0) > 0
+          ? data.remixes!.map((remix, index) => ({
+              key: remix.key,
+              label: remix.label || `Remix ${index + 1}`,
+              kind: "remix" as const,
+              url: remix.url,
+              quote: remix.quote || data.quote,
+              caption: remix.caption ?? data.caption,
+              hashtags: remix.hashtags?.length ? remix.hashtags : data.hashtags,
+            }))
+          : data.remixUrl
+            ? [
+                {
+                  key: "legacy-remix",
+                  label: "Remix",
+                  kind: "remix" as const,
+                  url: data.remixUrl,
+                  quote: data.quote,
+                  caption: data.caption,
+                  hashtags: data.hashtags,
+                },
+              ]
+            : []),
+      ]
+    : [];
+  const activeVariant = variants.find((v) => v.key === variantKey) ?? variants[0] ?? null;
+  const hasRemix = variants.some((v) => v.kind === "remix");
+  const previewUrl = activeVariant?.url ?? null;
+  const activeQuote = activeVariant?.quote ?? data?.quote ?? "";
+  const activeCaption = activeVariant?.caption ?? data?.caption ?? null;
+  const activeHashtags = activeVariant?.hashtags ?? data?.hashtags ?? [];
+  const canVote = variants.filter((v) => v.key !== "legacy-remix").length > 1;
+  const activeFileSuffix = (activeVariant?.label ?? "card")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
   const handleCopy = async () => {
     try {
@@ -90,9 +171,9 @@ export default function PublicShare() {
     const ok = await nativeShare({
       url: shareUrl,
       title: `${normalizePetName(data.petName)} — PetDrama`,
-      text: data.quote,
+      text: activeQuote,
       fileUrl: previewUrl ?? undefined,
-      fileName: `petdrama-${normalizePetName(data.petName).toLowerCase()}.webp`,
+      fileName: `petdrama-${normalizePetName(data.petName).toLowerCase()}-${activeFileSuffix}.webp`,
     });
     if (!ok) handleCopy();
   };
@@ -102,11 +183,40 @@ export default function PublicShare() {
     try {
       await downloadUrlAsFile(
         previewUrl,
-        `petdrama-${normalizePetName(data.petName).toLowerCase()}${showRemix ? "-remix" : ""}.png`,
+        `petdrama-${normalizePetName(data.petName).toLowerCase()}${activeVariant?.kind === "remix" ? `-${activeFileSuffix}` : ""}.png`,
       );
       toast.success("Downloaded!");
     } catch {
       toast.error("Couldn't download.");
+    }
+  };
+
+  const handleVote = async (key: string) => {
+    if (!slug || !data || voteBusy || key === "legacy-remix") return;
+    setVoteBusy(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("remix-vote", {
+        body: {
+          slug,
+          variantKey: key,
+          voterKey: getAnonKey(),
+        },
+      });
+      if (error || !res || res.error) throw error ?? new Error(res?.error ?? "Vote failed");
+      setVoteCounts(res.counts ?? {});
+      setVoteTotal(res.total ?? 0);
+      setMyVote(key);
+      try {
+        localStorage.setItem(`petdrama:vote:${slug}`, key);
+      } catch {
+        // Ignore private browsing/storage failures.
+      }
+      toast.success(t("public.voteSaved"));
+    } catch (err) {
+      console.error("[PetDrama vote]", err);
+      toast.error(t("public.voteError"));
+    } finally {
+      setVoteBusy(false);
     }
   };
 
@@ -155,27 +265,25 @@ export default function PublicShare() {
 
           {hasRemix && (
             <div className="flex justify-center mt-5">
-              <div className="inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setVariant("original")}
-                  className={cn(
-                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
-                    variant === "original" ? "bg-foreground text-background" : "text-foreground/70",
-                  )}
-                >
-                  Original
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVariant("remix")}
-                  className={cn(
-                    "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
-                    variant === "remix" ? "bg-primary text-primary-foreground" : "text-foreground/70",
-                  )}
-                >
-                  ✨ Remix
-                </button>
+              <div className="inline-flex max-w-full flex-wrap justify-center gap-1 rounded-2xl border-2 border-foreground bg-background p-1 sticker-shadow-sm">
+                {variants.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setVariantKey(item.key)}
+                    className={cn(
+                      "px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider rounded-full transition-colors",
+                      variantKey === item.key
+                        ? item.kind === "remix"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-foreground text-background"
+                        : "text-foreground/70",
+                    )}
+                  >
+                    {item.kind === "remix" ? "✨ " : ""}
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -192,17 +300,17 @@ export default function PublicShare() {
             </div>
           </StickerCard>
 
-          {data.quote && (
+          {activeQuote && (
             <p className="mt-5 font-display font-extrabold text-xl leading-snug text-center">
-              "{data.quote}"
+              "{activeQuote}"
             </p>
           )}
-          {data.caption && (
-            <p className="mt-3 text-muted-foreground text-center">{data.caption}</p>
+          {activeCaption && (
+            <p className="mt-3 text-muted-foreground text-center">{activeCaption}</p>
           )}
-          {data.hashtags?.length > 0 && (
+          {activeHashtags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2 justify-center">
-              {data.hashtags.map((h) => (
+              {activeHashtags.map((h) => (
                 <span
                   key={h}
                   className="inline-flex items-center rounded-full border-2 border-foreground bg-background px-2.5 py-0.5 text-[11px] font-extrabold sticker-shadow-sm"
@@ -211,6 +319,63 @@ export default function PublicShare() {
                 </span>
               ))}
             </div>
+          )}
+
+          {canVote && (
+            <StickerCard className="mt-7 p-5 bg-card" rotate={1}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                    {t("public.remixBattle")}
+                  </p>
+                  <h2 className="mt-1 font-display text-2xl font-extrabold">
+                    {t("public.voteBody")}
+                  </h2>
+                </div>
+                <div className="rounded-full border-2 border-foreground bg-primary p-2 text-primary-foreground sticker-shadow-sm">
+                  <Trophy className="size-5" />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {variants.map((item) => {
+                  const count = voteCounts[item.key] ?? 0;
+                  const pct = voteTotal > 0 ? Math.round((count / voteTotal) * 100) : 0;
+                  const selected = myVote === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleVote(item.key)}
+                      disabled={voteBusy || item.key === "legacy-remix"}
+                      className={cn(
+                        "group relative w-full overflow-hidden rounded-2xl border-2 border-foreground bg-background p-3 text-left sticker-shadow-sm transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70",
+                        selected && "bg-primary/15",
+                      )}
+                    >
+                      <span
+                        className="absolute inset-y-0 left-0 bg-primary/25 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                      <span className="relative flex items-center justify-between gap-3">
+                        <span>
+                          <span className="font-display text-base font-extrabold">
+                            {item.kind === "remix" ? "✨ " : ""}
+                            {item.label}
+                          </span>
+                          <span className="ml-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            {selected ? t("public.voted") : t("public.vote")}
+                          </span>
+                        </span>
+                        <span className="text-sm font-extrabold">
+                          {pct}% · {count} {t("public.votes")}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </StickerCard>
           )}
 
           <div className="mt-8 grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -229,7 +394,7 @@ export default function PublicShare() {
               <Copy className="size-3.5" /> {t("public.copyLink")}
             </button>
             <a
-              href={whatsappShareUrl(shareUrl, `${petName} the ${data.petRole} 🎭`)}
+              href={whatsappShareUrl(shareUrl, `${petName} the ${data.petRole}`)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#25D366] text-foreground px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
