@@ -109,7 +109,8 @@ export default function Create() {
         toast.message(t("create.detectUnavailable"));
         return;
       }
-      if (data.isHumanOnly || !data.isAnimal) {
+      const hasAnimal = data.hasPet ?? data.isAnimal;
+      if (data.isHumanOnly || !hasAnimal) {
         setImageDataUrl(null);
         setDetectedPetType(null);
         toast.error(t("create.onlyAnimals"));
