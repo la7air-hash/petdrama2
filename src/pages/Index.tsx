@@ -238,9 +238,9 @@ export default function Home() {
             <div className="absolute right-4 top-6 hidden rounded-full border-2 border-foreground bg-highlight px-5 py-2 text-xs font-extrabold uppercase tracking-widest shadow-[6px_6px_0_rgba(35,57,63,0.12)] md:block">
               PetDrama Studio
             </div>
-            <DramaPreviewCard example={EXAMPLES[1]} className="absolute right-2 top-12 w-[76%] max-w-[390px] animate-pop-in md:right-12" compact />
-            <DramaPreviewCard example={EXAMPLES[0]} className="absolute left-1 top-36 w-[72%] max-w-[360px] animate-pop-in md:left-8" compact />
-            <DramaPreviewCard example={EXAMPLES[3]} className="absolute bottom-4 right-8 hidden w-[70%] max-w-[380px] animate-pop-in md:block" compact />
+            <DramaPreviewCard example={EXAMPLES[1]} className="hero-float-slow absolute right-2 top-12 w-[76%] max-w-[390px] animate-pop-in md:right-12" compact />
+            <DramaPreviewCard example={EXAMPLES[0]} className="hero-float-medium absolute left-1 top-36 w-[72%] max-w-[360px] animate-pop-in md:left-8" compact />
+            <DramaPreviewCard example={EXAMPLES[3]} className="hero-float-fast absolute bottom-4 right-8 hidden w-[70%] max-w-[380px] animate-pop-in md:block" compact />
             <div className="absolute bottom-6 left-8 flex items-center gap-2 rounded-[1.5rem] border-2 border-foreground bg-secondary px-5 py-3 shadow-[8px_8px_0_rgba(35,57,63,0.12)]">
               <span className="size-3 rounded-full bg-primary" />
               <span className="size-3 rounded-full bg-highlight" />
@@ -251,30 +251,67 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="border-y-2 border-foreground bg-card">
-        <div className="container py-16">
-          <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
+      <section className="relative overflow-hidden border-y-2 border-foreground bg-[#fff7e9]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-70"
+          aria-hidden
+          style={{
+            background:
+              "radial-gradient(circle at 15% 18%, rgba(255,211,91,0.55), transparent 28%), radial-gradient(circle at 86% 18%, rgba(55,197,191,0.35), transparent 28%), linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,239,210,0.72))",
+          }}
+        />
+        <div className="container relative py-16 md:py-20">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("home.how")}</p>
-              <h2 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
+              <h2 className="mt-2 max-w-2xl font-display text-4xl font-extrabold tracking-tight md:text-6xl">
                 {t("home.stepsTitle")}
               </h2>
+              <p className="mt-4 max-w-xl text-base font-semibold leading-relaxed text-foreground/65 md:text-lg">
+                {t("home.workflowBody")}
+              </p>
+              <Link to="/create" className="mt-7 inline-block">
+                <StickerButton variant="primary" size="lg" className="premium-shine">
+                  {t("home.startNow")} →
+                </StickerButton>
+              </Link>
             </div>
-            <Link to="/create" className="hidden md:inline-block">
-              <StickerButton variant="dark">{t("home.startNow")} →</StickerButton>
-            </Link>
-          </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <StickerCard key={s.n} className="p-6 bg-background">
-                <div className={`size-14 rounded-2xl border-2 border-foreground flex items-center justify-center font-display text-2xl font-extrabold ${s.color}`}>
-                  {s.n}
+            <div className="rounded-[2rem] border-2 border-foreground bg-background/75 p-4 shadow-[12px_12px_0_rgba(35,57,63,0.10)] backdrop-blur md:p-5">
+              <div className="flex items-center justify-between gap-4 border-b-2 border-dashed border-foreground/20 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="size-3 rounded-full bg-primary" />
+                  <span className="size-3 rounded-full bg-secondary" />
+                  <span className="size-3 rounded-full bg-highlight" />
                 </div>
-                <h3 className="mt-5 font-display text-2xl font-extrabold">{t(s.title)}</h3>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{t(s.body)}</p>
-              </StickerCard>
-            ))}
+                <span className="rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest">
+                  PetDrama Flow
+                </span>
+              </div>
+              <div className="relative mt-5 grid gap-4 md:grid-cols-3">
+                <div className="pointer-events-none absolute left-[16%] right-[16%] top-9 hidden h-1 rounded-full bg-foreground/15 md:block" aria-hidden />
+                {STEPS.map((s, index) => (
+                  <div key={s.n} className="relative rounded-[1.5rem] border-2 border-foreground bg-card p-4 shadow-[6px_6px_0_rgba(35,57,63,0.08)]">
+                    <div className={`relative z-10 flex size-16 items-center justify-center rounded-2xl border-2 border-foreground font-display text-2xl font-extrabold ${s.color}`}>
+                      {s.n}
+                    </div>
+                    <h3 className="mt-5 font-display text-2xl font-extrabold leading-tight">{t(s.title)}</h3>
+                    <p className="mt-2 text-sm font-semibold leading-relaxed text-muted-foreground">{t(s.body)}</p>
+                    <div className="mt-5 rounded-2xl border border-foreground/10 bg-background px-3 py-3">
+                      <div className="h-2 rounded-full bg-foreground/10">
+                        <div
+                          className="h-2 rounded-full bg-primary"
+                          style={{ width: `${45 + index * 25}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[10px] font-extrabold uppercase tracking-widest text-foreground/55">
+                        {t(index === 0 ? "home.flow.upload" : index === 1 ? "home.flow.style" : "home.flow.share")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
