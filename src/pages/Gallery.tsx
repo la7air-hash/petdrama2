@@ -30,6 +30,7 @@ import {
   setShareEnabled,
   whatsappShareUrl,
 } from "@/lib/share";
+import { useI18n } from "@/lib/i18n";
 
 type Variant = "original" | "remix";
 
@@ -173,6 +174,7 @@ export default function Gallery() {
   const [pendingDelete, setPendingDelete] = useState<UIItem | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
   const [canNativeShare, setCanNativeShare] = useState(false);
+  const { t } = useI18n();
   // Per-cloud-item share state, keyed by cloud row id. Mirrors DB after toggle.
   const [shareState, setShareState] = useState<Record<string, { enabled: boolean; slug: string | null }>>({});
 
@@ -336,18 +338,18 @@ export default function Gallery() {
       <section className="container py-10 md:py-16">
         <div className="flex items-end justify-between gap-4 flex-wrap mb-10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Your gallery</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("gallery.eyebrow")}</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-              Your dramatic collection.
+              {t("gallery.title")}
             </h1>
             <p className="mt-2 text-muted-foreground">
               {isAuthed
-                ? "Saved to your account. Available on any device."
-                : "Saved on this device. Tap any card to view, download or delete."}
+                ? t("gallery.accountSaved")
+                : t("gallery.localSaved")}
             </p>
           </div>
           <Link to="/create">
-            <StickerButton variant="primary">+ New drama</StickerButton>
+            <StickerButton variant="primary">{t("gallery.newDrama")}</StickerButton>
           </Link>
         </div>
 
@@ -355,10 +357,10 @@ export default function Gallery() {
           <StickerCard className="p-4 mb-8 bg-highlight">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-sm font-bold">
-                Saved on this device only. Sign in to save permanently across devices.
+                {t("gallery.localOnly")}
               </p>
               <Link to="/login">
-                <StickerButton variant="dark">Sign in</StickerButton>
+                <StickerButton variant="dark">{t("gallery.signIn")}</StickerButton>
               </Link>
             </div>
           </StickerCard>
@@ -366,15 +368,15 @@ export default function Gallery() {
 
         {loading ? (
           <div className="text-center text-sm font-bold uppercase tracking-widest text-muted-foreground py-12">
-            Loading your gallery…
+            {t("gallery.loading")}
           </div>
         ) : items.length === 0 ? (
           <StickerCard className="p-12 text-center bg-background">
             <div className="text-5xl mb-3">🎭</div>
-            <h2 className="font-display text-2xl font-extrabold">No drama yet.</h2>
-            <p className="mt-2 text-muted-foreground">Generate your first masterpiece — it'll appear here.</p>
+            <h2 className="font-display text-2xl font-extrabold">{t("gallery.emptyTitle")}</h2>
+            <p className="mt-2 text-muted-foreground">{t("gallery.emptyBody")}</p>
             <Link to="/create" className="inline-block mt-6">
-              <StickerButton variant="primary">Create Pet Drama →</StickerButton>
+              <StickerButton variant="primary">{t("gallery.create")} →</StickerButton>
             </Link>
           </StickerCard>
         ) : (
@@ -453,7 +455,7 @@ export default function Gallery() {
                   {getStyle(active.styleId).emoji} {normalizePetName(active.petName)} —{" "}
                   {getStyle(active.styleId).name}
                 </DialogTitle>
-                <DialogDescription className="sr-only">Saved creation preview and download.</DialogDescription>
+                <DialogDescription className="sr-only">{t("gallery.savedPreview")}</DialogDescription>
 
                 {showVariants && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -526,11 +528,11 @@ export default function Gallery() {
                     <div className="mt-5 pt-4 border-t-2 border-dashed border-foreground/20">
                       <div className="flex items-center justify-between gap-3 mb-3">
                         <div>
-                          <p className="text-xs font-extrabold uppercase tracking-wider">Share publicly</p>
+                          <p className="text-xs font-extrabold uppercase tracking-wider">{t("gallery.sharePublic")}</p>
                           <p className="text-[11px] text-muted-foreground">
                             {st.enabled
-                              ? "Anyone with the link can view this drama."
-                              : "Private. Only you can see it."}
+                              ? t("gallery.anyoneLink")
+                              : t("gallery.private")}
                           </p>
                         </div>
                         <button
@@ -542,7 +544,7 @@ export default function Gallery() {
                             st.enabled ? "bg-primary text-primary-foreground" : "bg-background",
                           )}
                         >
-                          {st.enabled ? "Sharing on" : "Enable share"}
+                          {st.enabled ? t("gallery.sharingOn") : t("gallery.enableShare")}
                         </button>
                       </div>
 
@@ -561,7 +563,7 @@ export default function Gallery() {
                               className="inline-flex items-center gap-1 rounded-full border-2 border-foreground bg-foreground text-background px-3 py-1.5 text-[11px] font-extrabold sticker-shadow-sm"
                               aria-label="Copy link"
                             >
-                              <Copy className="size-3" /> Copy
+                              <Copy className="size-3" /> {t("gallery.copy")}
                             </button>
                           </div>
 
@@ -606,24 +608,24 @@ export default function Gallery() {
       <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this creation?</AlertDialogTitle>
+            <AlertDialogTitle>{t("gallery.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDelete && (
                 <>
-                  This will remove <strong>{normalizePetName(pendingDelete.petName)} —{" "}
-                  {getStyle(pendingDelete.styleId).name}</strong> from your gallery.
-                  {pendingDelete.source === "local" && " You can undo right after."}
+                  {t("gallery.deleteBodyBefore")} <strong>{normalizePetName(pendingDelete.petName)} —{" "}
+                  {getStyle(pendingDelete.styleId).name}</strong> {t("gallery.deleteBodyAfter")}
+                  {pendingDelete.source === "local" && ` ${t("gallery.undoHint")}`}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("gallery.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t("gallery.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

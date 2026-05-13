@@ -649,7 +649,7 @@ export default function Result() {
                     <div className="text-center">
                       <div className="text-4xl inline-block">🎭</div>
                       <p className="mt-3 font-bold">
-                        {variant === "remix" ? "Rendering remix…" : "Rendering your masterpiece…"}
+                        {variant === "remix" ? t("result.renderingRemix") : t("result.renderingMasterpiece")}
                       </p>
                     </div>
                   </div>
@@ -658,8 +658,8 @@ export default function Result() {
                   <div className="absolute inset-0 grid place-items-center bg-background/70 backdrop-blur-sm">
                     <div className="text-center">
                       <div className="text-4xl animate-pulse">✨</div>
-                      <p className="mt-3 font-extrabold">Cooking up the Drama Remix…</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Usually 5–15 seconds</p>
+                      <p className="mt-3 font-extrabold">{t("result.cookingRemix")}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{t("result.remixTime")}</p>
                     </div>
                   </div>
                 )}
@@ -885,9 +885,9 @@ export default function Result() {
             {!isPaid && !isAdmin && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 text-sm">
                 <p>
-                  <span className="font-bold">Free plan:</span> includes a "Made with PetDrama" watermark.{" "}
+                  <span className="font-bold">{t("result.freePlan")}</span> {t("result.freePlanBody")}{" "}
                   <Link to="/pricing" className="font-bold underline decoration-primary decoration-4 underline-offset-2">
-                    Upgrade to remove it
+                    {t("result.upgradeRemove")}
                   </Link>
                   .
                 </p>
@@ -895,7 +895,7 @@ export default function Result() {
             )}
 
             <p className="text-xs text-muted-foreground">
-              Imaginary pet thoughts · For entertainment only · We do not actually translate animals.
+              {t("result.disclaimer")}
             </p>
           </div>
         </div>

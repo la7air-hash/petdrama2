@@ -14,6 +14,7 @@ import {
   xShareUrl,
 } from "@/lib/share";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Copy, Download, Facebook, Share2 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export default function PublicShare() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [variant, setVariant] = useState<Variant>("original");
+  const { t } = useI18n();
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +114,7 @@ export default function PublicShare() {
     return (
       <PageShell>
         <section className="container py-16 text-center text-sm font-bold uppercase tracking-widest text-muted-foreground">
-          Loading…
+          {t("public.loading")}
         </section>
       </PageShell>
     );
@@ -124,12 +126,12 @@ export default function PublicShare() {
         <section className="container py-16">
           <StickerCard className="p-12 text-center bg-background max-w-lg mx-auto">
             <div className="text-5xl mb-3">🎭</div>
-            <h1 className="font-display text-3xl font-extrabold">This drama isn't public.</h1>
+            <h1 className="font-display text-3xl font-extrabold">{t("public.notPublicTitle")}</h1>
             <p className="mt-2 text-muted-foreground">
-              The link may have been removed, or the creator made it private.
+              {t("public.notPublicBody")}
             </p>
             <Link to="/create" className="inline-block mt-6">
-              <StickerButton variant="primary">Create your own PetDrama →</StickerButton>
+              <StickerButton variant="primary">{t("public.createOwn")} →</StickerButton>
             </Link>
           </StickerCard>
         </section>
@@ -145,7 +147,7 @@ export default function PublicShare() {
       <section className="container py-10 md:py-16">
         <div className="max-w-2xl mx-auto">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground text-center">
-            Shared on PetDrama
+            {t("public.sharedOn")}
           </p>
           <h1 className="mt-2 font-display text-3xl md:text-4xl font-extrabold tracking-tight text-center">
             {style.emoji} {petName} — {data.petRole}
@@ -217,14 +219,14 @@ export default function PublicShare() {
               onClick={handleNative}
               className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-foreground text-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
             >
-              <Share2 className="size-3.5" /> Share
+              <Share2 className="size-3.5" /> {t("public.share")}
             </button>
             <button
               type="button"
               onClick={handleCopy}
               className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
             >
-              <Copy className="size-3.5" /> Copy link
+              <Copy className="size-3.5" /> {t("public.copyLink")}
             </button>
             <a
               href={whatsappShareUrl(shareUrl, `${petName} the ${data.petRole} 🎭`)}
@@ -258,14 +260,14 @@ export default function PublicShare() {
               onClick={handleDownload}
               className="w-full inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-primary text-primary-foreground px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
             >
-              <Download className="size-3.5" /> Download PNG
+              <Download className="size-3.5" /> {t("public.downloadPng")}
             </button>
           </div>
 
           <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground">Want one for your pet?</p>
+            <p className="text-sm text-muted-foreground">{t("public.wantOne")}</p>
             <Link to="/create" className="inline-block mt-3">
-              <StickerButton variant="primary">Create your own PetDrama →</StickerButton>
+              <StickerButton variant="primary">{t("public.createOwn")} →</StickerButton>
             </Link>
           </div>
         </div>

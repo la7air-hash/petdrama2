@@ -5,6 +5,7 @@ import { StickerCard } from "@/components/StickerCard";
 import { StickerButton } from "@/components/StickerButton";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutAndClear } from "@/lib/auth-cleanup";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
@@ -22,6 +23,7 @@ export default function Account() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -52,7 +54,7 @@ export default function Account() {
     return (
       <PageShell>
         <div className="container py-16 text-center text-sm font-bold uppercase tracking-widest text-muted-foreground">
-          Loading account…
+          {t("account.loading")}
         </div>
       </PageShell>
     );
@@ -64,42 +66,42 @@ export default function Account() {
   return (
     <PageShell>
       <section className="container max-w-2xl py-12">
-        <h1 className="font-display text-4xl font-extrabold tracking-tight">Account</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage your PetDrama account.</p>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight">{t("account.title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("account.subtitle")}</p>
 
         <StickerCard className="mt-8 p-6">
           <dl className="divide-y divide-foreground/10">
             <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Email</dt>
+              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("account.email")}</dt>
               <dd className="break-all font-semibold">{user.email ?? "—"}</dd>
             </div>
             <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Login provider</dt>
+              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("account.provider")}</dt>
               <dd className="font-semibold">{providerLabel(user)}</dd>
             </div>
             <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Status</dt>
+              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("account.status")}</dt>
               <dd>
                 <span
                   className={`inline-flex items-center rounded-full border-2 border-foreground px-2.5 py-0.5 text-xs font-bold ${
                     confirmed ? "bg-highlight" : "bg-muted"
                   }`}
                 >
-                  {confirmed ? "Active" : "Pending verification"}
+                  {confirmed ? t("account.active") : t("account.pending")}
                 </span>
               </dd>
             </div>
             <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Member since</dt>
+              <dt className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("account.memberSince")}</dt>
               <dd className="font-semibold">{created}</dd>
             </div>
           </dl>
         </StickerCard>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <StickerButton onClick={() => navigate("/gallery")}>My Gallery</StickerButton>
+          <StickerButton onClick={() => navigate("/gallery")}>{t("nav.myGallery")}</StickerButton>
           <StickerButton variant="ghost" onClick={handleSignOut}>
-            Sign out
+            {t("nav.signOut")}
           </StickerButton>
         </div>
       </section>
