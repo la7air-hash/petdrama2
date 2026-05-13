@@ -10,7 +10,7 @@ export type DramaStyleId =
   | "office-manager"
   | "venetian-noble";
 
-export type PetType = "dog" | "cat" | "bird" | "rabbit" | "hamster" | "other";
+export type PetType = "dog" | "cat" | "bird" | "rabbit" | "hamster" | "spider" | "fish" | "reptile" | "other";
 
 export interface DramaStyle {
   id: DramaStyleId;
@@ -40,6 +40,9 @@ export const PET_TYPES: { id: PetType; label: string; emoji: string }[] = [
   { id: "bird", label: "Bird", emoji: "🦜" },
   { id: "rabbit", label: "Rabbit", emoji: "🐰" },
   { id: "hamster", label: "Hamster", emoji: "🐹" },
+  { id: "spider", label: "Spider", emoji: "🕷️" },
+  { id: "fish", label: "Fish", emoji: "🐠" },
+  { id: "reptile", label: "Reptile", emoji: "🦎" },
   { id: "other", label: "Other", emoji: "✨" },
 ];
 
@@ -86,6 +89,9 @@ const PET_VOCAB: Record<PetType, PetVocab> = {
   bird: { noun: "bird", sound: "screech", action: "redecorate the cage", spot: "the highest perch", tinyAct: "suspicious head bob" },
   rabbit: { noun: "rabbit", sound: "thump", action: "rearrange the hay", spot: "the corner of disapproval", tinyAct: "indignant nose twitch" },
   hamster: { noun: "hamster", sound: "squeak", action: "stuff my cheeks past capacity", spot: "the wheel", tinyAct: "tiny outraged squeak" },
+  spider: { noun: "spider", sound: "skitter", action: "redecorate the corner with silk", spot: "the dramatic web", tinyAct: "eight-legged pause of judgment" },
+  fish: { noun: "fish", sound: "bubble", action: "judge from inside the tank", spot: "the castle ornament", tinyAct: "silent bubble stare" },
+  reptile: { noun: "reptile", sound: "hiss", action: "bask like royalty", spot: "the warmest rock", tinyAct: "slow ancient blink" },
   other: { noun: "creature", sound: "noise", action: "do whatever I want", spot: "my favorite spot", tinyAct: "unreadable stare" },
 };
 

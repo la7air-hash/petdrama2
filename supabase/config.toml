@@ -9,5 +9,8 @@ verify_jwt = false
 [functions.remix-vote]
 verify_jwt = false
 
+[functions.pet-detect]
+verify_jwt = false
+
 [functions.usage-check]
 verify_jwt = false

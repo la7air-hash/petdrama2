@@ -61,6 +61,12 @@ const PET_TOYS: Partial<Record<string, string>> = {
     "subtle cute toy-like accents nearby (mini exercise wheel, small tunnel, tiny chew toy, or seed accents) — small, integrated naturally, never covering the hamster",
   rabbit:
     "subtle cute toy-like accents nearby (small carrot, tiny ball, or chew toy) — small, integrated naturally, never covering the rabbit",
+  spider:
+    "subtle spider-appropriate decorative accents nearby (delicate web geometry, tiny silk strand, warm dew-like sparkle) — small and cute, never scary, never covering the spider, no dog paws or mammal toys",
+  fish:
+    "subtle fish-appropriate decorative accents nearby (soft bubbles, tiny aquatic plant, cute pebble or shell) — small, integrated naturally, never covering the fish",
+  reptile:
+    "subtle reptile-appropriate decorative accents nearby (warm rock, tiny branch, soft scale pattern, basking-lamp glow) — small, integrated naturally, never covering the reptile",
 };
 
 // Defensive image extraction — providers return images in various shapes.

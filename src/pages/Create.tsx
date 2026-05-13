@@ -5,6 +5,7 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { UsageMeter } from "@/components/UsageMeter";
 import { UpgradeModal, type UpgradeReason } from "@/components/UpgradeModal";
+import { supabase } from "@/integrations/supabase/client";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { checkUsage } from "@/lib/usage";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
@@ -18,6 +19,7 @@ export default function Create() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const detectRunRef = useRef(0);
   const { usage, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -26,6 +28,8 @@ export default function Create() {
   const [styleId, setStyleId] = useState<DramaStyleId>("drama-queen");
   const [dragOver, setDragOver] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [detectingPet, setDetectingPet] = useState(false);
+  const [detectedPetType, setDetectedPetType] = useState<PetType | null>(null);
   // Track the active draft so re-saving with the same inputs reuses creationId
   // (no duplicate gallery items) but explicit "Start over" mints a fresh one.
   const [activeCreationId, setActiveCreationId] = useState<string | null>(null);
@@ -74,6 +78,7 @@ export default function Create() {
         setRestored(false);
         setHasGeneratedResult(false);
         setRestoredSnapshot(null);
+        setDetectedPetType(null);
       }
     };
     restore();
@@ -91,6 +96,39 @@ export default function Create() {
       restoredSnapshot.petType !== petType ||
       restoredSnapshot.styleId !== styleId);
 
+  const detectPetType = async (dataUrl: string) => {
+    const runId = ++detectRunRef.current;
+    setDetectingPet(true);
+    setDetectedPetType(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("pet-detect", {
+        body: { imageDataUrl: dataUrl },
+      });
+      if (runId !== detectRunRef.current) return;
+      if (error || !data?.ok) {
+        toast.message(t("create.detectUnavailable"));
+        return;
+      }
+      if (data.isHumanOnly || !data.isAnimal) {
+        setImageDataUrl(null);
+        setDetectedPetType(null);
+        toast.error(t("create.onlyAnimals"));
+        return;
+      }
+      const nextType = PET_TYPES.some((p) => p.id === data.petType) ? data.petType as PetType : "other";
+      setPetType(nextType);
+      setDetectedPetType(nextType);
+      toast.success(`${t("create.detected")} ${PET_TYPES.find((p) => p.id === nextType)?.label ?? "pet"}`);
+    } catch (err) {
+      if (runId === detectRunRef.current) {
+        console.warn("[PetDrama pet detect]", err);
+        toast.message(t("create.detectUnavailable"));
+      }
+    } finally {
+      if (runId === detectRunRef.current) setDetectingPet(false);
+    }
+  };
+
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload an image file (JPG, PNG, etc).");
@@ -101,7 +139,12 @@ export default function Create() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (e) => setImageDataUrl(e.target?.result as string);
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImageDataUrl(dataUrl);
+      setDetectedPetType(null);
+      void detectPetType(dataUrl);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -117,13 +160,14 @@ export default function Create() {
     if (f) handleFile(f);
   };
 
-  const canGenerate = !!imageDataUrl && petName.trim().length > 0;
+  const canGenerate = !!imageDataUrl && petName.trim().length > 0 && !detectingPet;
 
   const onStartOver = () => {
     clearDraft();
     setImageDataUrl(null);
     setPetName("");
     setPetType("dog");
+    setDetectedPetType(null);
     setStyleId("drama-queen");
     setActiveCreationId(null);
     setActiveSavedToGallery(false);
@@ -252,11 +296,17 @@ export default function Create() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setImageDataUrl(null);
+                        setDetectedPetType(null);
                       }}
                       className="absolute top-3 right-3 rounded-full border-2 border-foreground bg-background px-3 py-1 text-xs font-bold uppercase sticker-shadow-sm"
                     >
                       {t("create.change")}
                     </button>
+                    {detectingPet && (
+                      <div className="absolute left-3 bottom-3 rounded-full border-2 border-foreground bg-background px-3 py-1 text-xs font-bold uppercase sticker-shadow-sm">
+                        {t("create.detecting")}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-center px-6">
@@ -289,11 +339,19 @@ export default function Create() {
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest">{t("create.petType")}</p>
+                  {detectedPetType && (
+                    <p className="mt-1 text-xs font-bold text-primary">
+                      {t("create.detected")} {PET_TYPES.find((p) => p.id === detectedPetType)?.label}
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {PET_TYPES.map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => setPetType(t.id)}
+                        onClick={() => {
+                          setPetType(t.id);
+                          setDetectedPetType(null);
+                        }}
                         className={cn(
                           "rounded-full border-2 border-foreground px-4 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5",
                           petType === t.id ? "bg-foreground text-background sticker-shadow-sm" : "bg-card",

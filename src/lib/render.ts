@@ -78,12 +78,8 @@ export async function renderDramaPng(opts: RenderOpts): Promise<string> {
   drawSoftBlob(ctx, size * 0.88, size * 0.10, size * 0.18, BRAND.pink, 0.45);
   drawSoftBlob(ctx, size * 0.06, size * 0.92, size * 0.20, BRAND.yellowSoft, 0.5);
 
-  // Decorative paw prints scattered (very soft, brand-tinted)
-  drawPaw(ctx, size * 0.06, size * 0.74, size * 0.045, BRAND.coral, 0.20, -0.2);
-  drawPaw(ctx, size * 0.94, size * 0.22, size * 0.04, BRAND.teal, 0.22, 0.3);
-  drawPaw(ctx, size * 0.16, size * 0.94, size * 0.035, BRAND.yellow, 0.28, 0.1);
-  drawPaw(ctx, size * 0.84, size * 0.94, size * 0.03, BRAND.coral, 0.20, -0.4);
-  drawPaw(ctx, size * 0.04, size * 0.06, size * 0.028, BRAND.teal, 0.18, 0.6);
+  // Species-aware decorative marks scattered very softly.
+  drawPetMarks(ctx, size, opts.petType);
 
   // Tiny sparkle stars for the toy-like premium feel
   drawSparkle(ctx, size * 0.20, size * 0.10, size * 0.018, BRAND.yellow, 0.7);
@@ -485,6 +481,45 @@ function drawPaw(
   ctx.restore();
 }
 
+function drawPetMarks(ctx: CanvasRenderingContext2D, size: number, petType: PetType | undefined) {
+  const type = petType ?? "other";
+  if (type === "bird") {
+    drawFeather(ctx, size * 0.06, size * 0.74, size * 0.055, BRAND.coral, 0.24, -0.5);
+    drawFeather(ctx, size * 0.94, size * 0.22, size * 0.048, BRAND.teal, 0.24, 0.55);
+    drawSeed(ctx, size * 0.18, size * 0.94, size * 0.028, BRAND.yellow);
+    drawFeather(ctx, size * 0.04, size * 0.06, size * 0.035, BRAND.teal, 0.18, 0.8);
+    return;
+  }
+  if (type === "spider") {
+    drawWeb(ctx, size * 0.08, size * 0.12, size * 0.075, BRAND.teal, 0.18);
+    drawWeb(ctx, size * 0.92, size * 0.18, size * 0.065, BRAND.coral, 0.16);
+    drawTinySpider(ctx, size * 0.12, size * 0.78, size * 0.035, BRAND.ink, 0.22);
+    drawWeb(ctx, size * 0.82, size * 0.92, size * 0.052, BRAND.yellow, 0.22);
+    return;
+  }
+  if (type === "fish") {
+    drawBubbleCluster(ctx, size * 0.07, size * 0.74, size * 0.035, BRAND.teal, 0.22);
+    drawFish(ctx, size * 0.93, size * 0.22, size * 0.04, BRAND.teal, BRAND.ink, 0.15);
+    drawBubbleCluster(ctx, size * 0.18, size * 0.94, size * 0.025, BRAND.yellow, 0.25);
+    drawBubbleCluster(ctx, size * 0.04, size * 0.06, size * 0.025, BRAND.coral, 0.18);
+    return;
+  }
+  if (type === "reptile") {
+    drawScaleCluster(ctx, size * 0.06, size * 0.74, size * 0.04, BRAND.teal, 0.18);
+    drawScaleCluster(ctx, size * 0.94, size * 0.22, size * 0.035, BRAND.coral, 0.18);
+    drawSparkle(ctx, size * 0.16, size * 0.94, size * 0.016, BRAND.yellow, 0.35);
+    drawScaleCluster(ctx, size * 0.04, size * 0.06, size * 0.03, BRAND.teal, 0.14);
+    return;
+  }
+
+  // Mammals can share soft paw language; colors and toys still vary per species.
+  drawPaw(ctx, size * 0.06, size * 0.74, size * 0.045, BRAND.coral, 0.20, -0.2);
+  drawPaw(ctx, size * 0.94, size * 0.22, size * 0.04, BRAND.teal, 0.22, 0.3);
+  drawPaw(ctx, size * 0.16, size * 0.94, size * 0.035, BRAND.yellow, 0.28, 0.1);
+  drawPaw(ctx, size * 0.84, size * 0.94, size * 0.03, BRAND.coral, 0.20, -0.4);
+  drawPaw(ctx, size * 0.04, size * 0.06, size * 0.028, BRAND.teal, 0.18, 0.6);
+}
+
 function drawPetToys(
   ctx: CanvasRenderingContext2D,
   size: number,
@@ -516,9 +551,21 @@ function drawPetToys(
       drawWheel(ctx, bl.x, bl.y, size * 0.09, BRAND.teal, BRAND.ink);
       drawSeed(ctx, tr.x, tr.y, size * 0.05, BRAND.coral);
       break;
+    case "spider":
+      drawWeb(ctx, bl.x, bl.y, size * 0.105, BRAND.teal, 0.55);
+      drawTinySpider(ctx, tr.x, tr.y, size * 0.06, BRAND.ink, 0.75);
+      break;
+    case "fish":
+      drawFish(ctx, bl.x, bl.y, size * 0.08, BRAND.teal, BRAND.ink, -0.2);
+      drawBubbleCluster(ctx, tr.x, tr.y, size * 0.045, BRAND.coral, 0.55);
+      break;
+    case "reptile":
+      drawScaleCluster(ctx, bl.x, bl.y, size * 0.07, BRAND.teal, 0.55);
+      drawBranch(ctx, tr.x, tr.y, size * 0.08, BRAND.coral, BRAND.ink, 0.2);
+      break;
     default:
-      drawBall(ctx, bl.x, bl.y, size * 0.06, BRAND.coral, BRAND.ink);
-      drawBall(ctx, tr.x, tr.y, size * 0.05, BRAND.teal, BRAND.ink);
+      drawSparkle(ctx, bl.x, bl.y, size * 0.04, BRAND.coral, 0.75);
+      drawSparkle(ctx, tr.x, tr.y, size * 0.035, BRAND.teal, 0.75);
   }
 }
 
@@ -724,6 +771,129 @@ function drawWheel(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.arc(x, y, r * 0.18, 0, Math.PI * 2);
   ctx.fillStyle = fill;
   ctx.fill();
+}
+
+function drawFeather(
+  ctx: CanvasRenderingContext2D, x: number, y: number, len: number, color: string, alpha = 1, rot = 0,
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, len * 0.32, len, -0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -len * 0.8);
+  ctx.lineTo(0, len * 0.9);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawWeb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha = 1) {
+  ctx.save();
+  ctx.strokeStyle = hexToRgba(color, alpha);
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    ctx.stroke();
+  }
+  for (let ring = 0.35; ring <= 1; ring += 0.32) {
+    ctx.beginPath();
+    for (let i = 0; i <= 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const px = x + Math.cos(a) * r * ring;
+      const py = y + Math.sin(a) * r * ring;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawTinySpider(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha = 1) {
+  ctx.save();
+  ctx.strokeStyle = hexToRgba(color, alpha);
+  ctx.fillStyle = hexToRgba(color, alpha);
+  ctx.lineWidth = Math.max(2, r * 0.08);
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const yy = y + (i - 1.5) * r * 0.32;
+      ctx.beginPath();
+      ctx.moveTo(x + side * r * 0.2, yy);
+      ctx.quadraticCurveTo(x + side * r * 0.85, yy - r * 0.18, x + side * r * 1.2, yy + r * 0.15);
+      ctx.stroke();
+    }
+  }
+  ctx.beginPath();
+  ctx.ellipse(x, y, r * 0.45, r * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y - r * 0.52, r * 0.28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBubbleCluster(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha = 1) {
+  ctx.save();
+  ctx.strokeStyle = hexToRgba(color, alpha);
+  ctx.lineWidth = 3;
+  const bubbles = [
+    { x: 0, y: 0, r: 1 },
+    { x: r * 1.1, y: -r * 0.8, r: 0.65 },
+    { x: -r * 0.9, y: -r * 0.55, r: 0.5 },
+    { x: r * 0.2, y: -r * 1.55, r: 0.38 },
+  ];
+  for (const b of bubbles) {
+    ctx.beginPath();
+    ctx.arc(x + b.x, y + b.y, r * b.r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawScaleCluster(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha = 1) {
+  ctx.save();
+  ctx.fillStyle = hexToRgba(color, alpha);
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      ctx.beginPath();
+      ctx.ellipse(x + (col - 1) * r * 0.55, y + (row - 1) * r * 0.42, r * 0.28, r * 0.2, 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawBranch(
+  ctx: CanvasRenderingContext2D, x: number, y: number, len: number, fill: string, stroke: string, rot = 0,
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.lineCap = "round";
+  ctx.strokeStyle = hexToRgba(stroke, 0.35);
+  ctx.lineWidth = len * 0.14;
+  ctx.beginPath();
+  ctx.moveTo(-len, len * 0.2);
+  ctx.lineTo(len, -len * 0.2);
+  ctx.stroke();
+  ctx.strokeStyle = hexToRgba(fill, 0.5);
+  ctx.lineWidth = len * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(-len * 0.15, -len * 0.02);
+  ctx.lineTo(-len * 0.45, -len * 0.45);
+  ctx.moveTo(len * 0.28, -len * 0.08);
+  ctx.lineTo(len * 0.58, len * 0.25);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export function downloadDataUrl(dataUrl: string, filename: string) {
