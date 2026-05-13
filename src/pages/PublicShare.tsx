@@ -21,9 +21,10 @@ import { Copy, Download, Facebook, Share2, Trophy } from "lucide-react";
 
 interface PublicRemixVariant {
   id: string;
-  key: string;
-  label: string;
+  key?: string;
+  label?: string;
   url: string | null;
+  imageUrl?: string | null;
   quote: string;
   caption: string | null;
   hashtags: string[];
@@ -122,10 +123,10 @@ export default function PublicShare() {
         },
         ...((data.remixes?.length ?? 0) > 0
           ? data.remixes!.map((remix, index) => ({
-              key: remix.key,
+              key: remix.key ?? `remix:${remix.id}`,
               label: remix.label || `Remix ${index + 1}`,
               kind: "remix" as const,
-              url: remix.url,
+              url: remix.url ?? remix.imageUrl ?? null,
               quote: remix.quote || data.quote,
               caption: remix.caption ?? data.caption,
               hashtags: remix.hashtags?.length ? remix.hashtags : data.hashtags,
