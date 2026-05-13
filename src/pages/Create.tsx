@@ -46,6 +46,8 @@ export default function Create() {
   const [restoredSnapshot, setRestoredSnapshot] = useState<
     { imageDataUrl: string; petName: string; petType: PetType; styleId: DramaStyleId } | null
   >(null);
+  const selectedPet = PET_TYPES.find((p) => p.id === petType) ?? PET_TYPES[0];
+  const detectedPet = detectedPetType ? PET_TYPES.find((p) => p.id === detectedPetType) : null;
 
   // Restore draft for the *current owner only*. Re-runs when the auth owner
   // changes so user A's photo/inputs never appear for user B on the same browser.
@@ -308,6 +310,23 @@ export default function Create() {
                         {t("create.detecting")}
                       </div>
                     )}
+                    {!detectingPet && detectedPet && (
+                      <div className="absolute left-3 bottom-3 max-w-[calc(100%-1.5rem)] rounded-2xl border-2 border-foreground bg-background/95 px-3 py-2 text-xs font-bold sticker-shadow-sm backdrop-blur">
+                        <span className="mr-1">{detectedPet.emoji}</span>
+                        <span>{t("create.detected")} {detectedPet.label}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetectedPetType(null);
+                            document.getElementById("pet-type-picker")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }}
+                          className="ml-2 underline decoration-2 underline-offset-2"
+                        >
+                          {t("create.correct")}
+                        </button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-center px-6">
@@ -340,12 +359,12 @@ export default function Create() {
                 </div>
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest">{t("create.petType")}</p>
-                  {detectedPetType && (
-                    <p className="mt-1 text-xs font-bold text-primary">
-                      {t("create.detected")} {PET_TYPES.find((p) => p.id === detectedPetType)?.label}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                    {detectedPet
+                      ? `${t("create.detected")} ${detectedPet.emoji} ${detectedPet.label}`
+                      : `${selectedPet.emoji} ${selectedPet.label}`}
+                  </p>
+                  <div id="pet-type-picker" className="mt-2 flex flex-wrap gap-2 scroll-mt-24">
                     {PET_TYPES.map((t) => (
                       <button
                         key={t.id}
