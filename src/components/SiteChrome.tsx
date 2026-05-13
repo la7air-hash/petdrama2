@@ -15,12 +15,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-3 sm:px-6">
+      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link to="/" aria-label="PetDrama home" className="flex items-center gap-2 group">
           <img
             src={logo}
             alt="PetDrama"
-            className="h-12 md:h-14 w-auto transition-transform group-hover:-rotate-2"
+            className="h-10 w-auto transition-transform group-hover:-rotate-2 md:h-14"
             width={120}
             height={56}
           />
@@ -57,7 +57,9 @@ export function SiteHeader() {
               <option key={item.code} value={item.code}>{item.short}</option>
             ))}
           </select>
-          <AccountPill />
+          <div className="max-[420px]:hidden">
+            <AccountPill />
+          </div>
         </div>
       </div>
     </header>

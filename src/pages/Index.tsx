@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
@@ -76,11 +77,58 @@ const BENEFITS = [
   "home.benefit.captions",
 ];
 
+const INTRO_VIDEO_SRC = "/PetDrama_logo_animated_02.mp4";
+const INTRO_SEEN_KEY = "petdrama:intro-seen";
+
 export default function Home() {
   const { t } = useI18n();
+  const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("intro") === "0") return;
+      if (sessionStorage.getItem(INTRO_SEEN_KEY)) return;
+      if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+      setShowIntro(true);
+    } catch {
+      setShowIntro(false);
+    }
+  }, []);
+
+  const closeIntro = () => {
+    try {
+      sessionStorage.setItem(INTRO_SEEN_KEY, "1");
+    } catch {
+      /* noop */
+    }
+    setShowIntro(false);
+  };
 
   return (
     <PageShell>
+      {showIntro && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-[#fff7e9]">
+          <video
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={closeIntro}
+            onError={closeIntro}
+          >
+            <source src={INTRO_VIDEO_SRC} type="video/mp4" />
+          </video>
+          <button
+            type="button"
+            onClick={closeIntro}
+            className="absolute right-5 top-5 rounded-full border-2 border-foreground bg-background px-4 py-2 text-xs font-extrabold uppercase tracking-widest sticker-shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            {t("intro.skip")}
+          </button>
+        </div>
+      )}
+
       {/* Marquee strip */}
       <div className="border-b-2 border-foreground bg-foreground py-2 overflow-hidden">
         <div className="flex animate-marquee whitespace-nowrap text-background text-[11px] font-bold uppercase tracking-[0.25em]">
@@ -98,124 +146,105 @@ export default function Home() {
       </div>
 
       {/* HERO */}
-      <section className="relative overflow-hidden text-background border-b-2 border-foreground">
-        {/* Cinematic gradient background */}
+      <section className="relative isolate overflow-hidden border-b-2 border-foreground bg-[#fff7e9] text-foreground">
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 -z-10 pointer-events-none"
           aria-hidden
           style={{
             background:
-              "radial-gradient(120% 80% at 90% 50%, hsl(320 100% 55% / 0.95) 0%, hsl(320 100% 45% / 0.7) 25%, transparent 60%), radial-gradient(90% 70% at 10% 30%, hsl(250 100% 35% / 0.9) 0%, transparent 60%), linear-gradient(135deg, hsl(240 60% 10%) 0%, hsl(260 70% 18%) 45%, hsl(320 90% 35%) 100%)",
+              "linear-gradient(115deg, #fff7e9 0%, #fff1c9 38%, #d8f6f2 70%, #ffe2d7 100%)",
           }}
         />
-        {/* Subtle line accents */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.18] mix-blend-screen"
+          className="absolute inset-0 -z-10 pointer-events-none opacity-60"
           aria-hidden
           style={{
             backgroundImage:
-              "repeating-linear-gradient(115deg, hsl(0 0% 100% / 0.6) 0 1px, transparent 1px 90px), repeating-linear-gradient(115deg, hsl(0 0% 100% / 0.35) 0 1px, transparent 1px 30px)",
-            backgroundSize: "auto, auto",
-            maskImage:
-              "linear-gradient(115deg, transparent 0%, black 20%, black 80%, transparent 100%)",
+              "linear-gradient(120deg, transparent 0 42%, rgba(55,197,191,0.28) 42% 48%, transparent 48% 100%), linear-gradient(145deg, transparent 0 58%, rgba(241,112,94,0.20) 58% 64%, transparent 64% 100%)",
           }}
         />
-        {/* Dotted rounded frame accents */}
-        <div className="pointer-events-none absolute inset-6 md:inset-10 rounded-[3rem] border border-dashed border-background/20" aria-hidden />
-        <div className="pointer-events-none absolute inset-10 md:inset-16 rounded-[2.5rem] border border-dashed border-background/10" aria-hidden />
-        {/* Soft dot grid overlay */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-30"
+          className="absolute inset-0 -z-10 pointer-events-none opacity-35"
           aria-hidden
           style={{
             backgroundImage:
-              "radial-gradient(hsl(0 0% 100% / 0.25) 1px, transparent 1px)",
-            backgroundSize: "26px 26px",
+              "radial-gradient(rgba(35,57,63,0.15) 1px, transparent 1px)",
+            backgroundSize: "18px 18px",
           }}
         />
-        <div className="container relative grid max-w-full gap-12 overflow-hidden py-12 md:py-20 lg:grid-cols-12 lg:gap-8 items-center">
-          <div className="z-10 min-w-0 max-w-[calc(100vw-3rem)] lg:col-span-6 lg:max-w-none">
-            <div className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-accent px-4 py-1.5 sticker-shadow-sm -rotate-2 mb-6">
-              <span className="text-base">🎭</span>
+        <div className="pointer-events-none absolute inset-4 -z-10 rounded-[2rem] border border-dashed border-foreground/15 md:inset-8 md:rounded-[3rem]" aria-hidden />
+
+        <div className="container relative max-w-full min-h-[calc(100svh-6rem)] overflow-hidden py-12 md:py-20">
+          <div className="relative z-10 max-w-[21rem] sm:max-w-3xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-background/85 px-4 py-1.5 sticker-shadow-sm backdrop-blur">
+              <span className="size-2.5 rounded-full bg-primary" />
+              <span className="size-2.5 rounded-full bg-secondary" />
+              <span className="size-2.5 rounded-full bg-highlight" />
               <span className="text-xs font-bold uppercase tracking-widest">{t("home.eyebrow")}</span>
             </div>
-            <h1 className="max-w-[22rem] font-display text-4xl sm:max-w-xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.02] tracking-normal text-balance">
-              {t("home.title.before")} <span className="text-primary">{t("home.title.highlight")}</span> {t("home.title.after")}
+            <h1 className="font-display text-3xl font-extrabold leading-[1.04] tracking-normal [overflow-wrap:anywhere] sm:text-7xl sm:text-balance lg:text-8xl">
+              {t("home.title.before")} <span className="text-primary drop-shadow-[0_4px_0_rgba(35,57,63,0.12)]">{t("home.title.highlight")}</span> {t("home.title.after")}
             </h1>
-            <p className="mt-6 max-w-[22rem] sm:max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty [overflow-wrap:anywhere]">
+            <p className="mt-6 max-w-[21rem] text-base font-semibold leading-relaxed text-foreground/75 text-pretty [overflow-wrap:anywhere] sm:max-w-2xl md:text-xl">
               {t("home.subtitle")}
             </p>
 
-            <div className="mt-8 flex max-w-[22rem] flex-col gap-4 sm:max-w-none sm:flex-row">
+            <div className="mt-8 flex max-w-[21rem] flex-col gap-4 sm:max-w-none sm:flex-row">
               <Link to="/create" className="block w-full sm:w-auto">
-                <StickerButton variant="primary" size="lg" className="w-full sm:w-auto">
+                <StickerButton variant="primary" size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground">
                   {t("home.cta")} →
                 </StickerButton>
               </Link>
               <Link to="/examples" className="block w-full sm:w-auto">
-                <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto">
+                <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto bg-background/90">
                   {t("home.examples")}
                 </StickerButton>
               </Link>
             </div>
 
-            <div className="mt-6 grid max-w-[22rem] gap-2 sm:max-w-2xl sm:grid-cols-3">
+            <div className="mt-7 grid max-w-[21rem] gap-2 sm:max-w-none sm:grid-cols-3">
               {BENEFITS.map((benefit) => (
                 <div
                   key={benefit}
-                  className="rounded-2xl border-2 border-background/25 bg-background/10 px-3 py-2 text-xs font-extrabold uppercase tracking-wider text-background backdrop-blur-sm"
+                  className="rounded-2xl border-2 border-foreground/15 bg-background/75 px-3 py-2 text-xs font-extrabold uppercase tracking-wider text-foreground shadow-[0_10px_25px_rgba(35,57,63,0.08)] backdrop-blur"
                 >
                   {t(benefit)}
                 </div>
               ))}
             </div>
 
-            <div className="mt-8 flex max-w-[22rem] items-center gap-4 sm:max-w-xl">
+            <div className="mt-8 flex max-w-[21rem] items-center gap-4">
               <div className="flex -space-x-3">
                 {EXAMPLES.slice(0, 4).map((ex, i) => (
                   <div
                     key={i}
-                    className="size-11 rounded-full border-2 border-foreground bg-card overflow-hidden ring-4 ring-background"
+                    className="size-12 overflow-hidden rounded-full border-2 border-foreground bg-card ring-4 ring-background"
                   >
                     <img src={ex.img} alt="" className="size-full object-cover" loading="lazy" width={44} height={44} />
                   </div>
                 ))}
               </div>
-              <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight text-background">
+              <p className="min-w-0 max-w-xs text-xs font-bold uppercase leading-tight tracking-tight text-foreground [overflow-wrap:anywhere] sm:text-sm">
                 {t("home.output")}
                 <br />
-                <span className="font-medium text-background/70 normal-case tracking-normal">
+                <span className="font-medium normal-case tracking-normal text-foreground/60">
                   {t("home.outputSub")}
                 </span>
               </p>
             </div>
           </div>
 
-          {/* Sticker collage */}
-          <div className="relative min-w-0 max-w-[calc(100vw-3rem)] h-[480px] sm:h-[560px] lg:col-span-6 lg:h-[620px] lg:max-w-none">
-            <div className="absolute inset-4 rounded-[3rem] border-2 border-dashed border-foreground/25 bg-card/40" aria-hidden />
-
-            <DramaPreviewCard
-              example={EXAMPLES[0]}
-              className="absolute right-0 top-0 w-[66%] sm:w-80 animate-pop-in"
-              compact
-            />
-
-            <DramaPreviewCard
-              example={EXAMPLES[1]}
-              className="absolute left-0 top-28 w-[62%] sm:w-72 animate-pop-in"
-              compact
-            />
-
-            <DramaPreviewCard
-              example={EXAMPLES[3]}
-              className="absolute bottom-0 right-8 hidden w-[72%] sm:block sm:w-88 animate-pop-in"
-              compact
-            />
-
-            {/* peelable corner */}
-            <div className="absolute -bottom-2 -right-2 size-20 rounded-tl-[2.5rem] border-2 border-foreground bg-highlight sticker-shadow flex items-center justify-center">
-              <span className="font-display text-3xl font-extrabold">✦</span>
+          <div className="pointer-events-none relative z-0 mt-12 h-[470px] md:mt-0 lg:absolute lg:inset-y-10 lg:right-0 lg:w-[54%]">
+            <div className="absolute right-4 top-6 hidden rounded-full border-2 border-foreground bg-highlight px-5 py-2 text-xs font-extrabold uppercase tracking-widest shadow-[6px_6px_0_rgba(35,57,63,0.12)] md:block">
+              PetDrama Studio
+            </div>
+            <DramaPreviewCard example={EXAMPLES[1]} className="absolute right-2 top-12 w-[76%] max-w-[390px] animate-pop-in md:right-12" compact />
+            <DramaPreviewCard example={EXAMPLES[0]} className="absolute left-1 top-36 w-[72%] max-w-[360px] animate-pop-in md:left-8" compact />
+            <DramaPreviewCard example={EXAMPLES[3]} className="absolute bottom-4 right-8 hidden w-[70%] max-w-[380px] animate-pop-in md:block" compact />
+            <div className="absolute bottom-6 left-8 flex items-center gap-2 rounded-[1.5rem] border-2 border-foreground bg-secondary px-5 py-3 shadow-[8px_8px_0_rgba(35,57,63,0.12)]">
+              <span className="size-3 rounded-full bg-primary" />
+              <span className="size-3 rounded-full bg-highlight" />
+              <span className="size-3 rounded-full bg-background" />
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ const STORAGE_KEY = "petdrama:language";
 
 const translations = {
   en: {
+    "intro.skip": "Skip",
     "nav.create": "Create",
     "nav.gallery": "Gallery",
     "nav.pricing": "Pricing",
@@ -208,6 +209,7 @@ const translations = {
     "notFound.home": "Return to Home",
   },
   it: {
+    "intro.skip": "Salta",
     "nav.create": "Crea",
     "nav.gallery": "Galleria",
     "nav.pricing": "Prezzi",
@@ -407,6 +409,7 @@ type Dictionary = Record<TranslationKey, string>;
 
 const extra: Record<Exclude<LanguageCode, "en" | "it">, Partial<Dictionary>> = {
   fr: {
+    "intro.skip": "Passer",
     "nav.create": "Créer", "nav.gallery": "Galerie", "nav.pricing": "Tarifs", "nav.signIn": "Connexion", "nav.account": "Compte", "nav.myGallery": "Ma galerie", "nav.signOut": "Déconnexion",
     "home.eyebrow": "Légendes dramatiques pour animaux", "home.title.before": "Transformez votre animal en", "home.title.highlight": "star prête", "home.title.after": "à partager.", "home.subtitle": "Importez une photo, choisissez un personnage et obtenez une meme card avec citation, légende et hashtags en quelques secondes.", "home.cta": "Créer mon PetDrama", "home.examples": "Voir des exemples", "home.benefit.noAccount": "Pas besoin de compte pour commencer", "home.benefit.square": "Cartes carrées prêtes pour les réseaux", "home.benefit.captions": "Légendes et hashtags inclus", "home.output": "Voyez le résultat avant de vous connecter", "home.outputSub": "puis sauvegardez ou partagez quand le drama mérite", "home.how": "Comment ça marche", "home.stepsTitle": "Trois étapes vers le chaos.", "home.startNow": "Commencer", "home.freePlan": "Gratuit", "home.proPlan": "Pro", "home.mostPopular": "Le plus populaire", "home.startFree": "Commencer gratuitement", "home.seePlans": "Voir les offres", "home.finalTitle": "Prêt à révéler votre animal ?",
     "examples.eyebrow": "Exemples", "examples.titleBefore": "Découvrez ce que", "examples.titleAfter": "peut faire.", "examples.subtitle": "Ces exemples utilisent le même format de vignette que le résultat créé : photo encadrée, badge de rôle, citation, légende et carte prête à partager.", "examples.readyTitle": "Prêt à créer la vôtre ?", "examples.readyBody": "Importez une photo, choisissez un style drama et obtenez la même carte PetDrama partageable en quelques secondes.", "examples.start": "Commencer à créer",
@@ -419,6 +422,7 @@ const extra: Record<Exclude<LanguageCode, "en" | "it">, Partial<Dictionary>> = {
     "login.welcome": "Bon retour.", "login.join": "Rejoignez le drama.", "login.signIn": "Connexion", "login.signUp": "Inscription", "login.google": "Continuer avec Google", "login.or": "ou", "login.createAccount": "Créer un compte", "notFound.title": "Oups ! Page introuvable", "notFound.home": "Retour à l'accueil",
   },
   es: {
+    "intro.skip": "Saltar",
     "nav.create": "Crear", "nav.gallery": "Galería", "nav.pricing": "Precios", "nav.signIn": "Entrar", "nav.account": "Cuenta", "nav.myGallery": "Mi galería", "nav.signOut": "Salir",
     "home.eyebrow": "Textos dramáticos para mascotas", "home.title.before": "Convierte a tu mascota en una", "home.title.highlight": "estrella lista", "home.title.after": "para compartir.", "home.subtitle": "Sube una foto, elige un personaje y obtén una meme card con frase, caption y hashtags en segundos.", "home.cta": "Crear mi PetDrama", "home.examples": "Ver ejemplos", "home.benefit.noAccount": "No necesitas cuenta para empezar", "home.benefit.square": "Tarjetas cuadradas listas para redes", "home.benefit.captions": "Caption y hashtags incluidos", "home.output": "Mira el resultado antes de entrar", "home.outputSub": "luego guarda o comparte si el drama lo merece", "home.how": "Cómo funciona", "home.stepsTitle": "Tres pasos hacia el caos.", "home.startNow": "Empezar", "home.freePlan": "Gratis", "home.proPlan": "Pro", "home.mostPopular": "Más popular", "home.startFree": "Empezar gratis", "home.seePlans": "Ver planes", "home.finalTitle": "¿Listo para revelar a tu mascota?",
     "examples.eyebrow": "Ejemplos", "examples.titleBefore": "Mira lo que", "examples.titleAfter": "puede hacer.", "examples.subtitle": "Estos ejemplos usan el mismo formato de viñeta que obtienes al crear: foto enmarcada, badge de rol, frase, caption y tarjeta lista para compartir.", "examples.readyTitle": "¿Listo para crear la tuya?", "examples.readyBody": "Sube una foto, elige un estilo drama y obtén la misma tarjeta PetDrama compartible en segundos.", "examples.start": "Empezar a crear",
