@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 
 const FREE = [
@@ -29,6 +30,7 @@ const PRO = [
 ];
 
 export default function Pricing() {
+  const { t } = useI18n();
   const [annual, setAnnual] = useState(false);
   const stdPrice = annual ? "$39" : "$4.99";
   const stdPeriod = annual ? "/year" : "/month";
@@ -36,18 +38,18 @@ export default function Pricing() {
   const proPeriod = annual ? "/year" : "/month";
 
   const onUpgradeClick = () => {
-    toast("Checkout is coming soon — we're finalizing payments.");
+    toast(t("pricing.checkout"));
   };
 
   return (
     <PageShell>
       <section className="container py-12 md:py-20 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Pricing</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("pricing.eyebrow")}</p>
         <h1 className="mt-2 font-display text-5xl md:text-6xl font-extrabold tracking-tight text-balance">
-          Simple, dramatic pricing.
+          {t("pricing.title")}
         </h1>
         <p className="mt-4 max-w-xl mx-auto text-muted-foreground text-lg">
-          Start free. Upgrade when your pet's fame demands it.
+          {t("pricing.subtitle")}
         </p>
 
         <div className="mt-8 inline-flex rounded-full border-2 border-foreground bg-background p-1 sticker-shadow-sm">
@@ -58,7 +60,7 @@ export default function Pricing() {
               !annual ? "bg-foreground text-background" : "text-foreground/70"
             }`}
           >
-            Monthly
+            {t("pricing.monthly")}
           </button>
           <button
             type="button"
@@ -67,7 +69,7 @@ export default function Pricing() {
               annual ? "bg-foreground text-background" : "text-foreground/70"
             }`}
           >
-            Annual · save ~34%
+            {t("pricing.annual")}
           </button>
         </div>
       </section>
@@ -80,7 +82,7 @@ export default function Pricing() {
             <div className="mt-2 flex items-baseline gap-1">
               <span className="font-display text-4xl md:text-5xl font-extrabold leading-none">$0</span>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">Forever free.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("pricing.forever")}</p>
             <ul className="mt-6 space-y-3 text-base flex-1">
               {FREE.map((f) => (
                 <li key={f} className="flex gap-3">
@@ -90,7 +92,7 @@ export default function Pricing() {
               ))}
             </ul>
             <Link to="/create" className="block mt-8">
-              <StickerButton variant="ghost" className="w-full">Start free</StickerButton>
+              <StickerButton variant="ghost" className="w-full">{t("home.startFree")}</StickerButton>
             </Link>
           </StickerCard>
 
@@ -102,7 +104,7 @@ export default function Pricing() {
               <span className="text-base md:text-lg font-bold opacity-80">{stdPeriod}</span>
             </div>
             <p className="mt-1 text-sm opacity-80">
-              {annual ? "≈ $3.25/month · billed yearly" : "Cancel anytime."}
+              {annual ? "≈ $3.25/month · billed yearly" : t("pricing.cancel")}
             </p>
             <ul className="mt-6 space-y-3 text-base flex-1">
               {STANDARD.map((f) => (
@@ -113,10 +115,10 @@ export default function Pricing() {
               ))}
             </ul>
             <StickerButton variant="dark" className="w-full mt-8" onClick={onUpgradeClick}>
-              Coming soon
+              {t("pricing.comingSoon")}
             </StickerButton>
             <p className="mt-3 text-xs opacity-80">
-              Checkout is coming soon — we're finalizing payments.
+              {t("pricing.checkout")}
             </p>
           </StickerCard>
 
@@ -125,7 +127,7 @@ export default function Pricing() {
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-bold uppercase tracking-widest">Pro</p>
               <span className="rounded-full border-2 border-foreground bg-highlight text-highlight-foreground px-2 py-0.5 text-[10px] font-bold uppercase whitespace-nowrap">
-                Most popular
+                {t("home.mostPopular")}
               </span>
             </div>
             <div className="mt-2 flex items-baseline gap-1 flex-wrap">
@@ -133,7 +135,7 @@ export default function Pricing() {
               <span className="text-base md:text-lg font-bold opacity-80">{proPeriod}</span>
             </div>
             <p className="mt-1 text-sm opacity-80">
-              {annual ? "≈ $6.58/month · billed yearly" : "Cancel anytime."}
+              {annual ? "≈ $6.58/month · billed yearly" : t("pricing.cancel")}
             </p>
             <ul className="mt-6 space-y-3 text-base flex-1">
               {PRO.map((f) => (
@@ -144,18 +146,16 @@ export default function Pricing() {
               ))}
             </ul>
             <StickerButton variant="dark" className="w-full mt-8" onClick={onUpgradeClick}>
-              Coming soon
+              {t("pricing.comingSoon")}
             </StickerButton>
             <p className="mt-3 text-xs opacity-80">
-              Checkout is coming soon — we're finalizing payments.
+              {t("pricing.checkout")}
             </p>
           </StickerCard>
         </div>
 
         <p className="mt-10 text-center text-xs text-muted-foreground max-w-xl mx-auto">
-          Quotas reset on a rolling 30-day window. One-time extra Drama Remix packs coming soon.
-          PetDrama is for entertainment only — generated quotes are imaginary pet thoughts and do not
-          represent real animal communication.
+          {t("pricing.note")}
         </p>
       </section>
     </PageShell>

@@ -3,6 +3,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { StickerButton } from "@/components/StickerButton";
+import { useI18n } from "@/lib/i18n";
 
 export type UpgradeReason =
   | "anon_limit"
@@ -59,6 +60,7 @@ interface Props {
 
 export function UpgradeModal({ open, reason, onClose }: Props) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const copy = reason ? COPY[reason] : null;
   return (
     <Dialog open={open && !!copy} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -68,7 +70,7 @@ export function UpgradeModal({ open, reason, onClose }: Props) {
           <DialogDescription className="text-base">{copy?.body}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-2">
-          <StickerButton variant="ghost" onClick={onClose}>Not now</StickerButton>
+          <StickerButton variant="ghost" onClick={onClose}>{t("upgrade.notNow")}</StickerButton>
           <StickerButton
             variant="primary"
             onClick={() => { onClose(); if (copy) navigate(copy.primaryTo); }}

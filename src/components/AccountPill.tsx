@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { signOutAndClear } from "@/lib/auth-cleanup";
+import { useI18n } from "@/lib/i18n";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ function shortLabel(email: string | undefined | null): string {
 }
 
 export function AccountPill() {
+  const { t } = useI18n();
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const navigate = useNavigate();
@@ -43,7 +45,7 @@ export function AccountPill() {
         to="/create"
         className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground sm:px-4"
       >
-        Create
+        {t("nav.create")}
       </Link>
     );
   }
@@ -55,13 +57,13 @@ export function AccountPill() {
           to="/login"
           className="hidden sm:inline-flex items-center rounded-full border-2 border-foreground bg-background px-4 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5"
         >
-          Sign in
+          {t("nav.signIn")}
         </Link>
         <Link
           to="/create"
           className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground sm:px-4"
         >
-          Create
+          {t("nav.create")}
         </Link>
       </>
     );
@@ -86,7 +88,7 @@ export function AccountPill() {
         to="/create"
         className="hidden sm:inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-4 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
       >
-        Create
+        {t("nav.create")}
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -104,16 +106,16 @@ export function AccountPill() {
         >
           <DropdownMenuLabel className="px-2 py-1.5">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Signed in as
+              {t("nav.signedInAs")}
             </div>
             <div className="truncate text-sm font-bold">{email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="my-1 bg-foreground/15" />
           <DropdownMenuItem asChild className="rounded-xl font-semibold focus:bg-highlight">
-            <Link to="/gallery">My Gallery</Link>
+            <Link to="/gallery">{t("nav.myGallery")}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="rounded-xl font-semibold focus:bg-highlight">
-            <Link to="/account">Account</Link>
+            <Link to="/account">{t("nav.account")}</Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator className="my-1 bg-foreground/15" />
           <DropdownMenuItem
@@ -123,7 +125,7 @@ export function AccountPill() {
             }}
             className="rounded-xl font-semibold text-primary focus:bg-primary focus:text-primary-foreground"
           >
-            Sign out
+            {t("nav.signOut")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

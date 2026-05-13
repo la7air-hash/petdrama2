@@ -10,10 +10,12 @@ import { checkUsage } from "@/lib/usage";
 import { DRAMA_STYLES, PET_TYPES, generateDrama, type DramaStyleId, type PetType } from "@/lib/drama";
 import { saveDraft, loadDraft, clearDraft, newCreationId } from "@/lib/storage";
 import { OWNER_CHANGED_EVENT } from "@/lib/draft-owner";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function Create() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { usage, refresh: refreshEntitlements } = useEntitlements();
@@ -204,21 +206,21 @@ export default function Create() {
       <section className="container py-10 md:py-16">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Step 1 · 2 · 3</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("create.eyebrow")}</p>
             <h1 className="mt-2 font-display text-4xl md:text-6xl font-extrabold tracking-tight">
-              Create your pet's drama.
+              {t("create.title")}
             </h1>
             <p className="mt-3 max-w-2xl text-muted-foreground text-lg">
-              Upload a photo, name them, pick a vibe. We'll generate imaginary pet thoughts in seconds — entertainment only.
+              {t("create.subtitle")}
             </p>
             {restored && !isOutdated && (
               <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
-                ✦ Continuing your last drama
+                ✦ {t("create.restored")}
               </p>
             )}
             {restored && isOutdated && (
               <p className="mt-2 inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-secondary text-secondary-foreground px-3 py-1 text-xs font-extrabold uppercase tracking-wider sticker-shadow-sm">
-                ⚠ Inputs changed · result is outdated
+                ⚠ {t("create.outdated")}
               </p>
             )}
           </div>
@@ -227,7 +229,7 @@ export default function Create() {
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Upload */}
           <div className="lg:col-span-5">
-            <SectionHeader n="1" title="Upload a pet photo" color="bg-highlight" />
+            <SectionHeader n="1" title={t("create.upload")} color="bg-highlight" />
             <StickerCard className="mt-4 p-3 bg-background">
               <div
                 onDragOver={(e) => {
@@ -253,14 +255,14 @@ export default function Create() {
                       }}
                       className="absolute top-3 right-3 rounded-full border-2 border-foreground bg-background px-3 py-1 text-xs font-bold uppercase sticker-shadow-sm"
                     >
-                      Change
+                      {t("create.change")}
                     </button>
                   </>
                 ) : (
                   <div className="text-center px-6">
                     <div className="text-5xl mb-3">📸</div>
-                    <p className="font-display font-extrabold text-xl">Drop a photo here</p>
-                    <p className="mt-1 text-sm text-muted-foreground">or click to browse · JPG / PNG · up to 8MB</p>
+                    <p className="font-display font-extrabold text-xl">{t("create.drop")}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{t("create.browse")}</p>
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
@@ -271,22 +273,22 @@ export default function Create() {
           {/* Pet info + style */}
           <div className="lg:col-span-7 space-y-8">
             <div>
-              <SectionHeader n="2" title="Tell us about your pet" color="bg-primary text-primary-foreground" />
+              <SectionHeader n="2" title={t("create.about")} color="bg-primary text-primary-foreground" />
               <StickerCard className="mt-4 p-6 bg-background space-y-5">
                 <div>
-                  <label htmlFor="petName" className="text-xs font-bold uppercase tracking-widest">Pet name</label>
+                  <label htmlFor="petName" className="text-xs font-bold uppercase tracking-widest">{t("create.petName")}</label>
                   <input
                     id="petName"
                     type="text"
                     value={petName}
                     onChange={(e) => setPetName(e.target.value)}
-                    placeholder="e.g. Sir Whiskerton"
+                    placeholder={t("create.petNamePlaceholder")}
                     maxLength={28}
                     className="mt-2 w-full rounded-xl border-2 border-foreground bg-card px-4 py-3 font-medium focus:outline-none focus:ring-4 focus:ring-primary/30"
                   />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest">Pet type</p>
+                  <p className="text-xs font-bold uppercase tracking-widest">{t("create.petType")}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {PET_TYPES.map((t) => (
                       <button
@@ -307,7 +309,7 @@ export default function Create() {
             </div>
 
             <div>
-              <SectionHeader n="3" title="Pick a drama style" color="bg-secondary text-secondary-foreground" />
+              <SectionHeader n="3" title={t("create.style")} color="bg-secondary text-secondary-foreground" />
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {DRAMA_STYLES.map((s) => {
                   const active = styleId === s.id;
@@ -350,15 +352,15 @@ export default function Create() {
             <div className="text-sm">
               <p className="font-display font-extrabold text-lg leading-tight">
                 {hasGeneratedResult && !isOutdated
-                  ? "Your drama is ready."
+                  ? t("create.resultReady")
                   : isOutdated
-                  ? "Inputs changed — regenerate to apply."
+                  ? t("create.regenerateApply")
                   : canGenerate
-                  ? "Ready to make some chaos."
-                  : "Add a photo + name to continue."}
+                  ? t("create.ready")
+                  : t("create.addPhoto")}
               </p>
               <p className="text-muted-foreground text-xs">
-                Imaginary pet thoughts · For entertainment only
+                {t("create.disclaimer")}
               </p>
               <div className="mt-2"><UsageMeter usage={usage} /></div>
             </div>
@@ -370,7 +372,7 @@ export default function Create() {
                   onClick={onStartOver}
                   className="w-full sm:w-auto"
                 >
-                  ↺ Start over
+                  ↺ {t("create.startOver")}
                 </StickerButton>
               )}
               {hasGeneratedResult && (
@@ -380,7 +382,7 @@ export default function Create() {
                   onClick={onContinueToResult}
                   className="w-full sm:w-auto"
                 >
-                  → Continue to result
+                  → {t("create.continue")}
                 </StickerButton>
               )}
               <StickerButton
@@ -391,12 +393,12 @@ export default function Create() {
                 className="w-full sm:w-auto"
               >
                 {generating
-                  ? "Generating drama…"
+                  ? t("create.generating")
                   : hasGeneratedResult
                   ? isOutdated
-                    ? "🔄 Regenerate"
-                    : "🔄 New drama with same inputs"
-                  : "Generate Pet Drama →"}
+                    ? `🔄 ${t("create.regenerate")}`
+                    : `🔄 ${t("create.sameInputs")}`
+                  : `${t("create.generate")} →`}
               </StickerButton>
             </div>
           </StickerCard>

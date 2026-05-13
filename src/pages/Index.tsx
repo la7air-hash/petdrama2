@@ -3,6 +3,7 @@ import { PageShell } from "@/components/PageShell";
 import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { DRAMA_STYLES } from "@/lib/drama";
+import { useI18n } from "@/lib/i18n";
 import royalCat from "@/assets/example-royal-cat.jpg";
 import mafiaDog from "@/assets/example-mafia-dog.jpg";
 import dramaHamster from "@/assets/example-drama-hamster.jpg";
@@ -47,30 +48,32 @@ const STEPS = [
   {
     n: "1",
     color: "bg-highlight",
-    title: "Upload a pet photo",
-    body: "Drag in any photo. Front-facing works best for maximum drama.",
+    title: "home.step1.title",
+    body: "home.step1.body",
   },
   {
     n: "2",
     color: "bg-primary text-primary-foreground",
-    title: "Pick a drama style",
-    body: "Royal, Mafia, Tiny Villain, Office Manager — choose their character.",
+    title: "home.step2.title",
+    body: "home.step2.body",
   },
   {
     n: "3",
     color: "bg-secondary text-secondary-foreground",
-    title: "Share the chaos",
-    body: "Get a meme, caption & hashtags. Download a square PNG ready for the feed.",
+    title: "home.step3.title",
+    body: "home.step3.body",
   },
 ];
 
 const BENEFITS = [
-  "No account required to start",
-  "Square cards ready for socials",
-  "Captions and hashtags included",
+  "home.benefit.noAccount",
+  "home.benefit.square",
+  "home.benefit.captions",
 ];
 
 export default function Home() {
+  const { t } = useI18n();
+
   return (
     <PageShell>
       {/* Marquee strip */}
@@ -78,12 +81,12 @@ export default function Home() {
         <div className="flex animate-marquee whitespace-nowrap text-background text-[11px] font-bold uppercase tracking-[0.25em]">
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="flex shrink-0 gap-10 px-10">
-              <span>🎭 Imaginary pet thoughts</span>
-              <span>· For entertainment only</span>
-              <span>· Now starring: your dramatic floof</span>
-              <span>· 10 dramatic styles</span>
-              <span>· Free to try</span>
-              <span>· No real animals were translated</span>
+              <span>🎭 {t("home.marquee.thoughts")}</span>
+              <span>· {t("home.marquee.entertainment")}</span>
+              <span>· {t("home.marquee.starring")}</span>
+              <span>· {t("home.marquee.styles")}</span>
+              <span>· {t("home.marquee.free")}</span>
+              <span>· {t("home.marquee.noReal")}</span>
             </div>
           ))}
         </div>
@@ -129,25 +132,24 @@ export default function Home() {
           <div className="z-10 min-w-0 max-w-[calc(100vw-3rem)] lg:col-span-6 lg:max-w-none">
             <div className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-accent px-4 py-1.5 sticker-shadow-sm -rotate-2 mb-6">
               <span className="text-base">🎭</span>
-              <span className="text-xs font-bold uppercase tracking-widest">Dramatic pet captions</span>
+              <span className="text-xs font-bold uppercase tracking-widest">{t("home.eyebrow")}</span>
             </div>
             <h1 className="max-w-[22rem] font-display text-4xl sm:max-w-xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.02] tracking-normal text-balance">
-              Make your pet a
-              <span className="text-primary"> share-ready</span> star.
+              {t("home.title.before")} <span className="text-primary">{t("home.title.highlight")}</span> {t("home.title.after")}
             </h1>
             <p className="mt-6 max-w-[22rem] sm:max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty [overflow-wrap:anywhere]">
-              Upload one photo, choose a character, and get a polished meme card with a quote, caption and hashtags in seconds.
+              {t("home.subtitle")}
             </p>
 
             <div className="mt-8 flex max-w-[22rem] flex-col gap-4 sm:max-w-none sm:flex-row">
               <Link to="/create" className="block w-full sm:w-auto">
                 <StickerButton variant="primary" size="lg" className="w-full sm:w-auto">
-                  Create your PetDrama →
+                  {t("home.cta")} →
                 </StickerButton>
               </Link>
               <Link to="/examples" className="block w-full sm:w-auto">
                 <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto">
-                  View examples
+                  {t("home.examples")}
                 </StickerButton>
               </Link>
             </div>
@@ -158,7 +160,7 @@ export default function Home() {
                   key={benefit}
                   className="rounded-2xl border-2 border-background/25 bg-background/10 px-3 py-2 text-xs font-extrabold uppercase tracking-wider text-background backdrop-blur-sm"
                 >
-                  {benefit}
+                  {t(benefit)}
                 </div>
               ))}
             </div>
@@ -175,10 +177,10 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight text-background">
-                See the output before you sign in
+                {t("home.output")}
                 <br />
                 <span className="font-medium text-background/70 normal-case tracking-normal">
-                  then save or share when the drama is worth keeping
+                  {t("home.outputSub")}
                 </span>
               </p>
             </div>
@@ -245,13 +247,13 @@ export default function Home() {
         <div className="container py-16">
           <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">How it works</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("home.how")}</p>
               <h2 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-                Three steps to chaos.
+                {t("home.stepsTitle")}
               </h2>
             </div>
             <Link to="/create" className="hidden md:inline-block">
-              <StickerButton variant="dark">Start now →</StickerButton>
+              <StickerButton variant="dark">{t("home.startNow")} →</StickerButton>
             </Link>
           </div>
 
@@ -261,8 +263,8 @@ export default function Home() {
                 <div className={`size-14 rounded-2xl border-2 border-foreground flex items-center justify-center font-display text-2xl font-extrabold ${s.color}`}>
                   {s.n}
                 </div>
-                <h3 className="mt-5 font-display text-2xl font-extrabold">{s.title}</h3>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{s.body}</p>
+                <h3 className="mt-5 font-display text-2xl font-extrabold">{t(s.title)}</h3>
+                <p className="mt-2 text-muted-foreground leading-relaxed">{t(s.body)}</p>
               </StickerCard>
             ))}
           </div>
@@ -273,13 +275,13 @@ export default function Home() {
       <section className="container py-20">
         <div className="flex items-end justify-between gap-6 mb-10 flex-wrap">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Today's stars</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("home.stars")}</p>
             <h2 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-              Featured pet drama.
+              {t("home.featured")}
             </h2>
           </div>
           <Link to="/gallery" className="text-sm font-bold uppercase tracking-widest underline decoration-4 decoration-primary underline-offset-4">
-            See full gallery →
+            {t("home.gallery")} →
           </Link>
         </div>
 
@@ -305,9 +307,9 @@ export default function Home() {
       {/* STYLES PREVIEW */}
       <section className="border-y-2 border-foreground bg-foreground text-background">
         <div className="container py-20">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-highlight">10 dramatic styles</p>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-highlight">{t("home.stylesEyebrow")}</p>
           <h2 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight max-w-3xl">
-            Pick your pet's <span className="text-primary">main character</span> energy.
+            {t("home.stylesTitle")}
           </h2>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {DRAMA_STYLES.map((s) => (
@@ -326,14 +328,14 @@ export default function Home() {
 
       {/* PRICING PREVIEW */}
       <section className="container py-20">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground text-center">Pricing</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground text-center">{t("home.pricingEyebrow")}</p>
         <h2 className="mt-2 text-center font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-          Free forever. Pro when you're ready.
+          {t("home.pricingTitle")}
         </h2>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
           <StickerCard className="p-8 bg-background">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Free</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("home.freePlan")}</p>
             <p className="mt-2 font-display text-5xl font-extrabold">$0</p>
             <ul className="mt-6 space-y-2 text-sm">
               <li>✓ 10 creations / month</li>
@@ -342,14 +344,14 @@ export default function Home() {
               <li>✓ Small "Made with PetDrama" watermark</li>
             </ul>
             <Link to="/create" className="mt-8 block">
-              <StickerButton variant="ghost" className="w-full">Start free</StickerButton>
+              <StickerButton variant="ghost" className="w-full">{t("home.startFree")}</StickerButton>
             </Link>
           </StickerCard>
           <StickerCard className="p-8 bg-primary text-primary-foreground" shadow="lg">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-widest">Pro</p>
+              <p className="text-xs font-bold uppercase tracking-widest">{t("home.proPlan")}</p>
               <span className="rounded-full border-2 border-foreground bg-highlight text-highlight-foreground px-2 py-0.5 text-[10px] font-bold uppercase">
-                Most popular
+                {t("home.mostPopular")}
               </span>
             </div>
             <p className="mt-2 font-display text-5xl font-extrabold">$9.99<span className="text-2xl font-bold">/mo</span></p>
@@ -360,7 +362,7 @@ export default function Home() {
               <li>✓ HD downloads, no watermark</li>
             </ul>
             <Link to="/pricing" className="mt-8 block">
-              <StickerButton variant="dark" className="w-full">See plans</StickerButton>
+              <StickerButton variant="dark" className="w-full">{t("home.seePlans")}</StickerButton>
             </Link>
           </StickerCard>
         </div>
@@ -370,13 +372,13 @@ export default function Home() {
       <section className="container pb-24">
         <StickerCard color="highlight" className="p-10 md:p-16 text-center" shadow="lg">
           <h2 className="font-display text-4xl md:text-6xl font-extrabold tracking-tight text-balance">
-            Ready to expose your pet?
+            {t("home.finalTitle")}
           </h2>
           <p className="mt-4 max-w-xl mx-auto text-base md:text-lg font-medium">
-            One photo. One style. One unforgettable post. (For entertainment only — we don't actually translate pets.)
+            {t("home.finalBody")}
           </p>
           <Link to="/create" className="inline-block mt-8">
-            <StickerButton variant="primary" size="lg">Create your PetDrama →</StickerButton>
+            <StickerButton variant="primary" size="lg">{t("home.cta")} →</StickerButton>
           </Link>
         </StickerCard>
       </section>

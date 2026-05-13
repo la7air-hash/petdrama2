@@ -5,6 +5,7 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 
 const ALLOWED_REDIRECTS = ["/gallery", "/create", "/result", "/pricing", "/"];
 
@@ -32,6 +33,7 @@ function resolveIntendedPath(locationState: unknown, search: string): string {
 }
 
 export default function Login() {
+  const { t } = useI18n();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -130,11 +132,11 @@ export default function Login() {
       <section className="container py-16 md:py-24">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Account</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("login.account")}</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
-              {mode === "login" ? "Welcome back." : "Join the drama."}
+              {mode === "login" ? t("login.welcome") : t("login.join")}
             </h1>
-            <p className="mt-2 text-muted-foreground">Save your gallery, unlock Pro styles.</p>
+            <p className="mt-2 text-muted-foreground">{t("login.subtitle")}</p>
           </div>
 
           <StickerCard className="p-6 md:p-8 bg-background" shadow="lg">
@@ -148,7 +150,7 @@ export default function Login() {
                     mode === m ? "bg-foreground text-background" : "text-foreground"
                   }`}
                 >
-                  {m === "login" ? "Sign in" : "Sign up"}
+                  {m === "login" ? t("login.signIn") : t("login.signUp")}
                 </button>
               ))}
             </div>
@@ -179,18 +181,18 @@ export default function Login() {
                   d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.3 5.2C41 35.6 44 30.3 44 24c0-1.2-.1-2.3-.4-3.5z"
                 />
               </svg>
-              <span>{googleBusy ? "Connecting…" : "Continue with Google"}</span>
+              <span>{googleBusy ? t("login.connecting") : t("login.google")}</span>
             </button>
 
             <div className="my-6 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
               <span className="h-px flex-1 bg-foreground/20" />
-              <span>or</span>
+              <span>{t("login.or")}</span>
               <span className="h-px flex-1 bg-foreground/20" />
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="text-xs font-bold uppercase tracking-widest">Email</label>
+                <label htmlFor="email" className="text-xs font-bold uppercase tracking-widest">{t("login.email")}</label>
                 <input
                   id="email"
                   type="email"
@@ -203,7 +205,7 @@ export default function Login() {
                 />
               </div>
               <div>
-                <label htmlFor="password" className="text-xs font-bold uppercase tracking-widest">Password</label>
+                <label htmlFor="password" className="text-xs font-bold uppercase tracking-widest">{t("login.password")}</label>
                 <input
                   id="password"
                   type="password"
@@ -217,14 +219,14 @@ export default function Login() {
                 />
               </div>
               <StickerButton type="submit" variant="primary" className="w-full mt-2" disabled={busy}>
-                {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+                {busy ? t("login.wait") : mode === "login" ? t("login.signIn") : t("login.createAccount")}
               </StickerButton>
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              By continuing, you agree this is for entertainment only.{" "}
+              {t("login.terms")}{" "}
               <Link to="/" className="underline decoration-primary decoration-2 underline-offset-2 font-bold">
-                Back home
+                {t("login.backHome")}
               </Link>
             </div>
           </StickerCard>

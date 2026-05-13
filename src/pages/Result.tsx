@@ -22,6 +22,7 @@ import {
   whatsappShareUrl,
   xShareUrl,
 } from "@/lib/share";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Copy, Download, Facebook, Link2, Save, Share2 } from "lucide-react";
@@ -29,6 +30,7 @@ import { Copy, Download, Facebook, Link2, Save, Share2 } from "lucide-react";
 type Variant = "original" | "remix";
 
 export default function Result() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [draft, setDraft] = useState<DramaDraft | null>(null);
   const [renderUrl, setRenderUrl] = useState<string | null>(null);
@@ -575,7 +577,7 @@ export default function Result() {
       const url = getShareUrl(res.slug);
       setPublicShareUrl(url);
       await copyToClipboard(url);
-      toast.success("Public link created and copied.");
+      toast.success(t("result.publicCopied"));
     } catch (err: any) {
       console.error("[PetDrama result share]", err);
       toast.error(err?.message || "Couldn't create a public link.");
@@ -589,7 +591,7 @@ export default function Result() {
       <section className="container pt-16 md:pt-24 pb-10 md:pb-16">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Result</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">{t("result.result")}</p>
             <h1 className="mt-2 font-display text-4xl md:text-5xl font-extrabold tracking-tight">
               Meet <span className="text-primary">{displayName}</span>, {style.name.toLowerCase()}.
             </h1>
@@ -601,7 +603,7 @@ export default function Result() {
               navigate("/create");
             }}
           >
-            ← New drama
+            ← {t("result.newDrama")}
           </StickerButton>
         </div>
 
@@ -692,12 +694,12 @@ export default function Result() {
             {/* Quote picker */}
             <StickerCard className="p-5 md:p-6 bg-highlight">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-70">Pick your quote</p>
+                <p className="text-xs font-bold uppercase tracking-widest opacity-70">{t("result.pickQuote")}</p>
                 <button
                   onClick={onRegenerate}
                   className="text-xs font-bold uppercase tracking-widest underline decoration-2 underline-offset-4 hover:opacity-70"
                 >
-                  🔄 New batch
+                  🔄 {t("result.newBatch")}
                 </button>
               </div>
               <div className="mt-4 space-y-3">
@@ -734,7 +736,7 @@ export default function Result() {
             </StickerCard>
 
             <StickerCard className="p-5 md:p-6 bg-background">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pick your caption</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("result.pickCaption")}</p>
               <div className="mt-3 space-y-2.5">
                 {draft.drama.captionOptions.map((c, i) => {
                   const active = c === draft.drama.caption;
@@ -777,10 +779,10 @@ export default function Result() {
 
             <div className="grid grid-cols-2 gap-3">
               <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
-                <Download className="size-4" /> Download {variant === "remix" ? "Remix" : "PNG"}
+                <Download className="size-4" /> {t("result.download")} {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
-                <Copy className="size-4" /> Copy caption
+                <Copy className="size-4" /> {t("result.copyCaption")}
               </StickerButton>
               {hasRemix ? (
                 <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
@@ -792,17 +794,17 @@ export default function Result() {
                 </StickerButton>
               )}
               <StickerButton variant="dark" onClick={onSaveToGallery} disabled={isSaving}>
-                <Save className="size-4" /> {isSaving ? "Saving…" : "Save to gallery"}
+                <Save className="size-4" /> {isSaving ? t("result.saving") : t("result.saveGallery")}
               </StickerButton>
             </div>
 
             <StickerCard className="p-5 bg-card">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Share faster</p>
-                  <h2 className="mt-1 font-display text-xl font-extrabold">Send the drama while it is fresh.</h2>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("result.shareFaster")}</p>
+                  <h2 className="mt-1 font-display text-xl font-extrabold">{t("result.shareTitle")}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Save once to your account gallery, then create a public link for friends and socials.
+                    {t("result.shareBody")}
                   </p>
                 </div>
                 <Share2 className="size-5 shrink-0 text-primary" />
@@ -821,7 +823,7 @@ export default function Result() {
                       type="button"
                       onClick={async () => {
                         await copyToClipboard(publicShareUrl);
-                        toast.success("Link copied!");
+                        toast.success(t("result.copyLink"));
                       }}
                       className="inline-flex size-10 items-center justify-center rounded-full border-2 border-foreground bg-foreground text-background sticker-shadow-sm"
                       aria-label="Copy public link"
@@ -873,9 +875,9 @@ export default function Result() {
                   <Link2 className="size-4" />
                   {savedCloudId
                     ? shareBusy
-                      ? "Creating link…"
-                      : "Create public link"
-                    : "Save to gallery first"}
+                      ? t("result.creatingLink")
+                      : t("result.createPublic")
+                    : t("result.saveFirst")}
                 </StickerButton>
               )}
             </StickerCard>

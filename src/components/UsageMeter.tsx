@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { UsageSummary } from "@/hooks/use-entitlements";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   usage: UsageSummary | null;
@@ -8,12 +9,13 @@ interface Props {
 }
 
 export function UsageMeter({ usage, className }: Props) {
+  const { t } = useI18n();
   if (!usage) return null;
 
   if (usage.is_admin || usage.plan === "admin") {
     return (
       <span className={cn("inline-flex items-center gap-1.5 rounded-full border-2 border-foreground bg-highlight px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider", className)}>
-        ★ Admin test mode
+        ★ {t("usage.admin")}
       </span>
     );
   }
@@ -22,8 +24,8 @@ export function UsageMeter({ usage, className }: Props) {
     const left = Math.max(0, usage.standard_limit - usage.standard_used);
     return (
       <span className={cn("inline-flex items-center gap-1.5 rounded-full border-2 border-foreground bg-background px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider", className)}>
-        {left === 0 ? "Free creation used" : `${left} free creation`}{" "}
-        <Link to="/login" className="underline decoration-2 underline-offset-2">Sign in</Link>
+        {left === 0 ? t("usage.freeUsed") : `${left} ${t("usage.freeCreation")}`}{" "}
+        <Link to="/login" className="underline decoration-2 underline-offset-2">{t("nav.signIn")}</Link>
       </span>
     );
   }
@@ -37,9 +39,9 @@ export function UsageMeter({ usage, className }: Props) {
     <span className={cn("inline-flex flex-wrap items-center gap-1.5 rounded-full border-2 border-foreground px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider", bg, className)}>
       <span>{planLabel}</span>
       <span className="opacity-50">·</span>
-      <span>Creations {stdLeft}/{usage.standard_limit}</span>
+      <span>{t("usage.creations")} {stdLeft}/{usage.standard_limit}</span>
       <span className="opacity-50">·</span>
-      <span>Remix {remixLeft}/{usage.remix_limit}</span>
+      <span>{t("usage.remix")} {remixLeft}/{usage.remix_limit}</span>
     </span>
   );
 }
