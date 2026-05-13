@@ -8,16 +8,14 @@ import { getStyle, normalizePetName, type DramaStyleId } from "@/lib/drama";
 import { downloadUrlAsFile } from "@/lib/render";
 import { getAnonKey } from "@/lib/anon-id";
 import {
+  buildSocialShareLinks,
   copyToClipboard,
-  facebookShareUrl,
   nativeShare,
-  whatsappShareUrl,
-  xShareUrl,
 } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Copy, Download, Facebook, Share2, Trophy } from "lucide-react";
+import { Copy, Download, Share2, Trophy } from "lucide-react";
 
 interface PublicRemixVariant {
   id: string;
@@ -152,6 +150,7 @@ export default function PublicShare() {
   const activeQuote = activeVariant?.quote ?? data?.quote ?? "";
   const activeCaption = activeVariant?.caption ?? data?.caption ?? null;
   const activeHashtags = activeVariant?.hashtags ?? data?.hashtags ?? [];
+  const petName = data ? normalizePetName(data.petName) : "PetDrama";
   const canVote = variants.filter((v) => v.key !== "legacy-remix").length > 1;
   const effectiveVoteTotal =
     voteTotal > 0
@@ -161,6 +160,15 @@ export default function PublicShare() {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+  const shareText = canVote
+    ? `Vote for ${petName}'s best PetDrama remix`
+    : `${petName} the ${data?.petRole ?? "PetDrama star"}`;
+  const socialLinks = buildSocialShareLinks({
+    url: shareUrl,
+    text: shareText,
+    title: `${petName} — PetDrama`,
+    mediaUrl: previewUrl,
+  });
 
   const handleCopy = async () => {
     try {
@@ -271,7 +279,6 @@ export default function PublicShare() {
   }
 
   const style = getStyle(data.styleId);
-  const petName = normalizePetName(data.petName);
 
   return (
     <PageShell>
@@ -414,30 +421,20 @@ export default function PublicShare() {
             >
               <Copy className="size-3.5" /> {t("public.copyLink")}
             </button>
-            <a
-              href={whatsappShareUrl(shareUrl, `${petName} the ${data.petRole}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#25D366] text-foreground px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-            >
-              WhatsApp
-            </a>
-            <a
-              href={facebookShareUrl(shareUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] text-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-            >
-              <Facebook className="size-3.5" /> Facebook
-            </a>
-            <a
-              href={xShareUrl(shareUrl, `${petName} just got exposed on PetDrama.`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground text-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-            >
-              X
-            </a>
+            {socialLinks.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target={item.href.startsWith("mailto:") ? undefined : "_blank"}
+                rel={item.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+                className={cn(
+                  "inline-flex items-center justify-center rounded-full border-2 border-foreground px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform",
+                  item.className,
+                )}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
 
           <div className="mt-3">

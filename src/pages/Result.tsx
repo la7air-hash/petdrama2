@@ -14,18 +14,16 @@ import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { addRemixVariant, saveGalleryItem, getCurrentUserId } from "@/lib/gallery-cloud";
 import {
+  buildSocialShareLinks,
   copyToClipboard,
-  facebookShareUrl,
   getShareUrl,
   nativeShare,
   setShareEnabled,
-  whatsappShareUrl,
-  xShareUrl,
 } from "@/lib/share";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Copy, Download, Facebook, Link2, Save, Share2 } from "lucide-react";
+import { Copy, Download, Link2, Save, Share2 } from "lucide-react";
 
 type Variant = "original" | "remix";
 
@@ -232,6 +230,17 @@ export default function Result() {
       ? remixRenderUrl ?? draft.remixRenderedDataUrl ?? null
       : renderUrl ?? draft.renderedDataUrl ?? null;
   const hasRemix = !!(remixRenderUrl || draft.remixRenderedDataUrl || draft.remixImageDataUrl);
+  const shareInviteText = hasRemix
+    ? `Vote for ${displayName}'s best PetDrama remix`
+    : `${displayName} just got exposed on PetDrama`;
+  const socialLinks = publicShareUrl
+    ? buildSocialShareLinks({
+        url: publicShareUrl,
+        text: shareInviteText,
+        title: `${displayName} — PetDrama`,
+        mediaUrl: activeRenderUrl,
+      })
+    : [];
 
   // Persist a variant change so returning to Create -> Continue restores it.
   const switchVariant = (v: Variant) => {
@@ -728,30 +737,20 @@ export default function Result() {
 
                 {publicShareUrl && (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <a
-                      href={whatsappShareUrl(publicShareUrl, `${displayName} on PetDrama`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-[#25D366] px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5"
-                    >
-                      WhatsApp
-                    </a>
-                    <a
-                      href={facebookShareUrl(publicShareUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm transition-transform hover:-translate-y-0.5"
-                    >
-                      <Facebook className="size-3" /> Facebook
-                    </a>
-                    <a
-                      href={xShareUrl(publicShareUrl, `${displayName} just got exposed on PetDrama.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm transition-transform hover:-translate-y-0.5"
-                    >
-                      X
-                    </a>
+                    {socialLinks.slice(0, 7).map((item) => (
+                      <a
+                        key={item.label}
+                        href={item.href}
+                        target={item.href.startsWith("mailto:") ? undefined : "_blank"}
+                        rel={item.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+                        className={cn(
+                          "inline-flex items-center justify-center rounded-full border-2 border-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5",
+                          item.className,
+                        )}
+                      >
+                        {item.label}
+                      </a>
+                    ))}
                     <button
                       type="button"
                       onClick={async () => {
@@ -940,30 +939,20 @@ export default function Result() {
                     >
                       <Share2 className="size-3" /> Share
                     </button>
-                    <a
-                      href={whatsappShareUrl(publicShareUrl, `${displayName} on PetDrama`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-[#25D366] px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                    >
-                      WhatsApp
-                    </a>
-                    <a
-                      href={facebookShareUrl(publicShareUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                    >
-                      <Facebook className="size-3" /> Facebook
-                    </a>
-                    <a
-                      href={xShareUrl(publicShareUrl, `${displayName} just got exposed on PetDrama.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                    >
-                      X
-                    </a>
+                    {socialLinks.map((item) => (
+                      <a
+                        key={item.label}
+                        href={item.href}
+                        target={item.href.startsWith("mailto:") ? undefined : "_blank"}
+                        rel={item.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+                        className={cn(
+                          "inline-flex items-center justify-center rounded-full border-2 border-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform",
+                          item.className,
+                        )}
+                      >
+                        {item.label}
+                      </a>
+                    ))}
                   </div>
                 </div>
               ) : (

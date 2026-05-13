@@ -51,6 +51,103 @@ export function xShareUrl(url: string, text?: string): string {
   return `https://twitter.com/intent/tweet?${params.toString()}`;
 }
 
+export function telegramShareUrl(url: string, text?: string): string {
+  const params = new URLSearchParams({ url });
+  if (text) params.set("text", text);
+  return `https://t.me/share/url?${params.toString()}`;
+}
+
+export function redditShareUrl(url: string, title?: string): string {
+  const params = new URLSearchParams({ url });
+  if (title) params.set("title", title);
+  return `https://www.reddit.com/submit?${params.toString()}`;
+}
+
+export function pinterestShareUrl(url: string, media?: string, description?: string): string {
+  const params = new URLSearchParams({ url });
+  if (media) params.set("media", media);
+  if (description) params.set("description", description);
+  return `https://www.pinterest.com/pin/create/button/?${params.toString()}`;
+}
+
+export function linkedinShareUrl(url: string): string {
+  return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+}
+
+export function threadsShareUrl(url: string, text?: string): string {
+  const msg = text ? `${text} ${url}` : url;
+  return `https://www.threads.net/intent/post?text=${encodeURIComponent(msg)}`;
+}
+
+export function emailShareUrl(url: string, subject?: string, body?: string): string {
+  const params = new URLSearchParams({
+    subject: subject ?? "PetDrama",
+    body: body ? `${body}\n\n${url}` : url,
+  });
+  return `mailto:?${params.toString()}`;
+}
+
+export interface SocialShareLink {
+  label: string;
+  href: string;
+  className: string;
+}
+
+export function buildSocialShareLinks(opts: {
+  url: string;
+  text: string;
+  title?: string;
+  mediaUrl?: string | null;
+}): SocialShareLink[] {
+  return [
+    {
+      label: "WhatsApp",
+      href: whatsappShareUrl(opts.url, opts.text),
+      className: "bg-[#25D366] text-foreground",
+    },
+    {
+      label: "Facebook",
+      href: facebookShareUrl(opts.url),
+      className: "bg-[#1877F2] text-background",
+    },
+    {
+      label: "X",
+      href: xShareUrl(opts.url, opts.text),
+      className: "bg-foreground text-background",
+    },
+    {
+      label: "Telegram",
+      href: telegramShareUrl(opts.url, opts.text),
+      className: "bg-[#27A7E7] text-background",
+    },
+    {
+      label: "Threads",
+      href: threadsShareUrl(opts.url, opts.text),
+      className: "bg-[#101010] text-background",
+    },
+    {
+      label: "Reddit",
+      href: redditShareUrl(opts.url, opts.title ?? opts.text),
+      className: "bg-[#FF4500] text-background",
+    },
+    {
+      label: "Pinterest",
+      href: pinterestShareUrl(opts.url, opts.mediaUrl ?? undefined, opts.title ?? opts.text),
+      className: "bg-[#E60023] text-background",
+    },
+    {
+      label: "LinkedIn",
+      href: linkedinShareUrl(opts.url),
+      className: "bg-[#0A66C2] text-background",
+    },
+    {
+      label: "Email",
+      href: emailShareUrl(opts.url, opts.title, opts.text),
+      className: "bg-background text-foreground",
+    },
+  ];
+}
+
 /** Try Web Share API with file if supported, then URL, then return false. */
 export async function nativeShare(opts: {
   url: string;

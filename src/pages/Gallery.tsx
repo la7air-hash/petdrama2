@@ -20,15 +20,14 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Copy, Download, Facebook, Share2, Trash2 } from "lucide-react";
+import { Copy, Download, Share2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  buildSocialShareLinks,
   copyToClipboard,
-  facebookShareUrl,
   getShareUrl,
   nativeShare,
   setShareEnabled,
-  whatsappShareUrl,
 } from "@/lib/share";
 import { useI18n } from "@/lib/i18n";
 
@@ -524,6 +523,14 @@ export default function Gallery() {
                     slug: active.cloud.public_share_slug ?? null,
                   };
                   const shareUrl = st.slug ? getShareUrl(st.slug) : "";
+                  const socialLinks = shareUrl
+                    ? buildSocialShareLinks({
+                        url: shareUrl,
+                        text: `Vote for ${normalizePetName(active.petName)}'s best PetDrama remix`,
+                        title: `${normalizePetName(active.petName)} — PetDrama`,
+                        mediaUrl: selected.url,
+                      })
+                    : [];
                   return (
                     <div className="mt-5 pt-4 border-t-2 border-dashed border-foreground/20">
                       <div className="flex items-center justify-between gap-3 mb-3">
@@ -568,22 +575,20 @@ export default function Gallery() {
                           </div>
 
                           <div className={cn("mt-3 grid gap-2", canNativeShare ? "grid-cols-3" : "grid-cols-2")}>
-                            <a
-                              href={whatsappShareUrl(shareUrl, `${normalizePetName(active.petName)} the ${getStyle(active.styleId).name} 🎭`)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#25D366] text-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                            >
-                              WhatsApp
-                            </a>
-                            <a
-                              href={facebookShareUrl(shareUrl)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] text-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
-                            >
-                              <Facebook className="size-3" /> Facebook
-                            </a>
+                            {socialLinks.slice(0, canNativeShare ? 8 : 9).map((item) => (
+                              <a
+                                key={item.label}
+                                href={item.href}
+                                target={item.href.startsWith("mailto:") ? undefined : "_blank"}
+                                rel={item.href.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+                                className={cn(
+                                  "inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform",
+                                  item.className,
+                                )}
+                              >
+                                {item.label}
+                              </a>
+                            ))}
                             {canNativeShare && (
                               <button
                                 type="button"
