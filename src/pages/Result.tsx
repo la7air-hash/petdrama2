@@ -666,6 +666,89 @@ export default function Result() {
               </div>
             </StickerCard>
 
+            <StickerCard className="p-4 bg-card">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("result.shareCard")}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{t("result.shareCardBody")}</p>
+                  </div>
+                  <Share2 className="size-5 shrink-0 text-primary" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={onNativeShareResult}
+                    disabled={!activeRenderUrl}
+                    className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-primary text-primary-foreground px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    <Share2 className="size-3.5" /> {t("result.shareImage")}
+                  </button>
+                  <StickerButton variant="ghost" onClick={onDownload} disabled={!activeRenderUrl} className="!px-3 !py-2 text-[11px]">
+                    <Download className="size-3.5" /> PNG
+                  </StickerButton>
+                  <StickerButton variant="secondary" onClick={onCopyCaption} className="!px-3 !py-2 text-[11px]">
+                    <Copy className="size-3.5" /> Caption
+                  </StickerButton>
+                  <button
+                    type="button"
+                    onClick={savedCloudId ? onEnablePublicShare : onSaveToGallery}
+                    disabled={shareBusy || isSaving}
+                    className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-foreground text-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {savedCloudId ? <Link2 className="size-3.5" /> : <Save className="size-3.5" />}
+                    {savedCloudId
+                      ? shareBusy
+                        ? t("result.creatingLink")
+                        : t("result.createPublic")
+                      : isSaving
+                        ? t("result.saving")
+                        : t("result.saveFirst")}
+                  </button>
+                </div>
+
+                {publicShareUrl && (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <a
+                      href={whatsappShareUrl(publicShareUrl, `${displayName} on PetDrama`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-[#25D366] px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5"
+                    >
+                      WhatsApp
+                    </a>
+                    <a
+                      href={facebookShareUrl(publicShareUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm transition-transform hover:-translate-y-0.5"
+                    >
+                      <Facebook className="size-3" /> Facebook
+                    </a>
+                    <a
+                      href={xShareUrl(publicShareUrl, `${displayName} just got exposed on PetDrama.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm transition-transform hover:-translate-y-0.5"
+                    >
+                      X
+                    </a>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await copyToClipboard(publicShareUrl);
+                        toast.success(t("result.copyLink"));
+                      }}
+                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm transition-transform hover:-translate-y-0.5"
+                    >
+                      <Copy className="size-3.5" /> Link
+                    </button>
+                  </div>
+                )}
+              </div>
+            </StickerCard>
+
             {/* Drama Remix CTA — only when no remix yet */}
             {!hasRemix && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 flex items-center justify-between gap-3 flex-wrap">
