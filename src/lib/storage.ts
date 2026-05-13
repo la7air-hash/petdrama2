@@ -146,6 +146,19 @@ function isQuotaError(err: unknown): boolean {
   );
 }
 
+function compactCurrentDraftForGallery(draft: DramaDraft) {
+  try {
+    const current = loadDraft();
+    if (current && current.creationId !== draft.creationId) return;
+    // When anonymous users save, the current draft and gallery entry can otherwise
+    // duplicate large base64 images. Keep the rendered cards, drop raw uploads.
+    const compacted = slimForGallery({ ...(current ?? draft), ...draft });
+    localStorage.setItem(draftKey(), JSON.stringify(compacted));
+  } catch {
+    /* best-effort compaction */
+  }
+}
+
 export function saveToGallery(draft: DramaDraft): DramaDraft {
   const list = loadGallery();
   const incoming = slimForGallery({ ...ensureId(draft), galleryId: newCreationId() });
@@ -164,7 +177,17 @@ export function saveToGallery(draft: DramaDraft): DramaDraft {
     });
     return incoming;
   } catch (err) {
-    if (isQuotaError(err)) throw new GalleryQuotaError();
+    if (isQuotaError(err)) {
+      compactCurrentDraftForGallery(draft);
+      try {
+        localStorage.setItem(galleryKey(), JSON.stringify(next));
+        auditCreationAssets("save-to-gallery-storage-after-compaction", incoming, next);
+        return incoming;
+      } catch (retryErr) {
+        if (isQuotaError(retryErr)) throw new GalleryQuotaError();
+        throw retryErr;
+      }
+    }
     console.error("[PetDrama gallery write error]", err);
     throw err;
   }
