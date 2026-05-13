@@ -15,7 +15,9 @@ const EXAMPLES = [
     name: "Sir Whiskerton",
     style: "Royal Pet",
     quote: "Bring forth the salmon. NOW.",
+    caption: "Sir Whiskerton said we are not amused and meant it.",
     color: "bg-highlight",
+    accent: "coral",
     rotate: -3,
   },
   {
@@ -23,7 +25,9 @@ const EXAMPLES = [
     name: "Don Biscotti",
     style: "Mafia Boss",
     quote: "It's not personal. It's just kibble.",
+    caption: "Don Biscotti doesn't ask twice. Ask the couch.",
     color: "bg-secondary text-secondary-foreground",
+    accent: "teal",
     rotate: 4,
   },
   {
@@ -31,7 +35,9 @@ const EXAMPLES = [
     name: "Tiny Tito",
     style: "Tiny Villain",
     quote: "The plan? Knock everything off the table.",
+    caption: "Tiny Tito woke up and chose chaos. Again.",
     color: "bg-primary text-primary-foreground",
+    accent: "coral",
     rotate: -2,
   },
   {
@@ -39,7 +45,9 @@ const EXAMPLES = [
     name: "Captain Squawk",
     style: "Jealous Pet",
     quote: "Who is THAT in your phone?",
+    caption: "Captain Squawk can read your screen and is judging.",
     color: "bg-accent",
+    accent: "teal",
     rotate: 3,
   },
 ];
@@ -190,49 +198,23 @@ export default function Home() {
           <div className="relative min-w-0 max-w-[calc(100vw-3rem)] h-[480px] sm:h-[560px] lg:col-span-6 lg:h-[620px] lg:max-w-none">
             <div className="absolute inset-4 rounded-[3rem] border-2 border-dashed border-foreground/25 bg-card/40" aria-hidden />
 
-            <StickerCard
-              color="highlight"
-              rotate={6}
-              className="absolute right-2 top-0 w-[60%] sm:w-72 p-3 animate-pop-in"
-            >
-              <div className="relative aspect-square overflow-hidden rounded-2xl border-2 border-foreground bg-foreground">
-                <img src={royalCat} alt="Royal cat example" className="size-full object-cover" loading="lazy" width={400} height={400} />
-                <div className="absolute inset-0 glossy pointer-events-none" />
-                <span className="absolute bottom-3 left-3 rounded-lg border-2 border-foreground bg-background px-2 py-1 text-[10px] font-bold uppercase">
-                  ♛ Royal Pet
-                </span>
-              </div>
-              <p className="mt-2 px-1 font-display font-bold text-sm leading-tight">"Bring forth the salmon. NOW."</p>
-            </StickerCard>
+            <DramaPreviewCard
+              example={EXAMPLES[0]}
+              className="absolute right-0 top-0 w-[66%] sm:w-80 animate-pop-in"
+              compact
+            />
 
-            <StickerCard
-              color="card"
-              rotate={-10}
-              className="absolute left-0 top-24 w-[55%] sm:w-64 p-3 animate-pop-in"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border-2 border-foreground bg-foreground">
-                <img src={mafiaDog} alt="Mafia dog example" className="size-full object-cover" loading="lazy" width={400} height={500} />
-                <div className="absolute inset-0 glossy pointer-events-none" />
-                <span className="absolute bottom-3 left-3 rounded-lg border-2 border-foreground bg-primary text-primary-foreground px-2 py-1 text-[10px] font-bold uppercase">
-                  🕴️ Mafia Boss
-                </span>
-              </div>
-              <p className="mt-2 px-1 font-display font-bold text-sm leading-tight">"Family. Loyalty. Treats."</p>
-            </StickerCard>
+            <DramaPreviewCard
+              example={EXAMPLES[1]}
+              className="absolute left-0 top-28 w-[62%] sm:w-72 animate-pop-in"
+              compact
+            />
 
-            <StickerCard
-              color="secondary"
-              rotate={-3}
-              className="absolute bottom-0 right-12 w-[70%] sm:w-80 p-3 animate-pop-in hidden sm:block"
-            >
-              <div className="relative aspect-video overflow-hidden rounded-2xl border-2 border-foreground bg-foreground">
-                <img src={jealousBird} alt="Jealous bird example" className="size-full object-cover" loading="lazy" width={600} height={400} />
-                <div className="absolute inset-0 glossy pointer-events-none" />
-                <span className="absolute bottom-3 left-3 rounded-lg border-2 border-foreground bg-highlight text-highlight-foreground px-2 py-1 text-[10px] font-bold uppercase">
-                  👀 Jealous
-                </span>
-              </div>
-            </StickerCard>
+            <DramaPreviewCard
+              example={EXAMPLES[3]}
+              className="absolute bottom-0 right-8 hidden w-[72%] sm:block sm:w-88 animate-pop-in"
+              compact
+            />
 
             {/* peelable corner */}
             <div className="absolute -bottom-2 -right-2 size-20 rounded-tl-[2.5rem] border-2 border-foreground bg-highlight sticker-shadow flex items-center justify-center">
@@ -287,19 +269,7 @@ export default function Home() {
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {EXAMPLES.map((ex, i) => (
-            <StickerCard key={i} className="p-3 bg-background hover:-translate-y-1" rotate={i % 2 === 0 ? -1 : 1}>
-              <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border-2 border-foreground">
-                <img src={ex.img} alt={`${ex.name} - ${ex.style}`} className="size-full object-cover" loading="lazy" width={500} height={625} />
-                <div className="absolute inset-0 glossy pointer-events-none" />
-                <span className={`absolute top-3 left-3 rounded-lg border-2 border-foreground px-2 py-1 text-[10px] font-bold uppercase ${ex.color}`}>
-                  {ex.style}
-                </span>
-              </div>
-              <div className="px-2 pt-3 pb-1">
-                <p className="font-display font-extrabold text-lg leading-tight">"{ex.quote}"</p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">— {ex.name}</p>
-              </div>
-            </StickerCard>
+            <DramaPreviewCard key={i} example={ex} />
           ))}
         </div>
       </section>
@@ -383,5 +353,75 @@ export default function Home() {
         </StickerCard>
       </section>
     </PageShell>
+  );
+}
+
+function DramaPreviewCard({
+  example,
+  className,
+  compact = false,
+}: {
+  example: (typeof EXAMPLES)[number];
+  className?: string;
+  compact?: boolean;
+}) {
+  const accentClass =
+    example.accent === "teal" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground";
+  const underlineClass = example.accent === "teal" ? "bg-primary" : "bg-secondary";
+
+  return (
+    <article
+      className={[
+        "relative rounded-[1.5rem] border-2 border-foreground bg-[linear-gradient(135deg,#fbf4e4,#ffe9a8_55%,#cfefec)] p-3 text-foreground shadow-[8px_8px_0_rgba(35,57,63,0.12)] transition-transform hover:-translate-y-1",
+        compact ? "scale-[0.92]" : "",
+        className ?? "",
+      ].join(" ")}
+      style={{ transform: `rotate(${example.rotate}deg)` }}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-[1.35rem] opacity-60 [background-image:radial-gradient(rgba(35,57,63,0.10)_1px,transparent_1px)] [background-size:13px_13px]" />
+      <div className="pointer-events-none absolute left-4 top-5 text-primary/25">🐾</div>
+      <div className="pointer-events-none absolute right-5 top-6 text-secondary/30">✦</div>
+      <div className="pointer-events-none absolute bottom-5 right-9 text-primary/30">✦</div>
+      <div className="pointer-events-none absolute -right-2 top-8 size-12 rounded-full bg-secondary shadow-[0_8px_18px_rgba(35,57,63,0.18)]">
+        <span className="absolute left-2 top-2 size-3 rounded-full bg-white/50" />
+      </div>
+
+      <div className="relative mx-auto mt-8 w-[78%] rounded-3xl border border-foreground/10 bg-white p-3 shadow-[0_12px_28px_rgba(35,57,63,0.16)] -rotate-2">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-foreground/15 bg-foreground/5">
+          <img
+            src={example.img}
+            alt={`${example.name} - ${example.style}`}
+            className="size-full object-cover"
+            loading="lazy"
+            width={520}
+            height={390}
+          />
+          <div className="absolute inset-0 glossy pointer-events-none" />
+        </div>
+        <div className={`absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-background px-4 py-2 text-[10px] font-extrabold uppercase shadow-lg ${accentClass}`}>
+          {example.name.toUpperCase()} — {example.style.toUpperCase()}
+        </div>
+      </div>
+
+      <div className={compact ? "px-2 pb-4 pt-7" : "px-3 pb-5 pt-8"}>
+        <p className={compact ? "text-center font-display text-sm font-extrabold leading-tight" : "text-center font-display text-lg font-extrabold leading-tight"}>
+          “{example.quote}”
+        </p>
+        <div className={`mx-auto mt-2 h-1.5 w-16 rounded-full ${underlineClass}`} />
+        {!compact && (
+          <div className="mx-auto mt-5 max-w-[90%] rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-center text-sm font-semibold text-foreground/75 shadow-[0_6px_14px_rgba(35,57,63,0.12)]">
+            {example.caption}
+          </div>
+        )}
+      </div>
+
+      <div className="relative flex items-center justify-between px-2 pb-1 text-[10px] font-extrabold">
+        <span className="inline-flex items-center gap-1">
+          <span className="size-2 rounded-full bg-primary" />
+          PetDrama
+        </span>
+        {!compact && <span className="rounded-full border-2 border-foreground bg-primary px-3 py-1 text-primary-foreground">WEBP</span>}
+      </div>
+    </article>
   );
 }
