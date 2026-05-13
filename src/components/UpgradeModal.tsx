@@ -16,7 +16,7 @@ export type UpgradeReason =
 const COPY: Record<UpgradeReason, { title: string; body: string; primary: string; primaryTo: string }> = {
   anon_limit: {
     title: "Create a free account to keep going",
-    body: "Free accounts get 15 creations and 5 Drama Remix per month. Sign in to continue.",
+    body: "Free accounts get 10 PetDrama cards and 3 Drama Remix per month. Sign in to continue.",
     primary: "Sign in — free",
     primaryTo: "/login",
   },
@@ -46,7 +46,7 @@ const COPY: Record<UpgradeReason, { title: string; body: string; primary: string
   },
   pro_only: {
     title: "Upgrade for more Drama Remix",
-    body: "Standard includes 10 remixes per month, Pro includes 20.",
+    body: "Standard includes 10 Drama Remix per month, Pro includes 20.",
     primary: "View plans",
     primaryTo: "/pricing",
   },

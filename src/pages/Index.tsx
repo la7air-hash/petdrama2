@@ -300,7 +300,7 @@ export default function Home() {
           {t("home.pricingTitle")}
         </h2>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+        <div className="mt-10 grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
           <StickerCard className="p-8 bg-background">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("home.freePlan")}</p>
             <p className="mt-2 font-display text-5xl font-extrabold">$0</p>
@@ -312,6 +312,19 @@ export default function Home() {
             </ul>
             <Link to="/create" className="mt-8 block">
               <StickerButton variant="ghost" className="w-full">{t("home.startFree")}</StickerButton>
+            </Link>
+          </StickerCard>
+          <StickerCard className="p-8 bg-secondary text-secondary-foreground">
+            <p className="text-xs font-bold uppercase tracking-widest">Standard</p>
+            <p className="mt-2 font-display text-5xl font-extrabold">$4.99<span className="text-2xl font-bold">/mo</span></p>
+            <ul className="mt-6 space-y-2 text-sm">
+              <li>✓ 25 creations / month</li>
+              <li>✓ 10 Drama Remix / month</li>
+              <li>✓ All drama styles unlocked</li>
+              <li>✓ HD downloads, no watermark</li>
+            </ul>
+            <Link to="/pricing" className="mt-8 block">
+              <StickerButton variant="dark" className="w-full">{t("home.seePlans")}</StickerButton>
             </Link>
           </StickerCard>
           <StickerCard className="p-8 bg-primary text-primary-foreground" shadow="lg">
