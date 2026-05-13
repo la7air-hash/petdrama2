@@ -195,16 +195,32 @@ export default function PublicShare() {
     if (!slug || !data || voteBusy || key === "legacy-remix") return;
     setVoteBusy(true);
     try {
+      const voterKey = getAnonKey();
       const { data: res, error } = await supabase.functions.invoke("remix-vote", {
         body: {
           slug,
+          gallery_item_id: data.galleryItemId,
           variantKey: key,
-          voterKey: getAnonKey(),
+          variant_key: key,
+          voterKey,
+          voter_key: voterKey,
         },
       });
       if (error || !res || res.error) throw error ?? new Error(res?.error ?? "Vote failed");
-      setVoteCounts(res.counts ?? {});
-      setVoteTotal(res.total ?? 0);
+
+      if (res.counts) {
+        setVoteCounts(res.counts ?? {});
+        setVoteTotal(res.total ?? 0);
+      } else {
+        const { data: refreshed } = await supabase.functions.invoke("public-share", {
+          body: { slug },
+        });
+        if (refreshed && !refreshed.error) {
+          setVoteCounts(refreshed.voteCounts ?? {});
+          setVoteTotal(refreshed.voteTotal ?? 0);
+        }
+      }
+
       setMyVote(key);
       try {
         localStorage.setItem(`petdrama:vote:${slug}`, key);
