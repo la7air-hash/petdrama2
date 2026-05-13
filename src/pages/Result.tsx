@@ -12,7 +12,7 @@ import { generateDrama, getStyle, normalizePetName } from "@/lib/drama";
 import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, clearDraft, type DramaDraft } from "@/lib/storage";
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
-import { saveGalleryItem, getCurrentUserId } from "@/lib/gallery-cloud";
+import { addRemixVariant, saveGalleryItem, getCurrentUserId } from "@/lib/gallery-cloud";
 import {
   copyToClipboard,
   facebookShareUrl,
@@ -445,7 +445,25 @@ export default function Result() {
       if (updated.renderedDataUrl && !renderUrl) setRenderUrl(updated.renderedDataUrl);
       if (renderedRemix) setRemixRenderUrl(renderedRemix);
       setVariant("remix");
-      toast.success("Drama Remix ready ✨");
+      const userId = await getCurrentUserId();
+      if (userId && savedCloudId && renderedRemix) {
+        try {
+          await addRemixVariant({
+            galleryItemId: savedCloudId,
+            userId,
+            dataUrl: renderedRemix,
+            quote: draft.drama.quote,
+            caption: draft.drama.caption ?? null,
+            hashtags: draft.drama.hashtags ?? [],
+          });
+          toast.success("Drama Remix saved to gallery ✨");
+        } catch (saveErr) {
+          console.error("[PetDrama remix autosave]", saveErr);
+          toast.success("Drama Remix ready ✨");
+        }
+      } else {
+        toast.success("Drama Remix ready ✨");
+      }
       refreshEntitlements();
     } catch (e: any) {
       console.warn("[Drama Remix unexpected]", e);
@@ -526,7 +544,7 @@ export default function Result() {
           const saved = await saveGalleryItem({
             draft: persisted,
             originalDataUrl: finalOriginal,
-            remixDataUrl: finalRemix,
+            remixDataUrl: savedCloudId ? undefined : finalRemix,
           });
           setSavedCloudId(saved.id);
           if (saved.share_enabled && saved.public_share_slug) {
