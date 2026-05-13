@@ -5,7 +5,6 @@ import { StickerButton } from "@/components/StickerButton";
 import { StickerCard } from "@/components/StickerCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 const ALLOWED_REDIRECTS = ["/gallery", "/create", "/result", "/pricing", "/"];
 
@@ -64,12 +63,15 @@ export default function Login() {
     try {
       // Persist intended path so it survives the OAuth round-trip
       sessionStorage.setItem("petdrama:postLogin", intended);
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(intended)}`,
+          queryParams: { prompt: "select_account" },
+        },
       });
-      if (result?.error) {
-        const msg = String((result.error as Error)?.message ?? "");
+      if (error) {
+        const msg = String(error.message ?? "");
         const notConfigured = /not.*(configured|enabled)|provider.*disabled|unsupported.*provider|missing.*client/i.test(
           msg,
         );
@@ -81,8 +83,7 @@ export default function Login() {
         setGoogleBusy(false);
         return;
       }
-      // If redirected, the browser is leaving — nothing else to do.
-      // If tokens were returned inline, the auth listener above will navigate.
+      // The browser is leaving for Google; the auth listener above handles the return.
     } catch (e) {
       toast.error("Google sign-in is unavailable right now. Please use email & password.");
       setGoogleBusy(false);
