@@ -153,6 +153,10 @@ export default function PublicShare() {
   const activeCaption = activeVariant?.caption ?? data?.caption ?? null;
   const activeHashtags = activeVariant?.hashtags ?? data?.hashtags ?? [];
   const canVote = variants.filter((v) => v.key !== "legacy-remix").length > 1;
+  const effectiveVoteTotal =
+    voteTotal > 0
+      ? voteTotal
+      : Object.values(voteCounts).reduce((sum, count) => sum + (Number(count) || 0), 0);
   const activeFileSuffix = (activeVariant?.label ?? "card")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -357,7 +361,7 @@ export default function PublicShare() {
               <div className="mt-4 space-y-3">
                 {variants.map((item) => {
                   const count = voteCounts[item.key] ?? 0;
-                  const pct = voteTotal > 0 ? Math.round((count / voteTotal) * 100) : 0;
+                  const pct = effectiveVoteTotal > 0 ? Math.round((count / effectiveVoteTotal) * 100) : 0;
                   const selected = myVote === item.key;
                   return (
                     <button
