@@ -11,6 +11,7 @@ import {
   facebookShareUrl,
   nativeShare,
   whatsappShareUrl,
+  xShareUrl,
 } from "@/lib/share";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -210,7 +211,7 @@ export default function PublicShare() {
             </div>
           )}
 
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="mt-8 grid grid-cols-2 sm:grid-cols-5 gap-2">
             <button
               type="button"
               onClick={handleNative}
@@ -240,6 +241,14 @@ export default function PublicShare() {
               className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] text-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
             >
               <Facebook className="size-3.5" /> Facebook
+            </a>
+            <a
+              href={xShareUrl(shareUrl, `${petName} just got exposed on PetDrama.`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground text-background px-3 py-2 text-xs font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+            >
+              X
             </a>
           </div>
 

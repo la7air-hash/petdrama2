@@ -41,7 +41,7 @@ export function AccountPill() {
     return (
       <Link
         to="/create"
-        className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-4 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
+        className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground sm:px-4"
       >
         Create
       </Link>
@@ -59,7 +59,7 @@ export function AccountPill() {
         </Link>
         <Link
           to="/create"
-          className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-4 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground"
+          className="inline-flex items-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-sm font-bold text-background transition-transform hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground sm:px-4"
         >
           Create
         </Link>

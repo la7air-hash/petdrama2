@@ -13,8 +13,18 @@ import { auditCreationAssets, loadDraft, loadGallery, saveDraft, saveToGallery, 
 import { renderDramaPng, downloadDataUrl } from "@/lib/render";
 import { supabase } from "@/integrations/supabase/client";
 import { saveGalleryItem, getCurrentUserId } from "@/lib/gallery-cloud";
+import {
+  copyToClipboard,
+  facebookShareUrl,
+  getShareUrl,
+  nativeShare,
+  setShareEnabled,
+  whatsappShareUrl,
+  xShareUrl,
+} from "@/lib/share";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Copy, Download, Facebook, Link2, Save, Share2 } from "lucide-react";
 
 type Variant = "original" | "remix";
 
@@ -26,6 +36,9 @@ export default function Result() {
   const [variant, setVariant] = useState<Variant>("original");
   const [isRemixing, setIsRemixing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [savedCloudId, setSavedCloudId] = useState<string | null>(null);
+  const [publicShareUrl, setPublicShareUrl] = useState<string | null>(null);
   const { isPro, isPaid, isAdmin, watermarkEnabled, usage, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | null>(null);
 
@@ -279,6 +292,20 @@ export default function Result() {
     toast.success("Caption + hashtags copied to clipboard.");
   };
 
+  const onNativeShareResult = async () => {
+    if (!activeRenderUrl) return;
+    const ok = await nativeShare({
+      url: publicShareUrl ?? window.location.href,
+      title: `${displayName} — PetDrama`,
+      text: draft.drama.quote,
+      fileUrl: activeRenderUrl,
+      fileName: `petdrama-${displayName.replace(/\s+/g, "-").toLowerCase()}.png`,
+    });
+    if (!ok) {
+      await onCopyCaption();
+    }
+  };
+
   const onRegenerate = async () => {
     try {
       const gate = await checkUsage("regenerate");
@@ -494,11 +521,15 @@ export default function Result() {
       const userId = await getCurrentUserId();
       if (userId) {
         try {
-          await saveGalleryItem({
+          const saved = await saveGalleryItem({
             draft: persisted,
             originalDataUrl: finalOriginal,
             remixDataUrl: finalRemix,
           });
+          setSavedCloudId(saved.id);
+          if (saved.share_enabled && saved.public_share_slug) {
+            setPublicShareUrl(getShareUrl(saved.public_share_slug));
+          }
           setDraft(persisted);
           toast.success(
             persisted.remixRenderedDataUrl
@@ -529,6 +560,27 @@ export default function Result() {
       toast.error("Couldn't save — please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const onEnablePublicShare = async () => {
+    if (shareBusy) return;
+    if (!savedCloudId) {
+      toast.error("Save to your account gallery first, then create a public link.");
+      return;
+    }
+    setShareBusy(true);
+    try {
+      const res = await setShareEnabled(savedCloudId, true);
+      const url = getShareUrl(res.slug);
+      setPublicShareUrl(url);
+      await copyToClipboard(url);
+      toast.success("Public link created and copied.");
+    } catch (err: any) {
+      console.error("[PetDrama result share]", err);
+      toast.error(err?.message || "Couldn't create a public link.");
+    } finally {
+      setShareBusy(false);
     }
   };
 
@@ -725,10 +777,10 @@ export default function Result() {
 
             <div className="grid grid-cols-2 gap-3">
               <StickerButton variant="primary" onClick={onDownload} disabled={!activeRenderUrl}>
-                ⬇ Download {variant === "remix" ? "Remix" : "PNG"}
+                <Download className="size-4" /> Download {variant === "remix" ? "Remix" : "PNG"}
               </StickerButton>
               <StickerButton variant="secondary" onClick={onCopyCaption}>
-                📋 Copy caption + hashtags
+                <Copy className="size-4" /> Copy caption
               </StickerButton>
               {hasRemix ? (
                 <StickerButton variant="ghost" onClick={onDramaRemix} disabled={isRemixing}>
@@ -740,9 +792,93 @@ export default function Result() {
                 </StickerButton>
               )}
               <StickerButton variant="dark" onClick={onSaveToGallery} disabled={isSaving}>
-                {isSaving ? "Saving…" : "✦ Save to gallery"}
+                <Save className="size-4" /> {isSaving ? "Saving…" : "Save to gallery"}
               </StickerButton>
             </div>
+
+            <StickerCard className="p-5 bg-card">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Share faster</p>
+                  <h2 className="mt-1 font-display text-xl font-extrabold">Send the drama while it is fresh.</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Save once to your account gallery, then create a public link for friends and socials.
+                  </p>
+                </div>
+                <Share2 className="size-5 shrink-0 text-primary" />
+              </div>
+
+              {publicShareUrl ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={publicShareUrl}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="min-w-0 flex-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-xs font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await copyToClipboard(publicShareUrl);
+                        toast.success("Link copied!");
+                      }}
+                      className="inline-flex size-10 items-center justify-center rounded-full border-2 border-foreground bg-foreground text-background sticker-shadow-sm"
+                      aria-label="Copy public link"
+                    >
+                      <Copy className="size-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <button
+                      type="button"
+                      onClick={onNativeShareResult}
+                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-background px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                    >
+                      <Share2 className="size-3" /> Share
+                    </button>
+                    <a
+                      href={whatsappShareUrl(publicShareUrl, `${displayName} on PetDrama`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-[#25D366] px-3 py-2 text-[11px] font-extrabold sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                    >
+                      WhatsApp
+                    </a>
+                    <a
+                      href={facebookShareUrl(publicShareUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1 rounded-full border-2 border-foreground bg-[#1877F2] px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                    >
+                      <Facebook className="size-3" /> Facebook
+                    </a>
+                    <a
+                      href={xShareUrl(publicShareUrl, `${displayName} just got exposed on PetDrama.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-foreground bg-foreground px-3 py-2 text-[11px] font-extrabold text-background sticker-shadow-sm hover:-translate-y-0.5 transition-transform"
+                    >
+                      X
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <StickerButton
+                  variant="primary"
+                  onClick={onEnablePublicShare}
+                  disabled={shareBusy || !savedCloudId}
+                  className="mt-4 w-full"
+                >
+                  <Link2 className="size-4" />
+                  {savedCloudId
+                    ? shareBusy
+                      ? "Creating link…"
+                      : "Create public link"
+                    : "Save to gallery first"}
+                </StickerButton>
+              )}
+            </StickerCard>
 
             {!isPaid && !isAdmin && (
               <div className="rounded-2xl border-2 border-dashed border-foreground/30 p-4 text-sm">

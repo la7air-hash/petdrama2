@@ -45,6 +45,12 @@ export function facebookShareUrl(url: string): string {
   return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
 }
 
+export function xShareUrl(url: string, text?: string): string {
+  const params = new URLSearchParams({ url });
+  if (text) params.set("text", text);
+  return `https://twitter.com/intent/tweet?${params.toString()}`;
+}
+
 /** Try Web Share API with file if supported, then URL, then return false. */
 export async function nativeShare(opts: {
   url: string;

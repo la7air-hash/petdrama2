@@ -12,7 +12,7 @@ const NAV = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="container flex items-center justify-between py-3">
+      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-3 sm:px-6">
         <Link to="/" aria-label="PetDrama home" className="flex items-center gap-2 group">
           <img
             src={logo}

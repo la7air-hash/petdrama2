@@ -64,6 +64,12 @@ const STEPS = [
   },
 ];
 
+const BENEFITS = [
+  "No account required to start",
+  "Square cards ready for socials",
+  "Captions and hashtags included",
+];
+
 export default function Home() {
   return (
     <PageShell>
@@ -119,34 +125,45 @@ export default function Home() {
             backgroundSize: "26px 26px",
           }}
         />
-        <div className="container relative grid gap-12 py-12 md:py-20 lg:grid-cols-12 lg:gap-8 items-center">
-          <div className="lg:col-span-6 z-10">
+        <div className="container relative grid max-w-full gap-12 overflow-hidden py-12 md:py-20 lg:grid-cols-12 lg:gap-8 items-center">
+          <div className="z-10 min-w-0 max-w-[calc(100vw-3rem)] lg:col-span-6 lg:max-w-none">
             <div className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-accent px-4 py-1.5 sticker-shadow-sm -rotate-2 mb-6">
               <span className="text-base">🎭</span>
               <span className="text-xs font-bold uppercase tracking-widest">Dramatic pet captions</span>
             </div>
-            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[0.95] tracking-tight text-balance">
-              Turn your pet into a
-              <span className="text-primary"> dramatic</span> star.
+            <h1 className="max-w-[22rem] font-display text-4xl sm:max-w-xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.02] tracking-normal text-balance">
+              Make your pet a
+              <span className="text-primary"> share-ready</span> star.
             </h1>
-            <p className="mt-6 max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty">
-              Turn your pet photos into funny dramatic stories, memes and remixes — in seconds.
+            <p className="mt-6 max-w-[22rem] sm:max-w-xl text-lg md:text-xl font-medium text-background/85 leading-relaxed text-pretty [overflow-wrap:anywhere]">
+              Upload one photo, choose a character, and get a polished meme card with a quote, caption and hashtags in seconds.
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <Link to="/create">
+            <div className="mt-8 flex max-w-[22rem] flex-col gap-4 sm:max-w-none sm:flex-row">
+              <Link to="/create" className="block w-full sm:w-auto">
                 <StickerButton variant="primary" size="lg" className="w-full sm:w-auto">
                   Create your PetDrama →
                 </StickerButton>
               </Link>
-              <Link to="/examples">
+              <Link to="/examples" className="block w-full sm:w-auto">
                 <StickerButton variant="ghost" size="lg" className="w-full sm:w-auto">
                   View examples
                 </StickerButton>
               </Link>
             </div>
 
-            <div className="mt-8 flex items-center gap-4">
+            <div className="mt-6 grid max-w-[22rem] gap-2 sm:max-w-2xl sm:grid-cols-3">
+              {BENEFITS.map((benefit) => (
+                <div
+                  key={benefit}
+                  className="rounded-2xl border-2 border-background/25 bg-background/10 px-3 py-2 text-xs font-extrabold uppercase tracking-wider text-background backdrop-blur-sm"
+                >
+                  {benefit}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 flex max-w-[22rem] items-center gap-4 sm:max-w-xl">
               <div className="flex -space-x-3">
                 {EXAMPLES.slice(0, 4).map((ex, i) => (
                   <div
@@ -158,17 +175,17 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-xs sm:text-sm font-bold uppercase tracking-tight leading-tight text-background">
-                12,842 pets exposed
+                See the output before you sign in
                 <br />
                 <span className="font-medium text-background/70 normal-case tracking-normal">
-                  this week alone — entertainment only ✨
+                  then save or share when the drama is worth keeping
                 </span>
               </p>
             </div>
           </div>
 
           {/* Sticker collage */}
-          <div className="relative h-[480px] sm:h-[560px] lg:col-span-6 lg:h-[620px]">
+          <div className="relative min-w-0 max-w-[calc(100vw-3rem)] h-[480px] sm:h-[560px] lg:col-span-6 lg:h-[620px] lg:max-w-none">
             <div className="absolute inset-4 rounded-[3rem] border-2 border-dashed border-foreground/25 bg-card/40" aria-hidden />
 
             <StickerCard
